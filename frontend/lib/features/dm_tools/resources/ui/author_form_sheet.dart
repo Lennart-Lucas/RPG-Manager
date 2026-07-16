@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/resource_models.dart';
+import 'resource_form_helpers.dart';
 
 class AuthorFormResult {
   const AuthorFormResult({required this.name, required this.links});
@@ -9,25 +10,38 @@ class AuthorFormResult {
   final List<AuthorLink> links;
 }
 
-Future<AuthorFormResult?> showAuthorFormSheet(BuildContext context) {
-  return showModalBottomSheet<AuthorFormResult>(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
-    builder: (context) => const _AuthorFormSheet(),
+Future<AuthorFormResult?> showAuthorFormSheet(
+  BuildContext context, {
+  Author? initial,
+}) {
+  final editing = initial != null;
+  return showAdaptiveResourceForm<AuthorFormResult>(
+    context,
+    title: editing ? 'Edit author' : 'New author',
+    child: _AuthorFormSheet(initial: initial),
   );
 }
 
 class _AuthorFormSheet extends StatefulWidget {
-  const _AuthorFormSheet();
+  const _AuthorFormSheet({this.initial});
+
+  final Author? initial;
 
   @override
   State<_AuthorFormSheet> createState() => _AuthorFormSheetState();
 }
 
 class _AuthorFormSheetState extends State<_AuthorFormSheet> {
-  final _nameController = TextEditingController();
-  final _links = <_LinkRow>[];
+  final _formKey = GlobalKey<FormState>();
+  late final _nameController = TextEditingController(
+    text: widget.initial?.name ?? '',
+  );
+  late final _links = <_LinkRow>[
+    for (final link in widget.initial?.links ?? const <AuthorLink>[])
+      _LinkRow(source: link.source, url: link.url),
+  ];
+
+  bool get _editing => widget.initial != null;
 
   @override
   void dispose() {
@@ -51,13 +65,11 @@ class _AuthorFormSheetState extends State<_AuthorFormSheet> {
   }
 
   void _submit() {
-    final name = _nameController.text.trim();
-    if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Name is required')),
-      );
+    final form = _formKey.currentState;
+    if (form == null || !form.validate()) {
       return;
     }
+    final name = _nameController.text.trim();
     final links = <AuthorLink>[];
     for (final row in _links) {
       final url = row.urlController.text.trim();
@@ -72,106 +84,128 @@ class _AuthorFormSheetState extends State<_AuthorFormSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final bottom = MediaQuery.viewInsetsOf(context).bottom;
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20, 8, 20, 20 + bottom),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'New author',
-              style: Theme.of(context).textTheme.titleLarge,
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextFormField(
+            controller: _nameController,
+            decoration: ResourceFormStyles.inputDecoration(
+              context,
+              label: 'Name',
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Name',
-                border: OutlineInputBorder(),
+            textInputAction: TextInputAction.next,
+            autofocus: true,
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Name is required';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: ResourceFormStyles.sectionSpacing),
+          Row(
+            children: [
+              Text(
+                'Links',
+                style: Theme.of(context).textTheme.titleMedium,
               ),
-              textInputAction: TextInputAction.next,
-              autofocus: true,
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Text(
-                  'Links',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const Spacer(),
-                TextButton.icon(
-                  onPressed: _addLink,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add'),
-                ),
-              ],
-            ),
-            ...List.generate(_links.length, (index) {
-              final row = _links[index];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: DropdownButtonFormField<String>(
-                        initialValue: row.source,
-                        decoration: const InputDecoration(
-                          labelText: 'Type',
-                          border: OutlineInputBorder(),
-                        ),
-                        items: [
-                          for (final source in kLinkSources)
-                            DropdownMenuItem(
-                              value: source,
-                              child: Text(source),
-                            ),
-                        ],
-                        onChanged: (value) {
-                          if (value == null) return;
-                          setState(() => row.source = value);
-                        },
+              const Spacer(),
+              TextButton.icon(
+                onPressed: _addLink,
+                icon: const Icon(Icons.add),
+                label: const Text('Add'),
+              ),
+            ],
+          ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          ...List.generate(_links.length, (index) {
+            final row = _links[index];
+            return Padding(
+              padding: const EdgeInsets.only(
+                bottom: ResourceFormStyles.fieldSpacing,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: DropdownButtonFormField<String>(
+                      initialValue: row.source,
+                      decoration: ResourceFormStyles.inputDecoration(
+                        context,
+                        label: 'Type',
                       ),
+                      items: [
+                        for (final source in kLinkSources)
+                          DropdownMenuItem(
+                            value: source,
+                            child: Text(source),
+                          ),
+                      ],
+                      onChanged: (value) {
+                        if (value == null) return;
+                        setState(() => row.source = value);
+                      },
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      flex: 3,
-                      child: TextField(
-                        controller: row.urlController,
-                        decoration: const InputDecoration(
-                          labelText: 'URL',
-                          border: OutlineInputBorder(),
-                        ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 3,
+                    child: TextFormField(
+                      controller: row.urlController,
+                      decoration: ResourceFormStyles.inputDecoration(
+                        context,
+                        label: 'URL',
                       ),
+                      keyboardType: TextInputType.url,
+                      validator: (value) => _validateOptionalUrl(value),
                     ),
-                    IconButton(
-                      onPressed: () => _removeLink(index),
-                      icon: const Icon(Icons.remove_circle_outline),
-                    ),
-                  ],
-                ),
-              );
-            }),
-            const SizedBox(height: 8),
-            FilledButton(
-              onPressed: _submit,
-              child: const Text('Create author'),
-            ),
-          ],
-        ),
+                  ),
+                  const SizedBox(width: 4),
+                  IconButton(
+                    tooltip: 'Remove link',
+                    onPressed: () => _removeLink(index),
+                    icon: const Icon(Icons.remove_circle_outline),
+                  ),
+                ],
+              ),
+            );
+          }),
+          const SizedBox(height: 8),
+          FilledButton(
+            onPressed: _submit,
+            child: Text(_editing ? 'Save author' : 'Create author'),
+          ),
+        ],
       ),
     );
+  }
+
+  String? _validateOptionalUrl(String? value) {
+    final trimmed = value?.trim() ?? '';
+    if (trimmed.isEmpty) {
+      return null;
+    }
+    final uri = Uri.tryParse(trimmed);
+    if (uri == null || !uri.hasScheme || uri.host.isEmpty) {
+      return 'Enter a valid URL';
+    }
+    if (uri.scheme != 'http' && uri.scheme != 'https') {
+      return 'URL must start with http or https';
+    }
+    return null;
   }
 }
 
 class _LinkRow {
-  _LinkRow() : urlController = TextEditingController();
+  _LinkRow({String source = 'website', String url = ''})
+      : source = source,
+        urlController = TextEditingController(text: url);
 
-  String source = 'website';
+  String source;
   final TextEditingController urlController;
 
   void dispose() => urlController.dispose();

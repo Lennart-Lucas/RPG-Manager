@@ -1,8 +1,10 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 
 import '../data/local_resource_file_copy.dart';
 import '../data/resource_models.dart';
+import 'resource_form_helpers.dart';
 
 class FileFormResult {
   const FileFormResult({
@@ -21,33 +23,66 @@ class FileFormResult {
 Future<FileFormResult?> showFileFormSheet(
   BuildContext context, {
   required List<Author> authors,
+  ResourceFile? initial,
+  String? existingLocalPath,
 }) {
-  return showModalBottomSheet<FileFormResult>(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
-    builder: (context) => _FileFormSheet(authors: authors),
+  final editing = initial != null;
+  return showAdaptiveResourceForm<FileFormResult>(
+    context,
+    title: editing ? 'Edit file' : 'New file',
+    child: _FileFormSheet(
+      authors: authors,
+      initial: initial,
+      existingLocalPath: existingLocalPath,
+    ),
   );
 }
 
 class _FileFormSheet extends StatefulWidget {
-  const _FileFormSheet({required this.authors});
+  const _FileFormSheet({
+    required this.authors,
+    this.initial,
+    this.existingLocalPath,
+  });
 
   final List<Author> authors;
+  final ResourceFile? initial;
+  final String? existingLocalPath;
 
   @override
   State<_FileFormSheet> createState() => _FileFormSheetState();
 }
 
 class _FileFormSheetState extends State<_FileFormSheet> {
-  final _nameController = TextEditingController();
-  final _sourceController = TextEditingController();
-  late int _authorId = widget.authors.first.id;
+  final _formKey = GlobalKey<FormState>();
+  late final _nameController = TextEditingController(
+    text: widget.initial?.name ?? '',
+  );
+  late final _sourceController = TextEditingController(
+    text: widget.initial?.source ?? '',
+  );
+  late int _authorId = widget.initial?.authorId ?? widget.authors.first.id;
   String? _pickedPath;
   String? _pickedName;
+  bool _submitted = false;
+
+  bool get _editing => widget.initial != null;
+  bool get _hasExistingLocal =>
+      widget.existingLocalPath != null &&
+      widget.existingLocalPath!.trim().isNotEmpty;
+
+  @override
+  void initState() {
+    super.initState();
+    _sourceController.addListener(_refreshValidation);
+    if (_hasExistingLocal) {
+      _pickedName = p.basename(widget.existingLocalPath!);
+    }
+  }
 
   @override
   void dispose() {
+    _sourceController.removeListener(_refreshValidation);
     _nameController.dispose();
     _sourceController.dispose();
     super.dispose();
@@ -70,27 +105,27 @@ class _FileFormSheetState extends State<_FileFormSheet> {
   }
 
   void _submit() {
-    final name = _nameController.text.trim();
-    if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Name is required')),
-      );
+    setState(() => _submitted = true);
+    final form = _formKey.currentState;
+    final needsNewFile = isDesktopFileStorageSupported &&
+        !_editing &&
+        (_pickedPath == null || _pickedPath!.isEmpty);
+    final missingReplacement = isDesktopFileStorageSupported &&
+        _editing &&
+        !_hasExistingLocal &&
+        (_pickedPath == null || _pickedPath!.isEmpty);
+    if (form == null ||
+        !form.validate() ||
+        needsNewFile ||
+        missingReplacement) {
       return;
     }
-    if (isDesktopFileStorageSupported &&
-        (_pickedPath == null || _pickedPath!.isEmpty)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Choose a file to copy locally')),
-      );
-      return;
-    }
-    final source = _sourceController.text.trim();
     Navigator.pop(
       context,
       FileFormResult(
-        name: name,
+        name: _nameController.text.trim(),
         authorId: _authorId,
-        source: source.isEmpty ? null : source,
+        source: _normalizedSource,
         pickedPath: _pickedPath,
       ),
     );
@@ -98,81 +133,157 @@ class _FileFormSheetState extends State<_FileFormSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final bottom = MediaQuery.viewInsetsOf(context).bottom;
     final desktop = isDesktopFileStorageSupported;
+    final showMissingFile = _submitted &&
+        desktop &&
+        ((_editing && !_hasExistingLocal && _pickedPath == null) ||
+            (!_editing && _pickedPath == null));
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20, 8, 20, 20 + bottom),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'New file',
-              style: Theme.of(context).textTheme.titleLarge,
+    return Form(
+      key: _formKey,
+      autovalidateMode: _submitted
+          ? AutovalidateMode.onUserInteraction
+          : AutovalidateMode.disabled,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextFormField(
+            controller: _nameController,
+            decoration: ResourceFormStyles.inputDecoration(
+              context,
+              label: 'Name',
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Name',
-                border: OutlineInputBorder(),
-              ),
-              autofocus: true,
+            autofocus: true,
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Name is required';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          DropdownButtonFormField<int>(
+            initialValue: _authorId,
+            decoration: ResourceFormStyles.inputDecoration(
+              context,
+              label: 'Author',
             ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<int>(
-              initialValue: _authorId,
-              decoration: const InputDecoration(
-                labelText: 'Author',
-                border: OutlineInputBorder(),
+            items: [
+              for (final author in widget.authors)
+                DropdownMenuItem(
+                  value: author.id,
+                  child: Text(author.name),
+                ),
+            ],
+            onChanged: (value) {
+              if (value == null) return;
+              setState(() => _authorId = value);
+            },
+            validator: (value) => value == null ? 'Author is required' : null,
+          ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          TextFormField(
+            controller: _sourceController,
+            decoration: ResourceFormStyles.inputDecoration(
+              context,
+              label: 'Source',
+              hintText: 'Optional URL',
+            ),
+            keyboardType: TextInputType.url,
+            validator: (value) => _validateOptionalUrl(value),
+          ),
+          const SizedBox(height: ResourceFormStyles.sectionSpacing),
+          if (desktop) ...[
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
               ),
-              items: [
-                for (final author in widget.authors)
-                  DropdownMenuItem(
-                    value: author.id,
-                    child: Text(author.name),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Local file',
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
-              ],
-              onChanged: (value) {
-                if (value == null) return;
-                setState(() => _authorId = value);
-              },
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _sourceController,
-              decoration: const InputDecoration(
-                labelText: 'Source',
-                hintText: 'Optional URL',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.url,
-            ),
-            const SizedBox(height: 12),
-            if (desktop) ...[
-              OutlinedButton.icon(
-                onPressed: _pickFile,
-                icon: const Icon(Icons.attach_file),
-                label: Text(_pickedName ?? 'Choose file'),
-              ),
-            ] else
-              Text(
-                'File picker is desktop only. You can still save metadata '
-                'and a source URL.',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  const SizedBox(height: 6),
+                  Text(
+                    _editing
+                        ? 'Optional: choose a new file to replace the local copy.'
+                        : 'The file is copied into this app on this device only.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurfaceVariant,
+                        ),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: _pickFile,
+                    icon: const Icon(Icons.attach_file),
+                    label: Text(
+                      _pickedName ??
+                          (_editing ? 'Replace file' : 'Choose file'),
                     ),
+                  ),
+                  if (showMissingFile) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'A file is required on desktop.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                    ),
+                  ],
+                ],
               ),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: _submit,
-              child: const Text('Create file'),
             ),
-          ],
-        ),
+          ] else
+            Text(
+              'File picker is desktop only. You can still save metadata '
+              'and a source URL.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+          const SizedBox(height: ResourceFormStyles.sectionSpacing),
+          FilledButton(
+            onPressed: _submit,
+            child: Text(_editing ? 'Save file' : 'Create file'),
+          ),
+        ],
       ),
     );
+  }
+
+  String? get _normalizedSource {
+    final trimmed = _sourceController.text.trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
+
+  String? _validateOptionalUrl(String? value) {
+    final trimmed = value?.trim() ?? '';
+    if (trimmed.isEmpty) {
+      return null;
+    }
+    final uri = Uri.tryParse(trimmed);
+    if (uri == null || !uri.hasScheme || uri.host.isEmpty) {
+      return 'Enter a valid URL';
+    }
+    if (uri.scheme != 'http' && uri.scheme != 'https') {
+      return 'URL must start with http or https';
+    }
+    return null;
+  }
+
+  void _refreshValidation() {
+    if (mounted && _submitted) {
+      setState(() {});
+    }
   }
 }

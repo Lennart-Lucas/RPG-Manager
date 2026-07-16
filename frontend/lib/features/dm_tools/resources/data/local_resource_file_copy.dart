@@ -41,15 +41,33 @@ class LocalResourceFileCopy {
     if (!await file.exists()) {
       throw StateError('Local file not found');
     }
+    await _openExternally(absolutePath);
+  }
+
+  /// Opens a URL or file path with the OS default handler (desktop).
+  Future<void> openUrl(String url) async {
+    if (kIsWeb) {
+      throw UnsupportedError('Opening URLs is desktop-only for now');
+    }
+    final uri = Uri.tryParse(url.trim());
+    if (uri == null ||
+        (uri.scheme != 'http' && uri.scheme != 'https') ||
+        uri.host.isEmpty) {
+      throw ArgumentError('Invalid URL');
+    }
+    await _openExternally(uri.toString());
+  }
+
+  Future<void> _openExternally(String target) async {
     switch (defaultTargetPlatform) {
       case TargetPlatform.windows:
-        await Process.start('cmd', ['/c', 'start', '', absolutePath]);
+        await Process.start('cmd', ['/c', 'start', '', target]);
       case TargetPlatform.macOS:
-        await Process.start('open', [absolutePath]);
+        await Process.start('open', [target]);
       case TargetPlatform.linux:
-        await Process.start('xdg-open', [absolutePath]);
+        await Process.start('xdg-open', [target]);
       default:
-        throw UnsupportedError('Opening local files is desktop-only');
+        throw UnsupportedError('Opening links is desktop-only');
     }
   }
 }

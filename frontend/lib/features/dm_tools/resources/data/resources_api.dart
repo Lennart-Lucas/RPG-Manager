@@ -43,6 +43,23 @@ class ResourcesApi {
     return _parseOne(response, Author.fromJson, created: true);
   }
 
+  Future<Author> updateAuthor({
+    required String accessToken,
+    required int authorId,
+    required String name,
+    required List<AuthorLink> links,
+  }) async {
+    final response = await _client.patch(
+      _uri('/authors/$authorId'),
+      headers: _headers(accessToken),
+      body: jsonEncode({
+        'name': name,
+        'links': links.map((l) => l.toJson()).toList(),
+      }),
+    );
+    return _parseOne(response, Author.fromJson);
+  }
+
   Future<void> deleteAuthor({
     required String accessToken,
     required int authorId,
@@ -78,6 +95,25 @@ class ResourcesApi {
       }),
     );
     return _parseOne(response, ResourceFile.fromJson, created: true);
+  }
+
+  Future<ResourceFile> updateFile({
+    required String accessToken,
+    required int fileId,
+    required String name,
+    required int authorId,
+    String? source,
+  }) async {
+    final response = await _client.patch(
+      _uri('/files/$fileId'),
+      headers: _headers(accessToken),
+      body: jsonEncode({
+        'name': name,
+        'author_id': authorId,
+        'source': source ?? '',
+      }),
+    );
+    return _parseOne(response, ResourceFile.fromJson);
   }
 
   Future<void> deleteFile({

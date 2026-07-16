@@ -7,7 +7,9 @@ import '../data/local_file_path_store.dart';
 import '../data/local_resource_file_copy.dart';
 import '../data/resource_models.dart';
 import '../data/resources_api.dart';
+import 'author_detail_page.dart';
 import 'author_form_sheet.dart';
+import 'file_detail_page.dart';
 import 'file_form_sheet.dart';
 
 class ResourcesBody extends StatefulWidget {
@@ -30,6 +32,7 @@ class _ResourcesBodyState extends State<ResourcesBody> {
   List<ResourceFile> _files = const [];
   Map<int, String> _localPaths = {};
   bool _fabOpen = false;
+  int? _selectedAuthorId;
 
   @override
   void initState() {
@@ -38,6 +41,24 @@ class _ResourcesBodyState extends State<ResourcesBody> {
   }
 
   Future<String?> _token() => widget.auth.requireAccessToken();
+
+  List<ResourceFile> _filesForAuthor(int authorId) {
+    return _files.where((file) => file.authorId == authorId).toList();
+  }
+
+  void _selectAuthor(int authorId) {
+    setState(() => _selectedAuthorId = authorId);
+  }
+
+  void _toggleAuthor(int authorId) {
+    setState(() {
+      if (_selectedAuthorId == authorId) {
+        _selectedAuthorId = null;
+      } else {
+        _selectedAuthorId = authorId;
+      }
+    });
+  }
 
   Future<void> _reload() async {
     setState(() {
@@ -58,6 +79,13 @@ class _ResourcesBodyState extends State<ResourcesBody> {
         _files = files;
         _localPaths = paths;
         _loading = false;
+        if (_selectedAuthorId != null &&
+            authors.every((author) => author.id != _selectedAuthorId)) {
+          _selectedAuthorId = null;
+        }
+        if (_selectedAuthorId == null && authors.isNotEmpty) {
+          _selectedAuthorId = authors.first.id;
+        }
       });
     } on AuthApiException catch (e) {
       if (!mounted) return;
@@ -81,12 +109,13 @@ class _ResourcesBodyState extends State<ResourcesBody> {
     try {
       final token = await _token();
       if (token == null) return;
-      await _api.createAuthor(
+      final author = await _api.createAuthor(
         accessToken: token,
         name: created.name,
         links: created.links,
       );
       await _reload();
+      _selectAuthor(author.id);
     } on AuthApiException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -108,11 +137,10 @@ class _ResourcesBodyState extends State<ResourcesBody> {
     final draft = await showFileFormSheet(context, authors: _authors);
     if (draft == null || !mounted) return;
 
-    ResourceFile? created;
     try {
       final token = await _token();
       if (token == null) return;
-      created = await _api.createFile(
+      final created = await _api.createFile(
         accessToken: token,
         name: draft.name,
         authorId: draft.authorId,
@@ -138,6 +166,7 @@ class _ResourcesBodyState extends State<ResourcesBody> {
         }
       }
       await _reload();
+      _selectAuthor(draft.authorId);
     } on AuthApiException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -146,94 +175,51 @@ class _ResourcesBodyState extends State<ResourcesBody> {
     }
   }
 
-  Future<void> _deleteAuthor(Author author) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete author?'),
-        content: Text('Remove ${author.name}?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
-          ),
-        ],
+  Future<void> _openAuthorDetail(Author author) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => AuthorDetailPage(
+          auth: widget.auth,
+          author: author,
+          files: _filesForAuthor(author.id),
+          localPaths: _localPaths,
+        ),
       ),
     );
-    if (confirm != true) return;
-    try {
-      final token = await _token();
-      if (token == null) return;
-      await _api.deleteAuthor(accessToken: token, authorId: author.id);
-      await _reload();
-    } on AuthApiException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
-    }
+    if (mounted) await _reload();
   }
 
-  Future<void> _deleteFile(ResourceFile file) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete file?'),
-        content: Text('Remove ${file.name}?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
-          ),
-        ],
+  Future<void> _openFileDetail(ResourceFile file) async {
+    Author? author;
+    for (final candidate in _authors) {
+      if (candidate.id == file.authorId) {
+        author = candidate;
+        break;
+      }
+    }
+    if (author == null) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => FileDetailPage(
+          auth: widget.auth,
+          file: file,
+          author: author!,
+          localPath: _localPaths[file.id],
+        ),
       ),
     );
-    if (confirm != true) return;
-    try {
-      final token = await _token();
-      if (token == null) return;
-      await _api.deleteFile(accessToken: token, fileId: file.id);
-      await _pathStore.removePath(file.id);
-      await _reload();
-    } on AuthApiException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
-    }
+    if (mounted) await _reload();
   }
 
-  Future<void> _openLocal(ResourceFile file) async {
-    final path = _localPaths[file.id];
-    if (path == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No local copy on this device')),
-      );
-      return;
-    }
+  Future<void> _openSource(String url) async {
     try {
-      await _fileCopy.openLocalPath(path);
+      await _fileCopy.openUrl(url);
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open local file')),
+        const SnackBar(content: Text('Could not open link')),
       );
     }
-  }
-
-  String _authorName(int authorId) {
-    for (final author in _authors) {
-      if (author.id == authorId) return author.name;
-    }
-    return 'Author #$authorId';
   }
 
   @override
@@ -249,7 +235,7 @@ class _ResourcesBodyState extends State<ResourcesBody> {
                 opacity: 0.08,
                 child: Icon(
                   resourcesMenuIcon,
-                  size: 220,
+                  size: 440,
                   color: scheme.onSurface,
                 ),
               ),
@@ -275,79 +261,113 @@ class _ResourcesBodyState extends State<ResourcesBody> {
               ),
             ),
           )
-        else
+        else if (_authors.isEmpty)
           RefreshIndicator(
             onRefresh: _reload,
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(24, 48, 24, 100),
               children: [
+                Icon(
+                  Icons.menu_book_outlined,
+                  size: 64,
+                  color: scheme.primary,
+                ),
+                const SizedBox(height: 16),
                 Text(
-                  'Authors',
-                  style: Theme.of(context).textTheme.titleLarge,
+                  'No authors yet',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 8),
-                if (_authors.isEmpty)
-                  Text(
-                    'No authors yet.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
-                  )
-                else
-                  ..._authors.map(
-                    (author) => ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.person_outline),
-                      title: Text(author.name),
-                      subtitle: author.links.isEmpty
-                          ? null
-                          : Text(
-                              '${author.links.length} link'
-                              '${author.links.length == 1 ? '' : 's'}',
-                            ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete_outline),
-                        onPressed: () => _deleteAuthor(author),
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 28),
                 Text(
-                  'Files',
-                  style: Theme.of(context).textTheme.titleLarge,
+                  'Add an author or file to start building your resource library.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
                 ),
-                const SizedBox(height: 8),
-                if (_files.isEmpty)
-                  Text(
-                    'No files yet.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
-                  )
-                else
-                  ..._files.map(
-                    (file) => ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.insert_drive_file_outlined),
-                      title: Text(file.name),
-                      subtitle: Text(
-                        [
-                          _authorName(file.authorId),
-                          if (_localPaths.containsKey(file.id)) 'Local copy',
-                          if (file.source != null && file.source!.isNotEmpty)
-                            'Source URL',
-                        ].join(' · '),
-                      ),
-                      onTap: _localPaths.containsKey(file.id)
-                          ? () => _openLocal(file)
-                          : null,
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete_outline),
-                        onPressed: () => _deleteFile(file),
-                      ),
-                    ),
-                  ),
               ],
+            ),
+          )
+        else
+          RefreshIndicator(
+            onRefresh: _reload,
+            child: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+              itemCount: _authors.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final author = _authors[index];
+                final selected = author.id == _selectedAuthorId;
+                final authorFiles = selected
+                    ? _filesForAuthor(author.id)
+                    : const <ResourceFile>[];
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _AuthorListTile(
+                      author: author,
+                      fileCount: _filesForAuthor(author.id).length,
+                      selected: selected,
+                      onOpen: () => _openAuthorDetail(author),
+                      onToggleExpand: () => _toggleAuthor(author.id),
+                    ),
+                    if (selected) ...[
+                      const SizedBox(height: 8),
+                      if (author.links.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            left: 16,
+                            right: 8,
+                            bottom: 8,
+                          ),
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 4,
+                            children: [
+                              for (final link in author.links)
+                                TextButton(
+                                  style: TextButton.styleFrom(
+                                    visualDensity: VisualDensity.compact,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                    ),
+                                    foregroundColor: scheme.onSurfaceVariant,
+                                  ),
+                                  onPressed: () => _openSource(link.url),
+                                  child: Text(link.source),
+                                ),
+                            ],
+                          ),
+                        ),
+                      if (authorFiles.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Text(
+                            'No files for this author yet.',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        )
+                      else
+                        ...authorFiles.map(
+                          (file) => Padding(
+                            padding: const EdgeInsets.only(
+                              left: 16,
+                              bottom: 8,
+                            ),
+                            child: _FileListTile(
+                              file: file,
+                              hasLocal: _localPaths.containsKey(file.id),
+                              onTap: () => _openFileDetail(file),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ],
+                );
+              },
             ),
           ),
         Positioned(
@@ -361,6 +381,155 @@ class _ResourcesBodyState extends State<ResourcesBody> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _AuthorListTile extends StatelessWidget {
+  const _AuthorListTile({
+    required this.author,
+    required this.fileCount,
+    required this.selected,
+    required this.onOpen,
+    required this.onToggleExpand,
+  });
+
+  final Author author;
+  final int fileCount;
+  final bool selected;
+  final VoidCallback onOpen;
+  final VoidCallback onToggleExpand;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final fileLabel = fileCount == 1 ? '1 file' : '$fileCount files';
+    final linkLabel = author.links.isEmpty
+        ? null
+        : (author.links.length == 1
+            ? '1 link'
+            : '${author.links.length} links');
+
+    return Material(
+      color: selected ? scheme.primaryContainer : scheme.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onOpen,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 4, 10),
+          child: Row(
+            children: [
+              Icon(
+                Icons.person_outline,
+                color: selected ? scheme.onPrimaryContainer : scheme.primary,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      author.name,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: selected ? scheme.onPrimaryContainer : null,
+                          ),
+                    ),
+                    Text(
+                      [fileLabel, ?linkLabel].join(' · '),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: selected
+                                ? scheme.onPrimaryContainer
+                                    .withValues(alpha: 0.8)
+                                : scheme.onSurfaceVariant,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                tooltip: selected ? 'Hide files' : 'Show files',
+                onPressed: onToggleExpand,
+                style: IconButton.styleFrom(
+                  foregroundColor: selected
+                      ? scheme.onPrimaryContainer
+                      : scheme.onSurfaceVariant,
+                  minimumSize: const Size(48, 48),
+                  tapTargetSize: MaterialTapTargetSize.padded,
+                ),
+                icon: Icon(
+                  selected ? Icons.expand_less : Icons.expand_more,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FileListTile extends StatelessWidget {
+  const _FileListTile({
+    required this.file,
+    required this.hasLocal,
+    required this.onTap,
+  });
+
+  final ResourceFile file;
+  final bool hasLocal;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final source = file.source?.trim();
+    final hasSource = source != null && source.isNotEmpty;
+    final subtitle = hasSource
+        ? source
+        : hasLocal
+            ? 'Local copy'
+            : 'Metadata only';
+
+    return Material(
+      color: scheme.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            children: [
+              Icon(
+                Icons.insert_drive_file_outlined,
+                color: scheme.primary,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      file.name,
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
