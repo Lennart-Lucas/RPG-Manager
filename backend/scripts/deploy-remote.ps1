@@ -4,7 +4,7 @@ $GitHubSshUrl = "git@github.com:Lennart-Lucas/RPG-Manager.git"
 $PrivateRepoHint = @"
 Private repo auth failed on the server (git fetch / SSH to GitHub).
 
-One-time fix on the VPS — see Backend/README.md (Private repository setup):
+One-time fix on the VPS — see backend/README.md (Private repository setup):
   1. ssh-keygen -t ed25519 -f ~/.ssh/rpg_manager_deploy -N ""
   2. Add the public key as a read-only GitHub Deploy key on RPG-Manager
   3. Point ~/.ssh/config Host github.com at that IdentityFile
@@ -126,7 +126,7 @@ function Get-RemoteDeployCommand {
         "echo RPG_MANAGER_DEPLOY_GIT_AUTH_FAILED >&2; exit 42; " +
         "fi; " +
         "git reset --hard origin/main; " +
-        "cd Backend; " +
+        "cd backend; " +
         "docker compose -p rpg-manager-prod -f docker-compose.prod.yml up --build -d"
     )
 }

@@ -5,7 +5,7 @@ FastAPI API with PostgreSQL, Alembic migrations, and Docker.
 ## Local development
 
 ```powershell
-cd Backend
+cd backend
 .\scripts\setup.ps1
 .\scripts\dev.ps1 up
 ```
@@ -39,7 +39,7 @@ Deploy from your Windows machine to a Linux host with Docker. VPS credentials st
 ### One-time local setup
 
 ```powershell
-cd Backend
+cd backend
 Copy-Item .deploy.local.example .deploy.local
 notepad .deploy.local   # set DEPLOY_HOST and DEPLOY_SSH_KEY_PATH
 ```
@@ -51,7 +51,7 @@ Requires **OpenSSH** (`ssh` on PATH). `.deploy.local` holds **VPS** SSH access o
 ```bash
 # Clone once (use SSH URL — required for private repos)
 git clone git@github.com:Lennart-Lucas/RPG-Manager.git ~/RPG-Manager
-cd ~/RPG-Manager/Backend
+cd ~/RPG-Manager/backend
 cp .env.prod.example .env.prod
 nano .env.prod          # set POSTGRES_PASSWORD and matching DATABASE_* URLs
 docker compose -p rpg-manager-prod -f docker-compose.prod.yml up --build -d
@@ -95,7 +95,7 @@ Public repos work without a deploy key; the deploy script still normalizes `orig
 Push your changes to GitHub first, then:
 
 ```powershell
-cd Backend
+cd backend
 .\scripts\deploy-remote.ps1
 ```
 
