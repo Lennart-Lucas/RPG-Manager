@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../auth/state/auth_controller.dart';
+import '../dm_tools/resources/resources_icons.dart';
 import 'app_page.dart';
 
 class AppSidebar extends StatefulWidget {
@@ -9,11 +10,13 @@ class AppSidebar extends StatefulWidget {
     required this.auth,
     required this.currentPage,
     required this.onOpenPreferences,
+    required this.onOpenResources,
   });
 
   final AuthController auth;
   final AppPage currentPage;
   final VoidCallback onOpenPreferences;
+  final VoidCallback onOpenResources;
 
   @override
   State<AppSidebar> createState() => _AppSidebarState();
@@ -27,6 +30,7 @@ class _AppSidebarState extends State<AppSidebar> {
   );
 
   final _settingsController = ExpansibleController();
+  final _dmToolsController = ExpansibleController();
 
   void _close(BuildContext context) {
     Navigator.of(context).pop();
@@ -35,6 +39,23 @@ class _AppSidebarState extends State<AppSidebar> {
   void _openPreferences(BuildContext context) {
     widget.onOpenPreferences();
     _close(context);
+  }
+
+  void _openResources(BuildContext context) {
+    widget.onOpenResources();
+    _close(context);
+  }
+
+  void _onSettingsExpansionChanged(bool expanded) {
+    if (expanded && _dmToolsController.isExpanded) {
+      _dmToolsController.collapse();
+    }
+  }
+
+  void _onDmToolsExpansionChanged(bool expanded) {
+    if (expanded && _settingsController.isExpanded) {
+      _settingsController.collapse();
+    }
   }
 
   String _initials(String? email) {
@@ -57,6 +78,7 @@ class _AppSidebarState extends State<AppSidebar> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final preferencesSelected = widget.currentPage == AppPage.preferences;
+    final resourcesSelected = widget.currentPage == AppPage.resources;
 
     return Drawer(
       width: 300,
@@ -129,6 +151,30 @@ class _AppSidebarState extends State<AppSidebar> {
                 child: ListView(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   children: [
+                    if (isDm)
+                      ExpansionTile(
+                        controller: _dmToolsController,
+                        leading: Icon(
+                          Icons.auto_stories_outlined,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                        title: const Text('DM Tools'),
+                        initiallyExpanded: resourcesSelected,
+                        onExpansionChanged: _onDmToolsExpansionChanged,
+                        expansionAnimationStyle: _expansionStyle,
+                        childrenPadding: const EdgeInsets.only(left: 8),
+                        children: [
+                          ListTile(
+                            leading: const Icon(resourcesMenuIcon),
+                            title: const Text('Resources'),
+                            selected: resourcesSelected,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            onTap: () => _openResources(context),
+                          ),
+                        ],
+                      ),
                     ExpansionTile(
                       controller: _settingsController,
                       leading: Icon(
@@ -137,6 +183,7 @@ class _AppSidebarState extends State<AppSidebar> {
                       ),
                       title: const Text('Settings'),
                       initiallyExpanded: preferencesSelected,
+                      onExpansionChanged: _onSettingsExpansionChanged,
                       expansionAnimationStyle: _expansionStyle,
                       childrenPadding: const EdgeInsets.only(left: 8),
                       children: [

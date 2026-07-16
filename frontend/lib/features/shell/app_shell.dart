@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/theme_controller.dart';
 import '../auth/state/auth_controller.dart';
 import '../auth/ui/home_screen.dart';
+import '../dm_tools/resources/ui/resources_body.dart';
 import '../settings/preferences_page.dart';
 import 'app_page.dart';
 import 'app_sidebar.dart';
@@ -27,6 +28,7 @@ class _AppShellState extends State<AppShell> {
   String get _title => switch (_page) {
         AppPage.home => 'RPG Manager',
         AppPage.preferences => 'Settings',
+        AppPage.resources => 'Resources',
       };
 
   void _openPage(AppPage page) {
@@ -43,12 +45,14 @@ class _AppShellState extends State<AppShell> {
         auth: widget.auth,
         currentPage: _page,
         onOpenPreferences: () => _openPage(AppPage.preferences),
+        onOpenResources: () => _openPage(AppPage.resources),
       ),
       body: switch (_page) {
         AppPage.home => HomeBody(auth: widget.auth),
         AppPage.preferences => PreferencesBody(
             themeController: widget.themeController,
           ),
+        AppPage.resources => ResourcesBody(auth: widget.auth),
       },
     );
   }

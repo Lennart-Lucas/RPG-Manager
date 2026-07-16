@@ -25,6 +25,26 @@ class AuthController extends ChangeNotifier {
   String? _accessToken;
   String? _refreshToken;
 
+  String? get accessToken => _accessToken;
+
+  /// Returns a valid access token, refreshing if needed.
+  Future<String?> requireAccessToken() async {
+    if (_accessToken != null) {
+      return _accessToken;
+    }
+    final refresh = _refreshToken ?? await _tokenStore.readRefreshToken();
+    if (refresh == null) {
+      return null;
+    }
+    try {
+      final tokens = await _api.refresh(refresh);
+      await _persistTokens(tokens);
+      return tokens.accessToken;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> bootstrap() async {
     status = AuthStatus.unknown;
     notifyListeners();

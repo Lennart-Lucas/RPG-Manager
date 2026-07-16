@@ -9,6 +9,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base
 
 if TYPE_CHECKING:
+    from app.models.author import Author
+    from app.models.file import ResourceFile
     from app.models.refresh_token import RefreshToken
 
 
@@ -33,3 +35,5 @@ class User(Base):
     refresh_tokens: Mapped[list[RefreshToken]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
+    authors: Mapped[list[Author]] = relationship(back_populates="user")
+    files: Mapped[list[ResourceFile]] = relationship(back_populates="user")
