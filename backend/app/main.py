@@ -5,8 +5,11 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
-from app.api.routes import health
+from app.api.routes import auth, health
 from app.config import settings
 from app.database import dispose_engine
 from app.middleware.security_headers import SecurityHeadersMiddleware
@@ -34,6 +37,9 @@ def create_app() -> FastAPI:
         openapi_url=openapi_url,
     )
 
+    app.state.limiter = auth.limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
     @app.exception_handler(Exception)
     async def unhandled_exception_handler(
         request: Request, exc: Exception
@@ -48,6 +54,7 @@ def create_app() -> FastAPI:
             content={"detail": "Internal server error"},
         )
 
+    app.add_middleware(SlowAPIMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(
         CORSMiddleware,
@@ -59,6 +66,7 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(health.router)
+    app.include_router(auth.router, prefix=settings.api_prefix)
 
     return app
 

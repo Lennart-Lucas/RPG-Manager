@@ -1,20 +1,66 @@
 import 'package:flutter/material.dart';
 
+import 'features/auth/state/auth_controller.dart';
+import 'features/auth/ui/home_screen.dart';
+import 'features/auth/ui/login_screen.dart';
+import 'features/auth/ui/register_screen.dart';
+
 void main() {
-  runApp(const MainApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const RpgManagerApp());
 }
 
-class MainApp extends StatelessWidget {
-  const MainApp({super.key});
+class RpgManagerApp extends StatefulWidget {
+  const RpgManagerApp({super.key});
+
+  @override
+  State<RpgManagerApp> createState() => _RpgManagerAppState();
+}
+
+class _RpgManagerAppState extends State<RpgManagerApp> {
+  late final AuthController _auth;
+  bool _showRegister = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _auth = AuthController();
+    _auth.bootstrap();
+  }
+
+  @override
+  void dispose() {
+    _auth.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       title: 'RPG Manager',
-      home: Scaffold(
-        body: Center(
-          child: Text('Hello World!'),
-        ),
+      home: AnimatedBuilder(
+        animation: _auth,
+        builder: (context, _) {
+          switch (_auth.status) {
+            case AuthStatus.unknown:
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            case AuthStatus.authenticated:
+              return HomeScreen(auth: _auth);
+            case AuthStatus.unauthenticated:
+              if (_showRegister) {
+                return RegisterScreen(
+                  auth: _auth,
+                  onGoToLogin: () => setState(() => _showRegister = false),
+                );
+              }
+              return LoginScreen(
+                auth: _auth,
+                onGoToRegister: () => setState(() => _showRegister = true),
+              );
+          }
+        },
       ),
     );
   }

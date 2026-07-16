@@ -1,8 +1,10 @@
 import os
 from functools import lru_cache
 
-from pydantic import computed_field
+from pydantic import computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_DEV_JWT_SECRET = "dev-only-change-in-production"
 
 
 class Settings(BaseSettings):
@@ -22,6 +24,12 @@ class Settings(BaseSettings):
     database_url_sync: str = (
         "postgresql+psycopg2://rpg_manager:rpg_manager@localhost:5435/rpg_manager"
     )
+
+    jwt_secret: str = _DEV_JWT_SECRET
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 15
+    refresh_token_expire_days: int = 30
+    password_min_length: int = 8
 
     cors_origins: str = "http://localhost:3000,http://localhost:8011"
     cors_allow_origin_regex: str | None = None
@@ -48,6 +56,16 @@ class Settings(BaseSettings):
         if not self.is_production:
             return r"http://(localhost|127\.0\.0\.1)(:\d+)?"
         return None
+
+    @model_validator(mode="after")
+    def reject_insecure_jwt_in_production(self) -> "Settings":
+        if self.is_production and (
+            not self.jwt_secret.strip() or self.jwt_secret == _DEV_JWT_SECRET
+        ):
+            raise ValueError(
+                "JWT_SECRET must be set to a strong non-default value in production"
+            )
+        return self
 
 
 def _running_in_docker() -> bool:
