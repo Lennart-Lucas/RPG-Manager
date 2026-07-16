@@ -1,0 +1,7 @@
+# Copy to .deploy.local and fill in your values. Never commit .deploy.local.
+DEPLOY_HOST=203.0.113.10
+DEPLOY_USER=root
+DEPLOY_REPO_PATH=~/RPG-Manager
+
+# SSH private key for VPS access (not GitHub — see README for deploy keys)
+DEPLOY_SSH_KEY_PATH=C:\Users\you\.ssh\id_ed25519

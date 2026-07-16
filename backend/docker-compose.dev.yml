@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: rpg_manager
+      POSTGRES_PASSWORD: rpg_manager
+      POSTGRES_DB: rpg_manager
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rpg_manager -d rpg_manager"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    ports:
+      - "8011:8000"
+    env_file:
+      - .env.dev
+    environment:
+      IN_DOCKER: "1"
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "/app/scripts/docker-entrypoint-dev.sh"]
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    volumes:
+      - ./app:/app/app
+      - ./alembic:/app/alembic
+
+volumes:
+  postgres_data_dev:

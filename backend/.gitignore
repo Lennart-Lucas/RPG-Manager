@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Environment / secrets
+.env
+.env.dev
+.env.prod
+.deploy.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Docker / local data
+postgres_data/
