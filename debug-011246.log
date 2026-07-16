@@ -1,0 +1,4 @@
+{"sessionId":"011246","hypothesisId":"B","location":"backend_health_checker.dart:check","message":"health check start","data":{"apiBaseUrl":"http://64.226.92.89:8011","healthUrl":"http://64.226.92.89:8011/health","dbUrl":"http://64.226.92.89:8011/health/db"},"timestamp":1784228917369,"runId":"post-fix"}
+{"sessionId":"011246","hypothesisId":"A","location":"backend_health_checker.dart:api","message":"api health response","data":{"statusCode":200,"body":"{\"status\":\"ok\"}"},"timestamp":1784228918081,"runId":"post-fix"}
+{"sessionId":"011246","hypothesisId":"D","location":"backend_health_checker.dart:db","message":"db health response","data":{"statusCode":200,"body":"{\"status\":\"ok\",\"database\":\"connected\"}"},"timestamp":1784228918124,"runId":"post-fix"}
+{"sessionId":"011246","hypothesisId":"A","location":"backend_health_checker.dart:check","message":"health check ok","data":{},"timestamp":1784228918148,"runId":"post-fix"}

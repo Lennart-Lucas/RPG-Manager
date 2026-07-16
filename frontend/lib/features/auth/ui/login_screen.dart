@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../state/auth_controller.dart';
+import 'backend_connection_panel.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({
@@ -127,6 +128,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             widget.auth.busy ? null : widget.onGoToRegister,
                         child: const Text('Create an account'),
                       ),
+                      const BackendConnectionPanel(),
                     ],
                   ),
                 );
