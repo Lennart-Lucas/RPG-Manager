@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 
 import '../../../core/platform/client_platform.dart';
@@ -24,14 +26,56 @@ class AuthController extends ChangeNotifier {
 
   String? _accessToken;
   String? _refreshToken;
+  Future<String?>? _refreshInFlight;
 
   String? get accessToken => _accessToken;
 
-  /// Returns a valid access token, refreshing if needed.
+  /// True when [token] is missing exp or past exp (with a small skew).
+  static bool _accessTokenNeedsRefresh(String? token, {int skewSeconds = 30}) {
+    if (token == null || token.isEmpty) return true;
+    try {
+      final parts = token.split('.');
+      if (parts.length < 2) return true;
+      var payload = parts[1];
+      final mod = payload.length % 4;
+      if (mod > 0) {
+        payload = payload.padRight(payload.length + (4 - mod), '=');
+      }
+      final json = jsonDecode(utf8.decode(base64Url.decode(payload)));
+      if (json is! Map) return true;
+      final exp = json['exp'];
+      final expInt = exp is int ? exp : int.tryParse('$exp');
+      if (expInt == null) return true;
+      final nowSec = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
+      return nowSec >= (expInt - skewSeconds);
+    } catch (_) {
+      return true;
+    }
+  }
+
+  /// Returns a valid access token, refreshing if missing or expired.
   Future<String?> requireAccessToken() async {
-    if (_accessToken != null) {
+    if (!_accessTokenNeedsRefresh(_accessToken)) {
       return _accessToken;
     }
+
+    final inFlight = _refreshInFlight;
+    if (inFlight != null) {
+      return inFlight;
+    }
+
+    final future = _refreshAccessToken();
+    _refreshInFlight = future;
+    try {
+      return await future;
+    } finally {
+      if (identical(_refreshInFlight, future)) {
+        _refreshInFlight = null;
+      }
+    }
+  }
+
+  Future<String?> _refreshAccessToken() async {
     final refresh = _refreshToken ?? await _tokenStore.readRefreshToken();
     if (refresh == null) {
       return null;
