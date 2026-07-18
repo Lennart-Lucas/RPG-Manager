@@ -2,7 +2,13 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class TokenStore {
   TokenStore({FlutterSecureStorage? storage})
-      : _storage = storage ?? const FlutterSecureStorage();
+      : _storage = storage ??
+            const FlutterSecureStorage(
+              // Data-protection keychain needs keychain-access-groups + a real
+              // development signing identity. This project ad-hoc signs macOS
+              // (`CODE_SIGN_IDENTITY="-"`), so disable data protection.
+              mOptions: MacOsOptions(useDataProtectionKeyChain: false),
+            );
 
   static const _accessKey = 'access_token';
   static const _refreshKey = 'refresh_token';
