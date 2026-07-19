@@ -110,11 +110,15 @@ class _AppSidebarState extends State<AppSidebar> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final preferencesSelected = switch (widget.currentPage) {
-      AppPage.preferences || AppPage.generator => true,
+      AppPage.preferences => true,
       _ => false,
     };
     final resourcesSelected = switch (widget.currentPage) {
-      AppPage.resources || AppPage.mapMaker || AppPage.playlists => true,
+      AppPage.resources ||
+      AppPage.mapMaker ||
+      AppPage.playlists ||
+      AppPage.generator =>
+        true,
       _ => false,
     };
     final playerOptionSelected = switch (widget.currentPage) {
@@ -390,6 +394,12 @@ class _AppSidebarState extends State<AppSidebar> {
                         children: [
                           _navTile(
                             context,
+                            icon: generatorPageIcon,
+                            label: 'Generator',
+                            page: AppPage.generator,
+                          ),
+                          _navTile(
+                            context,
                             icon: mapMakerPageIcon,
                             label: 'Map maker',
                             page: AppPage.mapMaker,
@@ -420,12 +430,6 @@ class _AppSidebarState extends State<AppSidebar> {
                       expansionAnimationStyle: _expansionStyle,
                       childrenPadding: const EdgeInsets.only(left: 8),
                       children: [
-                        _navTile(
-                          context,
-                          icon: generatorPageIcon,
-                          label: 'Generator',
-                          page: AppPage.generator,
-                        ),
                         _navTile(
                           context,
                           icon: preferencesPageIcon,

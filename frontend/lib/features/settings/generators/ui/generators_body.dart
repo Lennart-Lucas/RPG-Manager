@@ -5,7 +5,7 @@ import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
-import '../../../settings/settings_icons.dart';
+import '../../../dm_tools/resources/resources_icons.dart';
 import '../data/generator_model.dart';
 import 'generator_detail_page.dart';
 import 'generator_form_sheet.dart';
