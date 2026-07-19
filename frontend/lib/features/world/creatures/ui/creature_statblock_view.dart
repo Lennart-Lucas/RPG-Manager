@@ -414,7 +414,7 @@ class CreatureStatblockView extends StatelessWidget {
                         ),
                       _LabeledValueRow(
                         label: 'Passive',
-                        value: 'Perception ${creature.passivePerception}',
+                        value: 'Perception ${creature.computedPassivePerception}',
                         scheme: scheme,
                       ),
                     ],

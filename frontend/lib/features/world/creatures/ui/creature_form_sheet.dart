@@ -132,9 +132,6 @@ class _CreatureFormState extends State<_CreatureForm> {
   late final _rangeController = TextEditingController(
     text: widget.initial?.range?.toString() ?? '',
   );
-  late final _passivePerceptionController = TextEditingController(
-    text: '${widget.initial?.passivePerception ?? 10}',
-  );
   late final _itemsController = TextEditingController(
     text: _listToText(widget.initial?.items ?? const []),
   );
@@ -331,8 +328,6 @@ class _CreatureFormState extends State<_CreatureForm> {
       range: _parseOptionalInt(_rangeController.text),
       speeds: _speedsFromMovement,
       sensesLabeled: _sensesLabeled,
-      passivePerception:
-          int.tryParse(_passivePerceptionController.text.trim()) ?? 10,
       skillIds: _skillIds,
       customSkills: _customSkills,
       languageIds: _languageIds,
@@ -384,7 +379,6 @@ class _CreatureFormState extends State<_CreatureForm> {
     _threatController.dispose();
     _reachController.dispose();
     _rangeController.dispose();
-    _passivePerceptionController.dispose();
     _itemsController.dispose();
     _triggerController.dispose();
     _countermeasuresController.dispose();
@@ -1166,16 +1160,6 @@ class _CreatureFormState extends State<_CreatureForm> {
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: ResourceFormStyles.fieldSpacing),
-          TextFormField(
-            controller: _passivePerceptionController,
-            decoration: ResourceFormStyles.inputDecoration(
-              context,
-              label: 'Passive Perception',
-            ),
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
           catalogMultiPickTile(

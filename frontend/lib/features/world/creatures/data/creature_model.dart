@@ -378,6 +378,19 @@ class Creature {
   String get cr => overrides.cr ?? formula.cr;
   int get xp => overrides.xp ?? formula.xp;
 
+  /// 10 + WIS modifier, plus proficiency bonus when Perception is a selected skill.
+  int get computedPassivePerception =>
+      passivePerceptionFor(skillLabels: [...skills, ...customSkills]);
+
+  int passivePerceptionFor({List<String> skillLabels = const []}) {
+    final hasPerception = skillLabels.any(
+      (name) => name.trim().toLowerCase() == 'perception',
+    );
+    return 10 +
+        abilityScores.wis +
+        (hasPerception ? proficiencyBonus : 0);
+  }
+
   String get rankDisplay {
     if (rank == ScalerRank.paragon) {
       final t = threat % 1 == 0 ? threat.toInt().toString() : '$threat';
@@ -606,7 +619,9 @@ class Creature {
       'senses': displaySenses,
       if (sensesLabeled.isNotEmpty)
         'sensesLabeled': labeledAmountsToJson(sensesLabeled),
-      'passivePerception': passivePerception,
+      'passivePerception': passivePerceptionFor(
+        skillLabels: [...displaySkills, ...customSkills],
+      ),
       'skills': displaySkills,
       if (skillIds.isNotEmpty) 'skillIds': skillIds,
       if (customSkills.isNotEmpty) 'customSkills': customSkills,
