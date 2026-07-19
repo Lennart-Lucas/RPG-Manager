@@ -26,3 +26,11 @@ const defaultSkills = <DefaultSkill>[
   DefaultSkill(name: 'Performance', attribute: 'CHA'),
   DefaultSkill(name: 'Persuasion', attribute: 'CHA'),
 ];
+
+final Set<String> _defaultSkillNames = {
+  for (final skill in defaultSkills) skill.name.toLowerCase(),
+};
+
+bool isDefaultSkillName(String name) =>
+    _defaultSkillNames.contains(name.trim().toLowerCase());
+

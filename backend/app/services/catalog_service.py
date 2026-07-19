@@ -8,11 +8,12 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.data.default_skills import DEFAULT_SKILLS
+from app.data.default_skills import DEFAULT_SKILLS, is_default_skill_name
 from app.models.catalog_item import CatalogItem, CatalogKind
 from app.schemas.catalog import CatalogItemCreate, CatalogItemUpdate
 from app.services import catalog_wiki
 from app.services.resource_common import validate_name
+
 
 
 async def ensure_default_skills(session: AsyncSession, user_id: int) -> None:
@@ -193,5 +194,11 @@ async def delete_item(
     session: AsyncSession, user_id: int, kind: CatalogKind, item_id: int
 ) -> None:
     item = await get_item(session, user_id, kind, item_id)
+    if kind == CatalogKind.skills and is_default_skill_name(item.name):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Default skills cannot be deleted",
+        )
     item.deleted_at = datetime.now(UTC)
     await session.flush()
+

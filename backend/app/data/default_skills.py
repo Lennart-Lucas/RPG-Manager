@@ -23,3 +23,12 @@ DEFAULT_SKILLS: tuple[tuple[str, str], ...] = (
     ("Performance", "CHA"),
     ("Persuasion", "CHA"),
 )
+
+DEFAULT_SKILL_NAMES: frozenset[str] = frozenset(
+    name.casefold() for name, _ in DEFAULT_SKILLS
+)
+
+
+def is_default_skill_name(name: str) -> bool:
+    return name.casefold() in DEFAULT_SKILL_NAMES
+

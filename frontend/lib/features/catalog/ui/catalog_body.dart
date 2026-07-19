@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../auth/data/auth_api.dart';
 import '../../auth/state/auth_controller.dart';
+import '../../player_options/skills/data/default_skills.dart';
 import '../../player_options/skills/data/skill_model.dart';
 import '../../player_options/skills/ui/skill_form_sheet.dart';
 import '../data/catalog_api.dart';
@@ -9,6 +10,7 @@ import '../data/catalog_kind.dart';
 import '../data/catalog_models.dart';
 import 'name_record_form_sheet.dart';
 import 'open_catalog_detail.dart';
+
 
 class CatalogBody extends StatefulWidget {
   const CatalogBody({
@@ -204,6 +206,9 @@ class _CatalogBodyState extends State<CatalogBody> {
   }
 
   Future<void> _delete(CatalogItem item) async {
+    if (widget.kind == CatalogKind.skills && isDefaultSkillName(item.name)) {
+      return;
+    }
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -337,6 +342,8 @@ class _CatalogBodyState extends State<CatalogBody> {
               itemBuilder: (context, index) {
                 final item = _items[index];
                 final subtitle = catalogRecordSubtitle(item);
+                final canDelete = widget.kind != CatalogKind.skills ||
+                    !isDefaultSkillName(item.name);
                 return Material(
                   color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
                   borderRadius: BorderRadius.circular(12),
@@ -347,18 +354,21 @@ class _CatalogBodyState extends State<CatalogBody> {
                     leading: Icon(widget.icon, color: scheme.primary),
                     title: Text(item.name),
                     subtitle: subtitle == null ? null : Text(subtitle),
-                    trailing: IconButton(
-                      tooltip: 'Delete',
-                      onPressed: () => _delete(item),
-                      icon: Icon(
-                        Icons.delete_outline,
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
+                    trailing: canDelete
+                        ? IconButton(
+                            tooltip: 'Delete',
+                            onPressed: () => _delete(item),
+                            icon: Icon(
+                              Icons.delete_outline,
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          )
+                        : null,
                     onTap: () => _edit(item),
                   ),
                 );
               },
+
             ),
           ),
         Positioned(

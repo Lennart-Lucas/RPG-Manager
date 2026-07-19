@@ -6,6 +6,7 @@ import '../../mechanics/spell_tags/data/spell_tag_model.dart';
 import '../../mechanics/spell_tags/ui/spell_tag_form_sheet.dart';
 import '../../player_options/classes/data/class_model.dart';
 import '../../player_options/classes/ui/class_form_sheet.dart';
+import '../../player_options/skills/data/default_skills.dart';
 import '../../player_options/skills/data/skill_model.dart';
 import '../../player_options/skills/ui/skill_form_sheet.dart';
 import '../data/catalog_api.dart';
@@ -14,6 +15,7 @@ import '../data/catalog_kind_icons.dart';
 import '../data/catalog_models.dart';
 import 'name_record_form_sheet.dart';
 import 'open_catalog_detail.dart';
+
 
 /// Simple detail page for catalog kinds that do not have a rich card view.
 class CatalogRecordDetailPage extends StatefulWidget {
@@ -131,6 +133,9 @@ class _CatalogRecordDetailPageState extends State<CatalogRecordDetailPage> {
   }
 
   Future<void> _delete() async {
+    if (_item.kind == CatalogKind.skills && isDefaultSkillName(_item.name)) {
+      return;
+    }
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -178,6 +183,8 @@ class _CatalogRecordDetailPageState extends State<CatalogRecordDetailPage> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final subtitle = catalogRecordSubtitle(_item);
+    final canDelete = _item.kind != CatalogKind.skills ||
+        !isDefaultSkillName(_item.name);
 
     return Scaffold(
       appBar: AppBar(
@@ -188,13 +195,15 @@ class _CatalogRecordDetailPageState extends State<CatalogRecordDetailPage> {
             icon: const Icon(Icons.edit_outlined),
             onPressed: _edit,
           ),
-          IconButton(
-            tooltip: 'Delete',
-            icon: const Icon(Icons.delete_outline),
-            onPressed: _delete,
-          ),
+          if (canDelete)
+            IconButton(
+              tooltip: 'Delete',
+              icon: const Icon(Icons.delete_outline),
+              onPressed: _delete,
+            ),
         ],
       ),
+
       body: Stack(
         children: [
           Positioned.fill(
