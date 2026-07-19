@@ -14,6 +14,7 @@ import '../player_options/spells/ui/spells_body.dart';
 import '../settings/preferences_page.dart';
 import 'app_page.dart';
 import 'app_sidebar.dart';
+import 'shell_page_app_bar.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({
@@ -32,6 +33,8 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   AppPage _page = AppPage.home;
 
+  String get _pageKey => _page.name;
+
   String get _title => switch (_page) {
         AppPage.home => 'RPG Manager',
         AppPage.preferences => 'Settings',
@@ -49,6 +52,22 @@ class _AppShellState extends State<AppShell> {
         AppPage.spellTags => 'Spell Tags',
       };
 
+  @override
+  void initState() {
+    super.initState();
+    ShellPageAppBarStore.instance.addListener(_onShellAppBarChanged);
+  }
+
+  @override
+  void dispose() {
+    ShellPageAppBarStore.instance.removeListener(_onShellAppBarChanged);
+    super.dispose();
+  }
+
+  void _onShellAppBarChanged() {
+    if (mounted) setState(() {});
+  }
+
   void _openPage(AppPage page) {
     setState(() => _page = page);
   }
@@ -63,9 +82,14 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    final barStore = ShellPageAppBarStore.instance;
+    barStore.activeShellPageKey = _pageKey;
+    final pageBar = barStore.forPage(_pageKey);
+
     return Scaffold(
       appBar: AppBar(
         title: Text(_title),
+        actions: pageBar?.actions,
       ),
       drawer: AppSidebar(
         auth: widget.auth,
