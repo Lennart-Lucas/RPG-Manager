@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/ui/markdown_form_field.dart';
 import '../../../auth/data/auth_api.dart';
 import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
@@ -85,6 +86,29 @@ class _SpellsBodyState extends State<SpellsBody> {
     return (casters: casters, files: files);
   }
 
+  Future<List<CatalogLinkTarget>> _searchLinks(
+    String token,
+    String query,
+  ) async {
+    // If the user typed kind/name, search on the name portion and filter kind.
+    var nameQuery = query;
+    String? kindPrefix;
+    final slash = query.lastIndexOf('/');
+    if (slash >= 0) {
+      kindPrefix = query.substring(0, slash).trim().toLowerCase();
+      nameQuery = query.substring(slash + 1);
+    }
+    try {
+      final results = await _api.search(token, query: nameQuery);
+      if (kindPrefix == null || kindPrefix.isEmpty) return results;
+      return results
+          .where((item) => item.kind.toLowerCase().startsWith(kindPrefix!))
+          .toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+
   Future<void> _reload() async {
     setState(() {
       _loading = true;
@@ -126,6 +150,7 @@ class _SpellsBodyState extends State<SpellsBody> {
         context,
         casterClasses: lookups.casters,
         resourceFiles: lookups.files,
+        searchLinks: (query) => _searchLinks(token, query),
       );
       if (spell == null || !mounted) return;
       await _api.create(
@@ -160,6 +185,7 @@ class _SpellsBodyState extends State<SpellsBody> {
         initial: existing,
         casterClasses: lookups.casters,
         resourceFiles: lookups.files,
+        searchLinks: (query) => _searchLinks(token, query),
       );
       if (spell == null || !mounted) return;
       await _api.update(

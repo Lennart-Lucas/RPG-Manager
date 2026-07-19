@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../core/ui/markdown_form_field.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../../dm_tools/resources/data/resource_models.dart';
 import '../../../dm_tools/resources/ui/resource_form_helpers.dart';
@@ -11,6 +12,7 @@ Future<Spell?> showSpellFormSheet(
   Spell? initial,
   required List<CatalogItem> casterClasses,
   required List<ResourceFile> resourceFiles,
+  CatalogLinkSearch? searchLinks,
 }) {
   final editing = initial != null;
   return showAdaptiveResourceForm<Spell>(
@@ -20,6 +22,7 @@ Future<Spell?> showSpellFormSheet(
       initial: initial,
       casterClasses: casterClasses,
       resourceFiles: resourceFiles,
+      searchLinks: searchLinks,
     ),
   );
 }
@@ -29,11 +32,13 @@ class _SpellForm extends StatefulWidget {
     this.initial,
     required this.casterClasses,
     required this.resourceFiles,
+    this.searchLinks,
   });
 
   final Spell? initial;
   final List<CatalogItem> casterClasses;
   final List<ResourceFile> resourceFiles;
+  final CatalogLinkSearch? searchLinks;
 
   @override
   State<_SpellForm> createState() => _SpellFormState();
@@ -567,14 +572,12 @@ class _SpellFormState extends State<_SpellForm> {
               ],
             ),
           _section('Description'),
-          TextFormField(
+          MarkdownFormField(
             controller: _descriptionController,
-            decoration: ResourceFormStyles.inputDecoration(
-              context,
-              label: 'Description',
-            ),
+            label: 'Description',
             minLines: 4,
             maxLines: 10,
+            searchLinks: widget.searchLinks,
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
                 return 'Description is required';
@@ -583,14 +586,12 @@ class _SpellFormState extends State<_SpellForm> {
             },
           ),
           _section('At higher levels'),
-          TextFormField(
+          MarkdownFormField(
             controller: _higherLevelsController,
-            decoration: ResourceFormStyles.inputDecoration(
-              context,
-              label: 'Higher-level text',
-            ),
+            label: 'Higher-level text',
             minLines: 2,
             maxLines: 6,
+            searchLinks: widget.searchLinks,
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
           Row(

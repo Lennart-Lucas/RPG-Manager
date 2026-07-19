@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../../../core/config/app_config.dart';
+import '../../../core/ui/markdown_form_field.dart';
 import '../../auth/data/auth_api.dart';
 import 'catalog_kind.dart';
 import 'catalog_models.dart';
@@ -41,6 +42,39 @@ class CatalogApi {
     }
     return body
         .map((item) => CatalogItem.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<CatalogLinkTarget>> search(
+    String accessToken, {
+    String query = '',
+    int limit = 20,
+  }) async {
+    final uri = Uri.parse(
+      '${AppConfig.apiBaseUrl}${AppConfig.apiPrefix}/catalog/search',
+    ).replace(queryParameters: {
+      'q': query,
+      'limit': '$limit',
+    });
+    final response = await _client.get(
+      uri,
+      headers: _headers(accessToken),
+    );
+    if (response.statusCode != 200) {
+      throw AuthApiException(
+        _errorMessage(response),
+        statusCode: response.statusCode,
+      );
+    }
+    final body = jsonDecode(response.body);
+    if (body is! List) {
+      throw AuthApiException('Unexpected response');
+    }
+    return body
+        .map(
+          (item) =>
+              CatalogLinkTarget.fromJson(item as Map<String, dynamic>),
+        )
         .toList();
   }
 
@@ -118,6 +152,10 @@ class CatalogApi {
       if (body is Map && body['detail'] != null) {
         final detail = body['detail'];
         if (detail is String) {
+          if (response.statusCode == 409 &&
+              detail.toLowerCase().contains('already exists')) {
+            return 'Name must be unique for this type';
+          }
           return detail;
         }
         return detail.toString();

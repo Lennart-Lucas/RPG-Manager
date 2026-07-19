@@ -28,3 +28,11 @@ class CatalogItemResponse(BaseModel):
     payload: dict[str, Any] | None = None
     created_at: datetime
     updated_at: datetime
+
+
+class CatalogSearchHit(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    kind: CatalogKind
+    name: str

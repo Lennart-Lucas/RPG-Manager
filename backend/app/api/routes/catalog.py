@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies import get_current_active_user, get_db
@@ -8,10 +8,26 @@ from app.schemas.catalog import (
     CatalogItemCreate,
     CatalogItemResponse,
     CatalogItemUpdate,
+    CatalogSearchHit,
 )
 from app.services import catalog_service
 
+# Registered without {kind} so /catalog/search is not captured as a kind.
+search_router = APIRouter(prefix="/catalog", tags=["catalog"])
 router = APIRouter(prefix="/catalog/{kind}", tags=["catalog"])
+
+
+@search_router.get("/search", response_model=list[CatalogSearchHit])
+async def search_catalog_items(
+    q: str = Query(default="", max_length=255),
+    limit: int = Query(default=20, ge=1, le=50),
+    session: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_active_user),
+) -> list[CatalogSearchHit]:
+    items = await catalog_service.search_items(
+        session, user.id, q, limit=limit
+    )
+    return [CatalogSearchHit.model_validate(item) for item in items]
 
 
 @router.get("", response_model=list[CatalogItemResponse])
