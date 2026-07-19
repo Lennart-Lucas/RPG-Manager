@@ -31,6 +31,7 @@ class CatalogKind(StrEnum):
     features = "features"
     locations = "locations"
     characters = "characters"
+    organisations = "organisations"
 
 
 class CatalogItem(Base):

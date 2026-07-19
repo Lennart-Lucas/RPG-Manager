@@ -18,4 +18,5 @@ enum AppPage {
   creatures,
   atlas,
   characters,
+  organisations,
 }

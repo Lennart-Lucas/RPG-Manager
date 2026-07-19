@@ -132,7 +132,11 @@ class _AppSidebarState extends State<AppSidebar> {
       _ => false,
     };
     final worldSelected = switch (widget.currentPage) {
-      AppPage.creatures || AppPage.atlas || AppPage.characters => true,
+      AppPage.creatures ||
+      AppPage.atlas ||
+      AppPage.characters ||
+      AppPage.organisations =>
+        true,
       _ => false,
     };
 
@@ -348,6 +352,12 @@ class _AppSidebarState extends State<AppSidebar> {
                           icon: charactersPageIcon,
                           label: 'Characters',
                           page: AppPage.characters,
+                        ),
+                        _navTile(
+                          context,
+                          icon: organisationsPageIcon,
+                          label: 'Organisations',
+                          page: AppPage.organisations,
                         ),
                       ],
                     ),

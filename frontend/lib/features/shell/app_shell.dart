@@ -59,6 +59,7 @@ class _AppShellState extends State<AppShell> {
         AppPage.creatures => 'Creatures',
         AppPage.atlas => 'Atlas',
         AppPage.characters => 'Characters',
+        AppPage.organisations => 'Organisations',
       };
 
   @override
@@ -133,6 +134,8 @@ class _AppShellState extends State<AppShell> {
         AppPage.atlas => _catalog(CatalogKind.locations, atlasPageIcon),
         AppPage.characters =>
           _catalog(CatalogKind.characters, charactersPageIcon),
+        AppPage.organisations =>
+          _catalog(CatalogKind.organisations, organisationsPageIcon),
       },
     );
   }
