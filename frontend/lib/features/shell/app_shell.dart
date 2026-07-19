@@ -7,7 +7,9 @@ import '../catalog/data/catalog_kind.dart';
 import '../catalog/ui/catalog_body.dart';
 import '../dm_tools/resources/ui/resources_body.dart';
 import '../mechanics/mechanics_icons.dart';
+import '../player_options/classes/ui/classes_body.dart';
 import '../player_options/player_options_icons.dart';
+import '../player_options/spells/ui/spells_body.dart';
 import '../settings/preferences_page.dart';
 import 'app_page.dart';
 import 'app_sidebar.dart';
@@ -73,13 +75,13 @@ class _AppShellState extends State<AppShell> {
             themeController: widget.themeController,
           ),
         AppPage.resources => ResourcesBody(auth: widget.auth),
-        AppPage.classes => _catalog(CatalogKind.classes, classesPageIcon),
+        AppPage.classes => ClassesBody(auth: widget.auth),
         AppPage.feats => _catalog(CatalogKind.feats, featsPageIcon),
         AppPage.languages =>
           _catalog(CatalogKind.languages, languagesPageIcon),
         AppPage.races => _catalog(CatalogKind.races, racesPageIcon),
         AppPage.skills => _catalog(CatalogKind.skills, skillsPageIcon),
-        AppPage.spells => _catalog(CatalogKind.spells, spellsPageIcon),
+        AppPage.spells => SpellsBody(auth: widget.auth),
         AppPage.conditions =>
           _catalog(CatalogKind.conditions, conditionsPageIcon),
         AppPage.itemProperties =>

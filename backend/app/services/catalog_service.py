@@ -53,6 +53,7 @@ async def create_item(
         user_id=user_id,
         kind=kind.value,
         name=validate_name(data.name),
+        payload=data.payload,
     )
     session.add(item)
     try:
@@ -74,7 +75,10 @@ async def update_item(
     data: CatalogItemUpdate,
 ) -> CatalogItem:
     item = await get_item(session, user_id, kind, item_id)
-    item.name = validate_name(data.name)
+    if data.name is not None:
+        item.name = validate_name(data.name)
+    if data.payload is not None:
+        item.payload = data.payload
     try:
         await session.flush()
     except IntegrityError as exc:

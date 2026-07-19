@@ -48,11 +48,15 @@ class CatalogApi {
     required String accessToken,
     required CatalogKind kind,
     required String name,
+    Map<String, dynamic>? payload,
   }) async {
     final response = await _client.post(
       _uri(kind),
       headers: _headers(accessToken),
-      body: jsonEncode({'name': name}),
+      body: jsonEncode({
+        'name': name,
+        'payload': ?payload,
+      }),
     );
     if (response.statusCode != 201) {
       throw AuthApiException(
@@ -69,12 +73,16 @@ class CatalogApi {
     required String accessToken,
     required CatalogKind kind,
     required int itemId,
-    required String name,
+    String? name,
+    Map<String, dynamic>? payload,
   }) async {
     final response = await _client.patch(
       _uri(kind, '/$itemId'),
       headers: _headers(accessToken),
-      body: jsonEncode({'name': name}),
+      body: jsonEncode({
+        'name': ?name,
+        'payload': ?payload,
+      }),
     );
     if (response.statusCode != 200) {
       throw AuthApiException(

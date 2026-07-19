@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'core/theme/theme_controller.dart';
+import 'core/ui/app_scroll_behavior.dart';
 import 'features/auth/state/auth_controller.dart';
 import 'features/auth/ui/login_screen.dart';
 import 'features/auth/ui/register_screen.dart';
@@ -47,6 +48,7 @@ class _RpgManagerAppState extends State<RpgManagerApp> {
         return MaterialApp(
           title: 'RPG Manager',
           theme: _theme.themeData,
+          scrollBehavior: const AppScrollBehavior(),
           home: _buildHome(),
         );
       },
