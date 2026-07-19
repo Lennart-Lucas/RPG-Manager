@@ -144,28 +144,56 @@ class _ItemFormState extends State<_ItemForm> {
             },
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
-          DropdownButtonFormField<ItemType>(
-            initialValue: _itemType,
-            decoration: ResourceFormStyles.inputDecoration(
-              context,
-              label: 'Item type',
-            ),
-            items: [
-              for (final type in ItemType.values)
-                DropdownMenuItem(
-                  value: type,
-                  child: Text(type.label),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<ItemType>(
+                  initialValue: _itemType,
+                  decoration: ResourceFormStyles.inputDecoration(
+                    context,
+                    label: 'Item type',
+                  ),
+                  items: [
+                    for (final type in ItemType.values)
+                      DropdownMenuItem(
+                        value: type,
+                        child: Text(type.label),
+                      ),
+                  ],
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setState(() {
+                      _itemType = value;
+                      if (!_showTypeReference) {
+                        _typeReferenceController.clear();
+                      }
+                    });
+                  },
                 ),
+              ),
+              const SizedBox(width: ResourceFormStyles.fieldSpacing),
+              Expanded(
+                child: DropdownButtonFormField<ItemRarity>(
+                  initialValue: _rarity,
+                  decoration: ResourceFormStyles.inputDecoration(
+                    context,
+                    label: 'Rarity',
+                  ),
+                  items: [
+                    for (final rarity in ItemRarity.values)
+                      DropdownMenuItem(
+                        value: rarity,
+                        child: Text(rarity.label),
+                      ),
+                  ],
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setState(() => _rarity = value);
+                  },
+                ),
+              ),
             ],
-            onChanged: (value) {
-              if (value == null) return;
-              setState(() {
-                _itemType = value;
-                if (!_showTypeReference) {
-                  _typeReferenceController.clear();
-                }
-              });
-            },
           ),
           if (_showTypeReference) ...[
             const SizedBox(height: ResourceFormStyles.fieldSpacing),
@@ -180,25 +208,6 @@ class _ItemFormState extends State<_ItemForm> {
               maxLines: 4,
             ),
           ],
-          const SizedBox(height: ResourceFormStyles.fieldSpacing),
-          DropdownButtonFormField<ItemRarity>(
-            initialValue: _rarity,
-            decoration: ResourceFormStyles.inputDecoration(
-              context,
-              label: 'Rarity',
-            ),
-            items: [
-              for (final rarity in ItemRarity.values)
-                DropdownMenuItem(
-                  value: rarity,
-                  child: Text(rarity.label),
-                ),
-            ],
-            onChanged: (value) {
-              if (value == null) return;
-              setState(() => _rarity = value);
-            },
-          ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
