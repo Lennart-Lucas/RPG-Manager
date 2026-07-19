@@ -78,6 +78,26 @@ class CatalogApi {
         .toList();
   }
 
+  Future<CatalogItem> get(
+    String accessToken,
+    CatalogKind kind,
+    int itemId,
+  ) async {
+    final response = await _client.get(
+      _uri(kind, '/$itemId'),
+      headers: _headers(accessToken),
+    );
+    if (response.statusCode != 200) {
+      throw AuthApiException(
+        _errorMessage(response),
+        statusCode: response.statusCode,
+      );
+    }
+    return CatalogItem.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
+  }
+
   Future<CatalogItem> create({
     required String accessToken,
     required CatalogKind kind,

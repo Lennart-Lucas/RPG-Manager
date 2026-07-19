@@ -10,7 +10,14 @@ enum CatalogKind {
   damageTypes,
   itemProperties,
   rules,
-  spellTags,
+  spellTags;
+
+  static CatalogKind? tryParseApiValue(String value) {
+    for (final kind in CatalogKind.values) {
+      if (kind.apiValue == value) return kind;
+    }
+    return null;
+  }
 }
 
 extension CatalogKindApi on CatalogKind {
@@ -58,4 +65,11 @@ extension CatalogKindApi on CatalogKind {
         CatalogKind.rules => 'rules',
         CatalogKind.spellTags => 'spell tags',
       };
+
+  /// Title-cased singular label for UI (e.g. "Spell", "Damage type").
+  String get displayLabel {
+    final label = singularLabel;
+    if (label.isEmpty) return label;
+    return '${label[0].toUpperCase()}${label.substring(1)}';
+  }
 }
