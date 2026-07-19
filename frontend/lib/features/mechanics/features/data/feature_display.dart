@@ -18,6 +18,8 @@ String joinWithAndOr(List<String> parts) {
 class FeatureDisplay {
   const FeatureDisplay({
     required this.name,
+    this.category = FeatureCategory.trait,
+    this.rulesText = '',
     this.atk,
     this.dc,
     this.defence,
@@ -31,6 +33,8 @@ class FeatureDisplay {
   });
 
   final String name;
+  final FeatureCategory category;
+  final String rulesText;
   final int? atk;
   final int? dc;
   final FeatureDefence? defence;
@@ -50,6 +54,8 @@ class FeatureDisplay {
   }) =>
       FeatureDisplay(
         name: feature.name,
+        category: feature.category,
+        rulesText: feature.text,
         atk: atk,
         dc: dc,
         defence: feature.defence,
@@ -64,6 +70,8 @@ class FeatureDisplay {
             ?creatureTypeNamesById[id],
         ],
       );
+
+  bool get _isTrait => category == FeatureCategory.trait;
 
   bool get _usesDc =>
       defence != null && defence != FeatureDefence.ac;
@@ -127,6 +135,16 @@ class FeatureDisplay {
     }
   }
 
+  String get _rulesTextLabel {
+    final trimmed = rulesText.trim();
+    return trimmed.isEmpty ? '<Rules text>' : trimmed;
+  }
+
+  String get _attackLine =>
+      '. $_rangeKindLabel $_deliveryLabel Attack: '
+      '$_offenseLabel to hit, $_distanceKindLabel $_feetLabel ft., '
+      '$_targetLabel.';
+
   /// Styled rules text. Expand as more fields are wired into the preview.
   InlineSpan toSpan({TextStyle? style}) {
     final trimmed = name.trim();
@@ -141,9 +159,7 @@ class FeatureDisplay {
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         TextSpan(
-          text: '. $_rangeKindLabel $_deliveryLabel Attack: '
-              '$_offenseLabel to hit, $_distanceKindLabel $_feetLabel ft., '
-              '$_targetLabel.',
+          text: _isTrait ? '. $_rulesTextLabel' : _attackLine,
         ),
       ],
     );

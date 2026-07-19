@@ -11,7 +11,6 @@ import '../../../world/ui/world_form_helpers.dart';
 import '../data/feature_display.dart';
 import '../data/feature_ep.dart';
 import '../data/feature_model.dart';
-import '../data/feature_text.dart';
 import 'monstrous_trait_picker_sheet.dart';
 
 Future<MonsterFeature?> showFeatureFormSheet(
@@ -362,15 +361,6 @@ class _FeatureFormState extends State<_FeatureForm> {
       _limitationType = lim.type;
       _limitationValueController.text = lim.value ?? '';
       _limitationTriggerController.text = lim.recoveryTrigger ?? '';
-    });
-  }
-
-  void _regenerateText() {
-    final feature = _buildFeature();
-    final text = generateFeatureText(feature, scalerDmg: widget.scalerDmg);
-    setState(() {
-      _textController.text = text;
-      _textOverride = false;
     });
   }
 
@@ -867,15 +857,10 @@ class _FeatureFormState extends State<_FeatureForm> {
               minLines: 3,
               maxLines: 8,
               onChanged: (_) {
-                if (!_textOverride) setState(() => _textOverride = true);
+                setState(() {
+                  if (!_textOverride) _textOverride = true;
+                });
               },
-            ),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton(
-                onPressed: _regenerateText,
-                child: const Text('Regenerate text'),
-              ),
             ),
             Align(
               alignment: Alignment.centerLeft,
