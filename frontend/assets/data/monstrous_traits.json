@@ -1,0 +1,124 @@
+{
+  "traits": [
+    {
+      "id": "aberration_mind_blast_resistance",
+      "category": "Aberration",
+      "keywords": ["Control", "Madness", "Mind"],
+      "name": "Psychic Resistance",
+      "description": "The creature has resistance to psychic damage.",
+      "parameters": []
+    },
+    {
+      "id": "beast_pack_tactics",
+      "category": "Beast",
+      "keywords": ["Animal", "Senses", "Movement"],
+      "name": "Pack Tactics",
+      "description": "The creature has advantage on an attack roll against a creature if at least one of the creature's allies is within 5 feet of the target and the ally isn't incapacitated.",
+      "parameters": []
+    },
+    {
+      "id": "beast_keen_smell",
+      "category": "Beast",
+      "keywords": ["Animal", "Senses", "Movement"],
+      "name": "Keen Smell",
+      "description": "The creature has advantage on Wisdom (Perception) checks that rely on smell.",
+      "parameters": []
+    },
+    {
+      "id": "celestial_radiant_weapons",
+      "category": "Celestial",
+      "keywords": ["Good", "Life", "Radiance"],
+      "name": "Radiant Weapons",
+      "description": "The creature's weapon attacks are magical and deal an extra {damage} radiant damage on a hit.",
+      "parameters": ["damage"]
+    },
+    {
+      "id": "construct_immutable_form",
+      "category": "Construct",
+      "keywords": ["Artificial", "Lawful", "Object"],
+      "name": "Immutable Form",
+      "description": "The creature is immune to any spell or effect that would alter its form.",
+      "parameters": []
+    },
+    {
+      "id": "dragon_frightful_presence",
+      "category": "Dragon",
+      "keywords": ["Fear", "Flight", "Pride"],
+      "name": "Frightful Presence",
+      "description": "Each creature of the dragon's choice within {distance} of it must succeed on a Wisdom saving throw or become frightened for 1 minute.",
+      "parameters": ["distance"]
+    },
+    {
+      "id": "elemental_fire_form",
+      "category": "Elemental",
+      "keywords": ["Chaos", "Element", "Primal"],
+      "name": "Fire Form",
+      "description": "The creature can move through a space as narrow as 1 inch wide without squeezing. A creature that touches it or hits it with a melee attack takes {damage} fire damage.",
+      "parameters": ["damage"]
+    },
+    {
+      "id": "fey_magic_resistance",
+      "category": "Fey",
+      "keywords": ["Charm", "Transformation", "Trickery"],
+      "name": "Magic Resistance",
+      "description": "The creature has advantage on saving throws against spells and other magical effects.",
+      "parameters": []
+    },
+    {
+      "id": "fiend_devil_sight",
+      "category": "Fiend",
+      "keywords": ["Corruption", "Evil", "Temptation"],
+      "name": "Devil's Sight",
+      "description": "Magical darkness doesn't impede the creature's darkvision.",
+      "parameters": []
+    },
+    {
+      "id": "giant_powerful_build",
+      "category": "Giant",
+      "keywords": ["Rampage", "Size", "Strength"],
+      "name": "Powerful Build",
+      "description": "The creature counts as one size larger when determining carrying capacity and the weight it can push, drag, or lift.",
+      "parameters": []
+    },
+    {
+      "id": "humanoid_martial_training",
+      "category": "Humanoid",
+      "keywords": ["Ancestral", "Social", "Weapon"],
+      "name": "Martial Training",
+      "description": "The creature is proficient with {weapons}.",
+      "parameters": ["weapons"]
+    },
+    {
+      "id": "monstrosity_regeneration",
+      "category": "Monstrosity",
+      "keywords": ["Magic", "Monster", "Unnatural"],
+      "name": "Regeneration",
+      "description": "The creature regains {hp} hit points at the start of its turn if it has at least 1 hit point.",
+      "parameters": ["hp"]
+    },
+    {
+      "id": "ooze_amorphorous",
+      "category": "Ooze",
+      "keywords": ["Acid", "Grapple", "Slime"],
+      "name": "Amorphous",
+      "description": "The creature can move through a space as narrow as 1 inch wide without squeezing.",
+      "parameters": []
+    },
+    {
+      "id": "plant_false_appearance",
+      "category": "Plant",
+      "keywords": ["Forest", "Poison", "Sleep"],
+      "name": "False Appearance",
+      "description": "While the creature remains motionless, it is indistinguishable from a normal plant of its kind.",
+      "parameters": []
+    },
+    {
+      "id": "undead_undead_fortitude",
+      "category": "Undead",
+      "keywords": ["Decay", "Death", "Soul"],
+      "name": "Undead Fortitude",
+      "description": "If damage reduces the creature to 0 hit points, it must make a Constitution saving throw with a DC of 5 + the damage taken, unless the damage is radiant or from a critical hit. On a success, the creature drops to 1 hit point instead.",
+      "parameters": []
+    }
+  ]
+}

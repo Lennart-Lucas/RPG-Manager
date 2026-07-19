@@ -1,3 +1,5 @@
+import 'package:rpg_manager/features/mechanics/features/data/feature_model.dart';
+
 import 'scaler_math.dart';
 
 enum AbilityKey { str, dex, con, int_, wis, cha }
@@ -31,68 +33,6 @@ extension AbilityKeyApi on AbilityKey {
       'cha' => AbilityKey.cha,
       _ => null,
     };
-  }
-}
-
-enum CreatureFeatureType { trait, free, bonus, action, reaction }
-
-enum CreatureFeatureRarity { common, uncommon, rare }
-
-class CreatureFeature {
-  const CreatureFeature({
-    required this.name,
-    required this.type,
-    required this.rarity,
-    required this.text,
-    this.autoKey,
-  });
-
-  final String name;
-  final CreatureFeatureType type;
-  final CreatureFeatureRarity rarity;
-  final String text;
-
-  /// Stable id for auto-injected rank/role features (`elusive`, `paragon_power`, …).
-  final String? autoKey;
-
-  factory CreatureFeature.fromJson(Map<String, dynamic> json) {
-    return CreatureFeature(
-      name: json['name'] as String? ?? '',
-      type: CreatureFeatureType.values.firstWhere(
-        (e) => e.name == (json['type'] as String? ?? 'trait'),
-        orElse: () => CreatureFeatureType.trait,
-      ),
-      rarity: CreatureFeatureRarity.values.firstWhere(
-        (e) => e.name == (json['rarity'] as String? ?? 'common'),
-        orElse: () => CreatureFeatureRarity.common,
-      ),
-      text: json['text'] as String? ?? '',
-      autoKey: json['autoKey'] as String?,
-    );
-  }
-
-  Map<String, dynamic> toJson() => {
-        'name': name,
-        'type': type.name,
-        'rarity': rarity.name,
-        'text': text,
-        if (autoKey != null) 'autoKey': autoKey,
-      };
-
-  CreatureFeature copyWith({
-    String? name,
-    CreatureFeatureType? type,
-    CreatureFeatureRarity? rarity,
-    String? text,
-    String? autoKey,
-  }) {
-    return CreatureFeature(
-      name: name ?? this.name,
-      type: type ?? this.type,
-      rarity: rarity ?? this.rarity,
-      text: text ?? this.text,
-      autoKey: autoKey ?? this.autoKey,
-    );
   }
 }
 
@@ -383,7 +323,7 @@ class Creature {
   final List<String> items;
   final String? trigger;
   final List<String> countermeasures;
-  final List<CreatureFeature> features;
+  final List<CreatureFeatureEntry> features;
   final CreatureOverrides overrides;
   final int? damageThreshold;
 
@@ -459,7 +399,7 @@ class Creature {
       countermeasures: _stringList(json['countermeasures']),
       features: [
         for (final f in (json['features'] as List?) ?? const [])
-          if (f is Map<String, dynamic>) CreatureFeature.fromJson(f),
+          if (f is Map<String, dynamic>) CreatureFeatureEntry.fromJson(f),
       ],
       overrides: CreatureOverrides.fromJson(
         json['overrides'] as Map<String, dynamic>?,
@@ -547,7 +487,7 @@ class Creature {
     String? trigger,
     bool clearTrigger = false,
     List<String>? countermeasures,
-    List<CreatureFeature>? features,
+    List<CreatureFeatureEntry>? features,
     CreatureOverrides? overrides,
     int? damageThreshold,
     bool clearDamageThreshold = false,
@@ -596,22 +536,22 @@ List<String> _stringList(dynamic raw) {
 }
 
 /// Auto-injected rank/role features (replace matching [autoKey] entries).
-List<CreatureFeature> mergeAutoFeatures({
-  required List<CreatureFeature> existing,
+List<CreatureFeatureEntry> mergeAutoFeatures({
+  required List<CreatureFeatureEntry> existing,
   required ScalerRank rank,
   required int level,
   required num threat,
   ScalerRole? role,
 }) {
-  final kept = existing.where((f) => f.autoKey == null).toList();
-  final auto = <CreatureFeature>[
+  final kept = existing.where((f) => !f.isAuto).toList();
+  final auto = <CreatureFeatureEntry>[
     ...rankAutoFeatures(rank: rank, level: level, threat: threat),
     if (role != null) roleAutoFeature(role),
   ];
   return [...auto, ...kept];
 }
 
-List<CreatureFeature> rankAutoFeatures({
+List<CreatureFeatureEntry> rankAutoFeatures({
   required ScalerRank rank,
   required int level,
   required num threat,
@@ -619,26 +559,32 @@ List<CreatureFeature> rankAutoFeatures({
   switch (rank) {
     case ScalerRank.minion:
       return [
-        const CreatureFeature(
-          name: 'Elusive',
-          type: CreatureFeatureType.trait,
-          rarity: CreatureFeatureRarity.common,
-          autoKey: 'elusive',
-          text:
-              'Takes no damage from a missed attack, even one that would normally deal damage on a miss or failed save.',
+        CreatureFeatureEntry.local(
+          const MonsterFeature(
+            name: 'Elusive',
+            category: FeatureCategory.trait,
+            rarity: FeatureRarity.common,
+            autoKey: 'elusive',
+            text:
+                'Takes no damage from a missed attack, even one that would normally deal damage on a miss or failed save.',
+            textOverride: true,
+          ),
         ),
       ];
     case ScalerRank.grunt:
       return const [];
     case ScalerRank.elite:
       return [
-        CreatureFeature(
-          name: 'Paragon Power',
-          type: CreatureFeatureType.trait,
-          rarity: CreatureFeatureRarity.uncommon,
-          autoKey: 'paragon_power',
-          text:
-              '1/round: at the end of another creature\'s turn, spend 1 paragon power to Act (regain reaction, take an action, may spend remaining movement) or Resist (reroll a failed save vs. an ongoing effect; may spend HP = ${2 * level} for advantage on the reroll).',
+        CreatureFeatureEntry.local(
+          MonsterFeature(
+            name: 'Paragon Power',
+            category: FeatureCategory.trait,
+            rarity: FeatureRarity.uncommon,
+            autoKey: 'paragon_power',
+            text:
+                '1/round: at the end of another creature\'s turn, spend 1 paragon power to Act (regain reaction, take an action, may spend remaining movement) or Resist (reroll a failed save vs. an ongoing effect; may spend HP = ${2 * level} for advantage on the reroll).',
+            textOverride: true,
+          ),
         ),
       ];
     case ScalerRank.paragon:
@@ -648,69 +594,96 @@ List<CreatureFeature> rankAutoFeatures({
           ? defenceUses.toInt().toString()
           : defenceUses.toString();
       return [
-        CreatureFeature(
-          name: 'Paragon Power',
-          type: CreatureFeatureType.trait,
-          rarity: CreatureFeatureRarity.rare,
-          autoKey: 'paragon_power',
-          text:
-              '$powers/round: at the end of another creature\'s turn, spend 1 paragon power to Act or Resist (see Elite Paragon Power; Resist may spend HP = ${2 * level} for advantage).',
+        CreatureFeatureEntry.local(
+          MonsterFeature(
+            name: 'Paragon Power',
+            category: FeatureCategory.trait,
+            rarity: FeatureRarity.rare,
+            autoKey: 'paragon_power',
+            text:
+                '$powers/round: at the end of another creature\'s turn, spend 1 paragon power to Act or Resist (see Elite Paragon Power; Resist may spend HP = ${2 * level} for advantage).',
+            textOverride: true,
+          ),
         ),
-        CreatureFeature(
-          name: 'Paragon Defence',
-          type: CreatureFeatureType.trait,
-          rarity: CreatureFeatureRarity.rare,
-          autoKey: 'paragon_defence',
-          text:
-              'When about to fail a saving throw, may instead succeed by spending HP = ${2 * level}. Usable $defenceLabel times per long rest (default: floor(target player count / 2)).',
+        CreatureFeatureEntry.local(
+          MonsterFeature(
+            name: 'Paragon Defence',
+            category: FeatureCategory.trait,
+            rarity: FeatureRarity.rare,
+            autoKey: 'paragon_defence',
+            text:
+                'When about to fail a saving throw, may instead succeed by spending HP = ${2 * level}. Usable $defenceLabel times per long rest (default: floor(target player count / 2)).',
+            textOverride: true,
+          ),
         ),
       ];
   }
 }
 
-CreatureFeature roleAutoFeature(ScalerRole role) {
+CreatureFeatureEntry roleAutoFeature(ScalerRole role) {
   return switch (role) {
-    ScalerRole.controller => const CreatureFeature(
-        name: 'Focused',
-        type: CreatureFeatureType.trait,
-        rarity: CreatureFeatureRarity.common,
-        autoKey: 'role_feature',
-        text: 'Advantage on Concentration saving throws.',
+    ScalerRole.controller => CreatureFeatureEntry.local(
+        const MonsterFeature(
+          name: 'Focused',
+          category: FeatureCategory.trait,
+          rarity: FeatureRarity.common,
+          autoKey: 'role_feature',
+          text: 'Advantage on Concentration saving throws.',
+          textOverride: true,
+        ),
       ),
-    ScalerRole.defender => const CreatureFeature(
-        name: 'Opportunist',
-        type: CreatureFeatureType.trait,
-        rarity: CreatureFeatureRarity.common,
-        autoKey: 'role_feature',
-        text: 'Advantage on opportunity attacks.',
+    ScalerRole.defender => CreatureFeatureEntry.local(
+        const MonsterFeature(
+          name: 'Opportunist',
+          category: FeatureCategory.trait,
+          rarity: FeatureRarity.common,
+          autoKey: 'role_feature',
+          text: 'Advantage on opportunity attacks.',
+          textOverride: true,
+        ),
       ),
-    ScalerRole.lurker => const CreatureFeature(
-        name: 'Sneaky',
-        type: CreatureFeatureType.bonus,
-        rarity: CreatureFeatureRarity.common,
-        autoKey: 'role_feature',
-        text: 'Bonus Action: take the Hide action.',
+    ScalerRole.lurker => CreatureFeatureEntry.local(
+        const MonsterFeature(
+          name: 'Sneaky',
+          category: FeatureCategory.attack,
+          rarity: FeatureRarity.common,
+          activationTime: FeatureActivation.bonus,
+          autoKey: 'role_feature',
+          text: 'Bonus Action: take the Hide action.',
+          textOverride: true,
+        ),
       ),
-    ScalerRole.skirmisher => const CreatureFeature(
-        name: 'Evasive',
-        type: CreatureFeatureType.bonus,
-        rarity: CreatureFeatureRarity.common,
-        autoKey: 'role_feature',
-        text: 'Bonus Action: take the Disengage action.',
+    ScalerRole.skirmisher => CreatureFeatureEntry.local(
+        const MonsterFeature(
+          name: 'Evasive',
+          category: FeatureCategory.attack,
+          rarity: FeatureRarity.common,
+          activationTime: FeatureActivation.bonus,
+          autoKey: 'role_feature',
+          text: 'Bonus Action: take the Disengage action.',
+          textOverride: true,
+        ),
       ),
-    ScalerRole.striker => const CreatureFeature(
-        name: 'Brutal',
-        type: CreatureFeatureType.trait,
-        rarity: CreatureFeatureRarity.common,
-        autoKey: 'role_feature',
-        text: '1/turn: score a critical hit on a roll of 19–20.',
+    ScalerRole.striker => CreatureFeatureEntry.local(
+        const MonsterFeature(
+          name: 'Brutal',
+          category: FeatureCategory.trait,
+          rarity: FeatureRarity.common,
+          autoKey: 'role_feature',
+          text: '1/turn: score a critical hit on a roll of 19–20.',
+          textOverride: true,
+        ),
       ),
-    ScalerRole.supporter => const CreatureFeature(
-        name: 'Supportive',
-        type: CreatureFeatureType.bonus,
-        rarity: CreatureFeatureRarity.common,
-        autoKey: 'role_feature',
-        text: 'Bonus Action: take the Help action.',
+    ScalerRole.supporter => CreatureFeatureEntry.local(
+        const MonsterFeature(
+          name: 'Supportive',
+          category: FeatureCategory.attack,
+          rarity: FeatureRarity.common,
+          activationTime: FeatureActivation.bonus,
+          autoKey: 'role_feature',
+          text: 'Bonus Action: take the Help action.',
+          textOverride: true,
+        ),
       ),
   };
 }

@@ -20,5 +20,6 @@ extension CatalogKindIcons on CatalogKind {
         CatalogKind.itemProperties => itemPropertiesPageIcon,
         CatalogKind.rules => rulesPageIcon,
         CatalogKind.spellTags => spellTagsPageIcon,
+        CatalogKind.features => featuresPageIcon,
       };
 }

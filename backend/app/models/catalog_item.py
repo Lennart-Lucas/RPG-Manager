@@ -27,6 +27,7 @@ class CatalogKind(StrEnum):
     item_properties = "item_properties"
     rules = "rules"
     spell_tags = "spell_tags"
+    features = "features"
 
 
 class CatalogItem(Base):

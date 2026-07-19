@@ -1,26 +1,25 @@
 import 'package:flutter/material.dart';
 
-import 'package:rpg_manager/features/auth/data/auth_api.dart';
-import 'package:rpg_manager/features/auth/state/auth_controller.dart';
-import 'package:rpg_manager/features/catalog/data/catalog_api.dart';
-import 'package:rpg_manager/features/catalog/data/catalog_kind.dart';
-import 'package:rpg_manager/features/catalog/data/catalog_models.dart';
-import 'package:rpg_manager/features/world/creatures/data/creature_model.dart';
-import 'package:rpg_manager/features/world/creatures/ui/creature_detail_page.dart';
-import 'package:rpg_manager/features/world/creatures/ui/creature_form_sheet.dart';
-import 'package:rpg_manager/features/world/creatures/ui/creature_list_item_card.dart';
-import 'package:rpg_manager/features/world/world_icons.dart';
+import '../../../auth/data/auth_api.dart';
+import '../../../auth/state/auth_controller.dart';
+import '../../../catalog/data/catalog_api.dart';
+import '../../../catalog/data/catalog_kind.dart';
+import '../../../catalog/data/catalog_models.dart';
+import '../../mechanics_icons.dart';
+import '../data/feature_model.dart';
+import 'feature_detail_page.dart';
+import 'feature_form_sheet.dart';
 
-class CreaturesBody extends StatefulWidget {
-  const CreaturesBody({super.key, required this.auth});
+class FeaturesBody extends StatefulWidget {
+  const FeaturesBody({super.key, required this.auth});
 
   final AuthController auth;
 
   @override
-  State<CreaturesBody> createState() => _CreaturesBodyState();
+  State<FeaturesBody> createState() => _FeaturesBodyState();
 }
 
-class _CreaturesBodyState extends State<CreaturesBody> {
+class _FeaturesBodyState extends State<FeaturesBody> {
   final _api = CatalogApi();
 
   bool _loading = true;
@@ -35,34 +34,11 @@ class _CreaturesBodyState extends State<CreaturesBody> {
 
   Future<String?> _token() => widget.auth.requireAccessToken();
 
-  Creature? _creatureFromCatalog(CatalogItem item) {
-    final payload = item.payload;
-    if (payload == null) {
-      return Creature(
-        id: Creature.slugify(item.name),
-        name: item.name,
-      );
-    }
-    try {
-      return Creature.fromJson(payload);
-    } catch (_) {
-      return null;
-    }
-  }
-
-  List<({CatalogItem item, Creature creature})> get _entries {
-    final out = <({CatalogItem item, Creature creature})>[];
-    for (final item in _items) {
-      final creature = _creatureFromCatalog(item);
-      if (creature == null) continue;
-      out.add((item: item, creature: creature.copyWith(name: item.name)));
-    }
-    out.sort(
-      (a, b) => a.creature.name
-          .toLowerCase()
-          .compareTo(b.creature.name.toLowerCase()),
+  MonsterFeature _featureFromItem(CatalogItem item) {
+    return MonsterFeature.fromCatalogPayload(
+      name: item.name,
+      payload: item.payload,
     );
-    return out;
   }
 
   Future<void> _reload() async {
@@ -75,7 +51,7 @@ class _CreaturesBodyState extends State<CreaturesBody> {
       if (token == null) {
         throw AuthApiException('Not authenticated');
       }
-      final items = await _api.list(token, CatalogKind.creatures);
+      final items = await _api.list(token, CatalogKind.features);
       if (!mounted) return;
       setState(() {
         _items = items;
@@ -90,7 +66,7 @@ class _CreaturesBodyState extends State<CreaturesBody> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _error = 'Could not load creatures';
+        _error = 'Could not load features';
         _loading = false;
       });
     }
@@ -99,15 +75,15 @@ class _CreaturesBodyState extends State<CreaturesBody> {
   Future<void> _create() async {
     try {
       if (!mounted) return;
-      final creature = await showCreatureFormSheet(context, auth: widget.auth);
-      if (creature == null || !mounted) return;
+      final feature = await showFeatureFormSheet(context);
+      if (feature == null || !mounted) return;
       final token = await _token();
       if (token == null) return;
       await _api.create(
         accessToken: token,
-        kind: CatalogKind.creatures,
-        name: creature.name,
-        payload: creature.toJson(),
+        kind: CatalogKind.features,
+        name: feature.name,
+        payload: feature.toJson(),
       );
       await _reload();
     } on AuthApiException catch (e) {
@@ -118,29 +94,25 @@ class _CreaturesBodyState extends State<CreaturesBody> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not create creature')),
+        const SnackBar(content: Text('Could not create feature')),
       );
     }
   }
 
   Future<void> _edit(CatalogItem item) async {
     try {
-      final existing = _creatureFromCatalog(item);
-      if (existing == null || !mounted) return;
-      final creature = await showCreatureFormSheet(
-        context,
-        initial: existing,
-        auth: widget.auth,
-      );
-      if (creature == null || !mounted) return;
+      if (!mounted) return;
+      final existing = _featureFromItem(item);
+      final feature = await showFeatureFormSheet(context, initial: existing);
+      if (feature == null || !mounted) return;
       final token = await _token();
       if (token == null) return;
       await _api.update(
         accessToken: token,
-        kind: CatalogKind.creatures,
+        kind: CatalogKind.features,
         itemId: item.id,
-        name: creature.name,
-        payload: creature.toJson(),
+        name: feature.name,
+        payload: feature.toJson(),
       );
       await _reload();
     } on AuthApiException catch (e) {
@@ -151,18 +123,19 @@ class _CreaturesBodyState extends State<CreaturesBody> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not update creature')),
+        const SnackBar(content: Text('Could not update feature')),
       );
     }
   }
 
-  Future<void> _openDetail(({CatalogItem item, Creature creature}) entry) async {
+  Future<void> _openDetail(CatalogItem item) async {
+    final feature = _featureFromItem(item);
     final deleted = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (context) => CreatureDetailPage(
+        builder: (context) => FeatureDetailPage(
           auth: widget.auth,
-          item: entry.item,
-          creature: entry.creature,
+          item: item,
+          feature: feature.copyWith(name: item.name),
         ),
       ),
     );
@@ -171,10 +144,21 @@ class _CreaturesBodyState extends State<CreaturesBody> {
     }
   }
 
+  String _subtitle(MonsterFeature feature) {
+    final parts = <String>[
+      feature.category.label,
+      feature.rarity.label,
+      '${feature.effectPoints} EP',
+    ];
+    if (feature.activationTime != FeatureActivation.none) {
+      parts.add(feature.activationTime.label);
+    }
+    return parts.join(' · ');
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final entries = _loading || _error != null ? const [] : _entries;
 
     return Stack(
       children: [
@@ -184,7 +168,7 @@ class _CreaturesBodyState extends State<CreaturesBody> {
               child: Opacity(
                 opacity: 0.08,
                 child: Icon(
-                  creaturesPageIcon,
+                  featuresPageIcon,
                   size: 440,
                   color: scheme.onSurface,
                 ),
@@ -211,7 +195,7 @@ class _CreaturesBodyState extends State<CreaturesBody> {
               ),
             ),
           )
-        else if (entries.isEmpty)
+        else if (_items.isEmpty)
           RefreshIndicator(
             onRefresh: _reload,
             child: LayoutBuilder(
@@ -229,13 +213,13 @@ class _CreaturesBodyState extends State<CreaturesBody> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              'No creatures yet',
+                              'No features yet',
                               textAlign: TextAlign.center,
                               style: Theme.of(context).textTheme.headlineSmall,
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Tap + to add your first creature.',
+                              'Tap + to add your first feature.',
                               textAlign: TextAlign.center,
                               style: Theme.of(context)
                                   .textTheme
@@ -256,51 +240,26 @@ class _CreaturesBodyState extends State<CreaturesBody> {
         else
           RefreshIndicator(
             onRefresh: _reload,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                const horizontalPadding = 16.0;
-                const itemSpacing = 10.0;
-                const minItemWidth = 280.0;
-                const maxItemWidth = 1060.0;
-                final availableWidth =
-                    constraints.maxWidth - (horizontalPadding * 2);
-                final columns = ((availableWidth + itemSpacing) /
-                        (minItemWidth + itemSpacing))
-                    .floor()
-                    .clamp(1, 99);
-                final itemWidth = columns == 1
-                    ? availableWidth
-                    : ((availableWidth - (itemSpacing * (columns - 1))) /
-                            columns)
-                        .clamp(minItemWidth, maxItemWidth);
-
-                return ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(
-                    horizontalPadding,
-                    16,
-                    horizontalPadding,
-                    100,
-                  ),
-                  children: [
-                    Wrap(
-                      spacing: itemSpacing,
-                      runSpacing: itemSpacing,
-                      children: [
-                        for (final entry in entries)
-                          SizedBox(
-                            width: itemWidth,
-                            child: CreatureListItemCard(
-                              creature: entry.creature,
-                              onTap: () => _openDetail(entry),
-                              onLongPress: () => _edit(entry.item),
-                              minWidth: minItemWidth,
-                              maxWidth: maxItemWidth,
-                            ),
-                          ),
-                      ],
+            child: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+              itemCount: _items.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final item = _items[index];
+                final feature = _featureFromItem(item);
+                return Material(
+                  color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(12),
+                  child: ListTile(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  ],
+                    leading: Icon(featuresPageIcon, color: scheme.primary),
+                    title: Text(item.name),
+                    subtitle: Text(_subtitle(feature)),
+                    onTap: () => _openDetail(item),
+                    onLongPress: () => _edit(item),
+                  ),
                 );
               },
             ),

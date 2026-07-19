@@ -7,6 +7,7 @@ import '../catalog/data/catalog_kind.dart';
 import '../catalog/ui/catalog_body.dart';
 import '../dm_tools/resources/ui/resources_body.dart';
 import '../mechanics/mechanics_icons.dart';
+import '../mechanics/features/ui/features_body.dart';
 import '../mechanics/spell_tags/ui/spell_tags_body.dart';
 import '../player_options/classes/ui/classes_body.dart';
 import '../player_options/items/ui/items_body.dart';
@@ -53,6 +54,7 @@ class _AppShellState extends State<AppShell> {
         AppPage.itemProperties => 'Item Properties',
         AppPage.rules => 'Rules',
         AppPage.spellTags => 'Spell Tags',
+        AppPage.features => 'Features',
         AppPage.creatures => 'Creatures',
       };
 
@@ -123,6 +125,7 @@ class _AppShellState extends State<AppShell> {
           _catalog(CatalogKind.itemProperties, itemPropertiesPageIcon),
         AppPage.rules => _catalog(CatalogKind.rules, rulesPageIcon),
         AppPage.spellTags => SpellTagsBody(auth: widget.auth),
+        AppPage.features => FeaturesBody(auth: widget.auth),
         AppPage.creatures => CreaturesBody(auth: widget.auth),
       },
     );

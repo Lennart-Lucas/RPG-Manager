@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../auth/data/auth_api.dart';
 import '../../auth/state/auth_controller.dart';
 import '../../dm_tools/resources/data/resources_api.dart';
+import '../../mechanics/features/data/feature_model.dart';
+import '../../mechanics/features/ui/feature_detail_page.dart';
 import '../../mechanics/spell_tags/data/spell_tag_model.dart';
 import '../../player_options/classes/data/class_model.dart';
 import '../../player_options/items/data/item_model.dart';
@@ -48,6 +50,8 @@ Future<void> openCatalogRecordDetail({
         await _openItemDetail(context, auth, item);
       case CatalogKind.creatures:
         await _openCreatureDetail(context, auth, item);
+      case CatalogKind.features:
+        await _openFeatureDetail(context, auth, item);
       default:
         await Navigator.of(context).push<void>(
           MaterialPageRoute(
@@ -196,6 +200,39 @@ Future<void> _openItemDetail(
   );
 }
 
+Future<void> _openFeatureDetail(
+  BuildContext context,
+  AuthController auth,
+  CatalogItem item,
+) async {
+  MonsterFeature? feature;
+  try {
+    feature = MonsterFeature.fromCatalogPayload(
+      name: item.name,
+      payload: item.payload,
+    );
+  } catch (_) {
+    feature = null;
+  }
+  if (feature == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Could not read feature data')),
+    );
+    return;
+  }
+
+  if (!context.mounted) return;
+  await Navigator.of(context).push<void>(
+    MaterialPageRoute(
+      builder: (context) => FeatureDetailPage(
+        auth: auth,
+        item: item,
+        feature: feature!.copyWith(name: item.name),
+      ),
+    ),
+  );
+}
+
 Future<void> _openCreatureDetail(
   BuildContext context,
   AuthController auth,
@@ -302,6 +339,18 @@ String? catalogRecordSubtitle(CatalogItem item) {
       final desc = tag.description.trim();
       if (desc.isEmpty) return null;
       final oneLine = desc.replaceAll(RegExp(r'\s+'), ' ');
+      if (oneLine.length <= 120) return oneLine;
+      return '${oneLine.substring(0, 117)}…';
+    case CatalogKind.features:
+      final feature = MonsterFeature.fromCatalogPayload(
+        name: item.name,
+        payload: item.payload,
+      );
+      final text = feature.text.trim();
+      if (text.isEmpty) {
+        return '${feature.category.label} · ${feature.rarity.label} · ${feature.effectPoints} EP';
+      }
+      final oneLine = text.replaceAll(RegExp(r'\s+'), ' ');
       if (oneLine.length <= 120) return oneLine;
       return '${oneLine.substring(0, 117)}…';
     default:

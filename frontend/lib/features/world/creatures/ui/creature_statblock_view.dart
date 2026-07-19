@@ -154,20 +154,20 @@ class CreatureStatblockView extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              for (final feature in creature.features)
+              for (final entry in creature.features)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${feature.name} (${feature.type.name}, ${feature.rarity.name})',
+                        entry.displayName,
                         style: textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       const SizedBox(height: 2),
-                      Text(feature.text, style: textTheme.bodyMedium),
+                      Text(entry.displayText, style: textTheme.bodyMedium),
                     ],
                   ),
                 ),

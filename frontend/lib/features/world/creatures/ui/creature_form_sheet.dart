@@ -2,19 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:rpg_manager/core/ui/markdown_form_field.dart';
+import 'package:rpg_manager/features/auth/data/auth_api.dart';
+import 'package:rpg_manager/features/auth/state/auth_controller.dart';
+import 'package:rpg_manager/features/catalog/data/catalog_api.dart';
+import 'package:rpg_manager/features/catalog/data/catalog_kind.dart';
+import 'package:rpg_manager/features/catalog/data/catalog_models.dart';
 import 'package:rpg_manager/features/dm_tools/resources/ui/resource_form_helpers.dart';
+import 'package:rpg_manager/features/mechanics/features/data/feature_model.dart';
+import 'package:rpg_manager/features/mechanics/features/ui/feature_form_sheet.dart';
 import 'package:rpg_manager/features/world/creatures/data/creature_model.dart';
 import 'package:rpg_manager/features/world/creatures/data/scaler_math.dart';
 
 Future<Creature?> showCreatureFormSheet(
   BuildContext context, {
   Creature? initial,
+  AuthController? auth,
 }) {
   final editing = initial != null;
   return showAdaptiveResourceForm<Creature>(
     context,
     title: editing ? 'Edit creature' : 'New creature',
-    child: _CreatureForm(initial: initial),
+    child: _CreatureForm(initial: initial, auth: auth),
   );
 }
 
@@ -49,9 +57,10 @@ extension on _AbilityTier {
 }
 
 class _CreatureForm extends StatefulWidget {
-  const _CreatureForm({this.initial});
+  const _CreatureForm({this.initial, this.auth});
 
   final Creature? initial;
+  final AuthController? auth;
 
   @override
   State<_CreatureForm> createState() => _CreatureFormState();
@@ -130,7 +139,7 @@ class _CreatureFormState extends State<_CreatureForm> {
   late final List<String> _trainedSaves = [
     ...?(widget.initial?.trainedSavingThrows.map((s) => s.toLowerCase())),
   ];
-  late List<CreatureFeature> _features = [
+  late List<CreatureFeatureEntry> _features = [
     ...(widget.initial?.features ?? const []),
   ];
   late CreatureOverrides _overrides = widget.initial?.overrides ?? const CreatureOverrides();
@@ -407,72 +416,100 @@ class _CreatureFormState extends State<_CreatureForm> {
   }
 
   Future<void> _editFeature(int index) async {
-    final feature = _features[index];
-    if (feature.autoKey != null) return;
-    final result = await _showFeatureDialog(initial: feature);
+    final entry = _features[index];
+    if (entry.isAuto || entry.source == CreatureFeatureSource.catalog) return;
+    final feature = entry.feature;
+    if (feature == null) return;
+    final result = await showFeatureFormSheet(
+      context,
+      initial: feature,
+      creatureRank: _rank,
+      creatureThreat: _threat,
+      scalerDmg: _formula.dmg,
+      creatureLevel: _level,
+    );
     if (result == null || !mounted) return;
-    setState(() => _features[index] = result);
+    setState(
+      () => _features[index] = CreatureFeatureEntry.local(result),
+    );
   }
 
-  Future<void> _addFeature() async {
-    final result = await _showFeatureDialog();
+  Future<void> _addLocalFeature() async {
+    final result = await showFeatureFormSheet(
+      context,
+      creatureRank: _rank,
+      creatureThreat: _threat,
+      scalerDmg: _formula.dmg,
+      creatureLevel: _level,
+    );
     if (result == null || !mounted) return;
-    setState(() => _features = [..._features, result]);
+    setState(
+      () => _features = [..._features, CreatureFeatureEntry.local(result)],
+    );
   }
 
-  Future<CreatureFeature?> _showFeatureDialog({CreatureFeature? initial}) {
-    final nameController = TextEditingController(text: initial?.name ?? '');
-    final textController = TextEditingController(text: initial?.text ?? '');
-    var type = initial?.type ?? CreatureFeatureType.trait;
-    var rarity = initial?.rarity ?? CreatureFeatureRarity.common;
+  Future<void> _addCatalogFeature() async {
+    final auth = widget.auth;
+    if (auth == null) return;
+    final token = await auth.requireAccessToken();
+    if (token == null || !mounted) return;
+    final api = CatalogApi();
+    List<CatalogItem> items;
+    try {
+      items = await api.list(token, CatalogKind.features);
+    } on AuthApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+      return;
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not load features catalog')),
+      );
+      return;
+    }
 
-    return showDialog<CreatureFeature>(
+    if (!mounted) return;
+
+    final queryController = TextEditingController();
+    final selected = await showDialog<CatalogItem>(
       context: context,
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setDialogState) {
+            final q = queryController.text.trim().toLowerCase();
+            final filtered = q.isEmpty
+                ? items
+                : items
+                    .where((item) => item.name.toLowerCase().contains(q))
+                    .toList();
             return AlertDialog(
-              title: Text(initial == null ? 'Add feature' : 'Edit feature'),
-              content: SingleChildScrollView(
+              title: const Text('Add from catalog'),
+              content: SizedBox(
+                width: 420,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     TextField(
-                      controller: nameController,
-                      decoration: const InputDecoration(labelText: 'Name'),
+                      controller: queryController,
+                      decoration: const InputDecoration(labelText: 'Search'),
+                      onChanged: (_) => setDialogState(() {}),
                     ),
                     const SizedBox(height: 12),
-                    DropdownButtonFormField<CreatureFeatureType>(
-                      initialValue: type,
-                      decoration: const InputDecoration(labelText: 'Type'),
-                      items: [
-                        for (final t in CreatureFeatureType.values)
-                          DropdownMenuItem(value: t, child: Text(t.name)),
-                      ],
-                      onChanged: (v) {
-                        if (v == null) return;
-                        setDialogState(() => type = v);
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<CreatureFeatureRarity>(
-                      initialValue: rarity,
-                      decoration: const InputDecoration(labelText: 'Rarity'),
-                      items: [
-                        for (final r in CreatureFeatureRarity.values)
-                          DropdownMenuItem(value: r, child: Text(r.name)),
-                      ],
-                      onChanged: (v) {
-                        if (v == null) return;
-                        setDialogState(() => rarity = v);
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: textController,
-                      decoration: const InputDecoration(labelText: 'Text'),
-                      minLines: 3,
-                      maxLines: 8,
+                    Flexible(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: filtered.length,
+                        itemBuilder: (context, index) {
+                          final item = filtered[index];
+                          return ListTile(
+                            title: Text(item.name),
+                            onTap: () => Navigator.pop(ctx, item),
+                          );
+                        },
+                      ),
                     ),
                   ],
                 ),
@@ -482,28 +519,108 @@ class _CreatureFormState extends State<_CreatureForm> {
                   onPressed: () => Navigator.pop(ctx),
                   child: const Text('Cancel'),
                 ),
-                FilledButton(
-                  onPressed: () {
-                    final name = nameController.text.trim();
-                    if (name.isEmpty) return;
-                    Navigator.pop(
-                      ctx,
-                      CreatureFeature(
-                        name: name,
-                        type: type,
-                        rarity: rarity,
-                        text: textController.text.trim(),
-                      ),
-                    );
-                  },
-                  child: const Text('Save'),
-                ),
               ],
             );
           },
         );
       },
     );
+    queryController.dispose();
+    if (selected == null || !mounted) return;
+
+    final feature = MonsterFeature.fromCatalogPayload(
+      name: selected.name,
+      payload: selected.payload,
+    );
+    setState(() {
+      _features = [
+        ..._features,
+        CreatureFeatureEntry.catalog(
+          catalogItemId: selected.id,
+          snapshotName: selected.name,
+          snapshotText: feature.text,
+        ),
+      ];
+    });
+  }
+
+  Future<void> _detachCatalogFeature(int index) async {
+    final entry = _features[index];
+    if (entry.source != CreatureFeatureSource.catalog) return;
+    final auth = widget.auth;
+    if (auth == null) return;
+    final token = await auth.requireAccessToken();
+    if (token == null || !mounted) return;
+    try {
+      final item = await CatalogApi().get(
+        token,
+        CatalogKind.features,
+        entry.catalogItemId!,
+      );
+      final feature = MonsterFeature.fromCatalogPayload(
+        name: item.name,
+        payload: item.payload,
+      );
+      if (!mounted) return;
+      setState(
+        () => _features[index] = CreatureFeatureEntry.local(feature),
+      );
+    } on AuthApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not detach catalog feature')),
+      );
+    }
+  }
+
+  Future<void> _viewAutoFeature(int index) async {
+    final entry = _features[index];
+    final feature = entry.feature;
+    if (feature == null) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(feature.name),
+        content: SingleChildScrollView(child: Text(feature.text)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _featureBadge(CreatureFeatureEntry entry) {
+    if (entry.isAuto) return 'Auto';
+    if (entry.source == CreatureFeatureSource.catalog) return 'Catalog';
+    return 'Local';
+  }
+
+  String _featureSubtitle(CreatureFeatureEntry entry) {
+    if (entry.isAuto) {
+      final f = entry.feature!;
+      return 'Auto · ${f.category.label} · ${f.rarity.label}';
+    }
+    if (entry.source == CreatureFeatureSource.catalog) {
+      return 'Catalog · ${entry.snapshotName ?? ''}';
+    }
+    final f = entry.feature!;
+    return '${f.category.label} · ${f.rarity.label} · ${f.effectPoints} EP';
+  }
+
+  int _budgetSlotCount(FeatureBudgetSlot slot) {
+    return _features.where((e) {
+      if (e.isAuto) return false;
+      if (e.source == CreatureFeatureSource.catalog) return false;
+      return e.feature?.budgetSlot == slot;
+    }).length;
   }
 
   void _submit() {
@@ -613,7 +730,10 @@ class _CreatureFormState extends State<_CreatureForm> {
     final f = _formula;
     final abilityWarning = _abilityAssignmentWarning();
     final userFeatureCount =
-        _features.where((feat) => feat.autoKey == null).length;
+        _features.where((feat) => !feat.isAuto).length;
+    final ancestral = _budgetSlotCount(FeatureBudgetSlot.ancestral);
+    final role = _budgetSlotCount(FeatureBudgetSlot.role);
+    final misc = _budgetSlotCount(FeatureBudgetSlot.misc);
     final effectiveWalk = (int.tryParse(_walkController.text.trim()) ?? 30) +
         f.speedWalkDelta;
 
@@ -1169,24 +1289,45 @@ class _CreatureFormState extends State<_CreatureForm> {
             '(recommended ${f.featureBudgetMin}–${f.featureBudgetMax})',
             style: Theme.of(context).textTheme.bodySmall,
           ),
+          Text(
+            'Slots — ancestral: $ancestral · role: $role · misc: $misc',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
           const SizedBox(height: 8),
           for (var i = 0; i < _features.length; i++)
             ListTile(
               contentPadding: EdgeInsets.zero,
-              title: Text(_features[i].name),
-              subtitle: Text(
-                _features[i].autoKey != null
-                    ? 'Auto · ${_features[i].type.name}'
-                    : _features[i].type.name,
+              leading: Chip(
+                label: Text(
+                  _featureBadge(_features[i]),
+                  style: const TextStyle(fontSize: 11),
+                ),
+                visualDensity: VisualDensity.compact,
               ),
-              trailing: _features[i].autoKey == null
-                  ? Row(
+              title: Text(_features[i].displayName),
+              subtitle: Text(_featureSubtitle(_features[i])),
+              trailing: _features[i].isAuto
+                  ? IconButton(
+                      icon: const Icon(Icons.visibility_outlined),
+                      onPressed: () => _viewAutoFeature(i),
+                    )
+                  : Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined),
-                          onPressed: () => _editFeature(i),
-                        ),
+                        if (_features[i].source ==
+                            CreatureFeatureSource.catalog)
+                          IconButton(
+                            tooltip: 'Detach from catalog',
+                            icon: const Icon(Icons.link_off_outlined),
+                            onPressed: () => _detachCatalogFeature(i),
+                          )
+                        else
+                          IconButton(
+                            icon: const Icon(Icons.edit_outlined),
+                            onPressed: () => _editFeature(i),
+                          ),
                         IconButton(
                           icon: const Icon(Icons.delete_outline),
                           onPressed: () {
@@ -1194,19 +1335,28 @@ class _CreatureFormState extends State<_CreatureForm> {
                           },
                         ),
                       ],
-                    )
-                  : null,
-              onTap: _features[i].autoKey == null
-                  ? () => _editFeature(i)
-                  : null,
+                    ),
+              onTap: _features[i].isAuto
+                  ? () => _viewAutoFeature(i)
+                  : _features[i].source == CreatureFeatureSource.catalog
+                      ? null
+                      : () => _editFeature(i),
             ),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              onPressed: _addFeature,
-              icon: const Icon(Icons.add),
-              label: const Text('Add feature'),
-            ),
+          Wrap(
+            spacing: 8,
+            children: [
+              TextButton.icon(
+                onPressed: _addLocalFeature,
+                icon: const Icon(Icons.add),
+                label: const Text('Add local'),
+              ),
+              if (widget.auth != null)
+                TextButton.icon(
+                  onPressed: _addCatalogFeature,
+                  icon: const Icon(Icons.library_books_outlined),
+                  label: const Text('From catalog'),
+                ),
+            ],
           ),
           const SizedBox(height: ResourceFormStyles.sectionSpacing),
           FilledButton(

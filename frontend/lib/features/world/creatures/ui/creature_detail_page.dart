@@ -52,6 +52,7 @@ class _CreatureDetailPageState extends State<CreatureDetailPage> {
       final updated = await showCreatureFormSheet(
         context,
         initial: _creature,
+        auth: widget.auth,
       );
       if (updated == null || !mounted) return;
       final saved = await _api.update(
