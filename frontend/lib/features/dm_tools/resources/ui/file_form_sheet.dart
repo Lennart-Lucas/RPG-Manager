@@ -89,19 +89,37 @@ class _FileFormSheetState extends State<_FileFormSheet> {
   }
 
   Future<void> _pickFile() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.any,
-      withData: false,
-    );
-    if (result == null || result.files.isEmpty) return;
-    final file = result.files.single;
-    setState(() {
-      _pickedPath = file.path;
-      _pickedName = file.name;
-      if (_nameController.text.trim().isEmpty && file.name.isNotEmpty) {
-        _nameController.text = file.name;
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.any,
+        withData: false,
+        lockParentWindow: true,
+      );
+      if (!mounted) return;
+      if (result == null || result.files.isEmpty) return;
+      final file = result.files.single;
+      final path = file.path;
+      if (path == null || path.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not read the selected file path.'),
+          ),
+        );
+        return;
       }
-    });
+      setState(() {
+        _pickedPath = path;
+        _pickedName = file.name;
+        if (_nameController.text.trim().isEmpty && file.name.isNotEmpty) {
+          _nameController.text = file.name;
+        }
+      });
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('File picker failed: $error')),
+      );
+    }
   }
 
   void _submit() {
