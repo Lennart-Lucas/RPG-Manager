@@ -14,15 +14,21 @@ bool get isDesktopFileStorageSupported {
 }
 
 class LocalResourceFileCopy {
+  /// Root directory for local resource file copies:
+  /// `{documents}/resources/files/`.
+  Future<Directory> resourcesFilesRoot() async {
+    final docs = await getApplicationDocumentsDirectory();
+    return Directory(p.join(docs.path, 'resources', 'files'));
+  }
+
   /// Copies [sourcePath] into app documents under resources/files/{fileId}/.
   /// Returns the destination absolute path.
   Future<String> copyPickedFile({
     required int fileId,
     required String sourcePath,
   }) async {
-    final docs = await getApplicationDocumentsDirectory();
     final destDir = Directory(
-      p.join(docs.path, 'resources', 'files', '$fileId'),
+      p.join((await resourcesFilesRoot()).path, '$fileId'),
     );
     if (!await destDir.exists()) {
       await destDir.create(recursive: true);
@@ -31,6 +37,18 @@ class LocalResourceFileCopy {
     final destPath = p.join(destDir.path, basename);
     await File(sourcePath).copy(destPath);
     return destPath;
+  }
+
+  /// Opens the local resources files folder in the system file manager.
+  Future<void> openResourcesFolder() async {
+    if (!isDesktopFileStorageSupported) {
+      throw UnsupportedError('Opening folders is desktop-only');
+    }
+    final root = await resourcesFilesRoot();
+    if (!await root.exists()) {
+      await root.create(recursive: true);
+    }
+    await _openExternally(root.path);
   }
 
   Future<void> openLocalPath(String absolutePath) async {

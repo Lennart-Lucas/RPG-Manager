@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../auth/data/auth_api.dart';
 import '../../../auth/state/auth_controller.dart';
+import '../../../shell/app_page.dart';
+import '../../../shell/shell_page_app_bar.dart';
 import '../resources_icons.dart';
 import '../data/local_file_path_store.dart';
 import '../data/local_resource_file_copy.dart';
@@ -22,6 +24,8 @@ class ResourcesBody extends StatefulWidget {
 }
 
 class _ResourcesBodyState extends State<ResourcesBody> {
+  static String get _pageKey => AppPage.resources.name;
+
   final _api = ResourcesApi();
   final _pathStore = LocalFilePathStore();
   final _fileCopy = LocalResourceFileCopy();
@@ -37,7 +41,47 @@ class _ResourcesBodyState extends State<ResourcesBody> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _installShellAppBar();
+    });
     _reload();
+  }
+
+  @override
+  void dispose() {
+    ShellPageAppBarStore.instance.clearPageBar(_pageKey);
+    super.dispose();
+  }
+
+  void _installShellAppBar() {
+    if (!mounted) return;
+    if (!isDesktopFileStorageSupported) {
+      ShellPageAppBarStore.instance.clearPageBar(_pageKey);
+      return;
+    }
+    ShellPageAppBarStore.instance.setPageBar(
+      _pageKey,
+      ShellPageAppBarData(
+        actions: [
+          IconButton(
+            tooltip: 'Open files folder',
+            icon: const Icon(Icons.folder_open_outlined),
+            onPressed: _openFilesFolder,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openFilesFolder() async {
+    try {
+      await _fileCopy.openResourcesFolder();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open the files folder')),
+      );
+    }
   }
 
   Future<String?> _token() => widget.auth.requireAccessToken();
