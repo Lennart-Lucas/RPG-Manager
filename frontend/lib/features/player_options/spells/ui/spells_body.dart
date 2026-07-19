@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/ui/markdown_form_field.dart';
@@ -9,6 +11,9 @@ import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../../dm_tools/resources/data/resource_models.dart';
 import '../../../dm_tools/resources/data/resources_api.dart';
+import '../../../export/card_export_pdf.dart';
+import '../../../export/card_export_theme.dart';
+import '../../../export/card_pdf_export_sheet.dart';
 import '../../../shell/app_page.dart';
 import '../../../shell/shell_page_app_bar.dart';
 import '../../classes/data/class_model.dart';
@@ -49,6 +54,8 @@ class _SpellsBodyState extends State<SpellsBody>
 
   SpellsListFilter _filter = SpellsListFilter.empty;
   SpellsSortMode _sortMode = SpellsSortMode.alphabetical;
+  bool _selectionMode = false;
+  final Set<String> _selectedSpellIds = <String>{};
 
   static String get _pageKey => AppPage.spells.name;
 
@@ -115,8 +122,188 @@ class _SpellsBodyState extends State<SpellsBody>
             ),
             onPressed: _toggleFilters,
           ),
+          IconButton(
+            tooltip: _selectionMode ? 'Exit selection mode' : 'Select spells',
+            icon: Icon(
+              _selectionMode
+                  ? Icons.checklist_rtl_rounded
+                  : Icons.checklist_outlined,
+              color: _selectionMode ? scheme.primary : null,
+            ),
+            onPressed: () => _setSelectionMode(!_selectionMode),
+          ),
         ],
       ),
+    );
+  }
+
+  void _setSelectionMode(bool enabled) {
+    setState(() {
+      _selectionMode = enabled;
+      if (!enabled) _selectedSpellIds.clear();
+    });
+    _installShellAppBar();
+  }
+
+  void _toggleSpellSelection(String key) {
+    setState(() {
+      if (_selectedSpellIds.contains(key)) {
+        _selectedSpellIds.remove(key);
+      } else {
+        _selectedSpellIds.add(key);
+      }
+    });
+  }
+
+  void _selectAllFilteredSpells(List<SpellListEntry> displayEntries) {
+    final ids = <String>{};
+    for (final e in displayEntries) {
+      final entry = e.entry;
+      if (entry != null) ids.add(entry.key);
+    }
+    if (ids.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No spells match the current filters or search.'),
+        ),
+      );
+      return;
+    }
+    setState(() => _selectedSpellIds.addAll(ids));
+  }
+
+  void _deselectAllSelectedSpells() {
+    setState(_selectedSpellIds.clear);
+  }
+
+  Future<Uint8List?> _composeSelectedSpellsPdfBytes({
+    required CardExportThemeSelection cardExportTheme,
+    required int cardsPerRow,
+    required int cardsPerColumn,
+    required double pageMargin,
+    required double cardGap,
+  }) async {
+    final derived = _derived;
+    final selected = derived.allEntries
+        .where((e) => _selectedSpellIds.contains(e.key))
+        .toList(growable: false);
+    selected.sort(
+      (a, b) =>
+          a.spell.name.toLowerCase().compareTo(b.spell.name.toLowerCase()),
+    );
+    if (selected.isEmpty) return null;
+
+    final theme = themeForCardExport(context, cardExportTheme);
+    final images = <Uint8List>[];
+    for (final entry in selected) {
+      if (!mounted) return null;
+      images.addAll(
+        await rasterizeSpellCards(
+          context: context,
+          spell: entry.spell,
+          theme: theme,
+          classNames: derived.classNamesBySpellKey[entry.key] ?? const [],
+          tagNames: (derived.tagEntriesBySpellKey[entry.key] ?? const [])
+              .map((t) => t.name)
+              .toList(),
+        ),
+      );
+    }
+    if (!mounted) return null;
+    return buildCardsPdf(
+      pngBytesList: images,
+      title: 'Selected spell cards',
+      includeCoverPage: false,
+      cardsPerRow: cardsPerRow,
+      cardsPerColumn: cardsPerColumn,
+      pageMargin: pageMargin,
+      cardGap: cardGap,
+    );
+  }
+
+  Future<void> _exportSelectedSpellsToPdf({
+    required CardExportThemeSelection cardExportTheme,
+    required int cardsPerRow,
+    required int cardsPerColumn,
+    required double pageMargin,
+    required double cardGap,
+  }) async {
+    try {
+      final pdf = await _composeSelectedSpellsPdfBytes(
+        cardExportTheme: cardExportTheme,
+        cardsPerRow: cardsPerRow,
+        cardsPerColumn: cardsPerColumn,
+        pageMargin: pageMargin,
+        cardGap: cardGap,
+      );
+      if (pdf == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No spells selected to export.')),
+        );
+        return;
+      }
+      if (!mounted) return;
+      await presentCardExportPdf(pdf);
+    } catch (e, st) {
+      debugPrint('Spell export failed: $e\n$st');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Export failed: $e')),
+      );
+    }
+  }
+
+  Future<void> _openSpellCardExportSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        final viewInsets = MediaQuery.viewInsetsOf(sheetContext);
+        final maxH = MediaQuery.sizeOf(sheetContext).height * 0.92;
+        return Padding(
+          padding: EdgeInsets.only(bottom: viewInsets.bottom),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxH),
+            child: CardPdfExportSheet(
+              key: const ValueKey('spell_card_pdf_export_sheet'),
+              sheetTitle: 'Export spell cards',
+              hasSelection: _selectedSpellIds.isNotEmpty,
+              composePdf: ({
+                required CardExportThemeSelection cardExportTheme,
+                required int cardsPerRow,
+                required int cardsPerColumn,
+                required double pageMargin,
+                required double cardGap,
+              }) =>
+                  _composeSelectedSpellsPdfBytes(
+                cardExportTheme: cardExportTheme,
+                cardsPerRow: cardsPerRow,
+                cardsPerColumn: cardsPerColumn,
+                pageMargin: pageMargin,
+                cardGap: cardGap,
+              ),
+              onGenerate: ({
+                required CardExportThemeSelection cardExportTheme,
+                required int cardsPerRow,
+                required int cardsPerColumn,
+                required double pageMargin,
+                required double cardGap,
+              }) {
+                Navigator.of(sheetContext).pop();
+                _exportSelectedSpellsToPdf(
+                  cardExportTheme: cardExportTheme,
+                  cardsPerRow: cardsPerRow,
+                  cardsPerColumn: cardsPerColumn,
+                  pageMargin: pageMargin,
+                  cardGap: cardGap,
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -730,25 +917,78 @@ class _SpellsBodyState extends State<SpellsBody>
                                   derived.classNamesBySpellKey,
                               tagEntriesBySpellKey:
                                   derived.tagEntriesBySpellKey,
+                              selectedSpellIds: _selectedSpellIds,
+                              selectionEmphasis: _selectionMode,
                               hasActiveSearch:
                                   _searchController.text.trim().isNotEmpty,
+                              bottomPadding: _selectionMode ? 16 : 88,
                               onRefresh: _reload,
-                              onSpellPrimaryTap: _openDetail,
-                              onSpellLongPress: (entry) => _edit(entry.item),
+                              onSpellPrimaryTap: (entry) {
+                                if (_selectionMode) {
+                                  _toggleSpellSelection(entry.key);
+                                } else {
+                                  _openDetail(entry);
+                                }
+                              },
+                              onSpellLongPress: _selectionMode
+                                  ? null
+                                  : (entry) => _edit(entry.item),
                             ),
             ),
+            if (_selectionMode)
+              Material(
+                color: scheme.surfaceContainerHigh,
+                elevation: 6,
+                child: SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${_selectedSpellIds.length} selected',
+                            style: Theme.of(context).textTheme.titleSmall,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Select all filtered spells',
+                          onPressed: () =>
+                              _selectAllFilteredSpells(displayEntries),
+                          icon: const Icon(Icons.playlist_add_check),
+                        ),
+                        IconButton(
+                          tooltip: 'Deselect all',
+                          onPressed: _deselectAllSelectedSpells,
+                          icon: const Icon(Icons.clear_all),
+                        ),
+                        FilledButton.icon(
+                          onPressed: _openSpellCardExportSheet,
+                          icon: const Icon(
+                            Icons.picture_as_pdf_outlined,
+                            size: 18,
+                          ),
+                          label: const Text('Export'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
-        Positioned(
-          right: 20,
-          bottom: 20,
-          child: FloatingActionButton(
-            onPressed: _create,
-            backgroundColor: scheme.primary,
-            foregroundColor: scheme.onPrimary,
-            child: const Icon(Icons.add),
+        if (!_selectionMode)
+          Positioned(
+            right: 20,
+            bottom: 20,
+            child: FloatingActionButton(
+              onPressed: _create,
+              backgroundColor: scheme.primary,
+              foregroundColor: scheme.onPrimary,
+              child: const Icon(Icons.add),
+            ),
           ),
-        ),
       ],
     );
   }

@@ -10,6 +10,8 @@ import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../../dm_tools/resources/data/resource_models.dart';
 import '../../../dm_tools/resources/data/resources_api.dart';
+import '../../../export/card_export_pdf.dart';
+import '../../../export/card_png_export_present.dart';
 import '../../classes/data/class_model.dart';
 import '../../player_options_icons.dart';
 import '../data/spell_model.dart';
@@ -47,6 +49,7 @@ class _SpellDetailPageState extends State<SpellDetailPage> {
   late List<String> _classNames = widget.classNames;
   late List<String> _tagNames = widget.tagNames;
   late String? _sourceFileName = widget.sourceFileName;
+  bool _exportingPng = false;
 
   Future<String?> _token() => widget.auth.requireAccessToken();
 
@@ -221,6 +224,34 @@ class _SpellDetailPageState extends State<SpellDetailPage> {
     }
   }
 
+  Future<void> _exportCardPng() async {
+    if (_exportingPng) return;
+    setState(() => _exportingPng = true);
+    try {
+      final bytes = await rasterizeSpellCard(
+        context: context,
+        spell: _spell,
+        theme: Theme.of(context),
+        classNames: _classNames,
+        tagNames: _tagNames,
+      );
+      if (!mounted) return;
+      await presentCardPngExport(
+        bytes,
+        '${cardExportSafeBaseName(_spell.name)}.png',
+      );
+    } catch (e, st) {
+      debugPrint('Card PNG export failed: $e\n$st');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not save image: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _exportingPng = false);
+    }
+  }
+
   Future<void> _delete() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -280,16 +311,23 @@ class _SpellDetailPageState extends State<SpellDetailPage> {
               switch (action) {
                 case _DetailAction.edit:
                   _edit();
+                case _DetailAction.exportPng:
+                  _exportCardPng();
                 case _DetailAction.delete:
                   _delete();
               }
             },
-            itemBuilder: (context) => const [
-              PopupMenuItem(
+            itemBuilder: (context) => [
+              const PopupMenuItem(
                 value: _DetailAction.edit,
                 child: Text('Edit'),
               ),
               PopupMenuItem(
+                value: _DetailAction.exportPng,
+                enabled: !_exportingPng,
+                child: const Text('Save as PNG'),
+              ),
+              const PopupMenuItem(
                 value: _DetailAction.delete,
                 child: Text('Delete'),
               ),
@@ -373,7 +411,7 @@ class _SpellDetailPageState extends State<SpellDetailPage> {
   }
 }
 
-enum _DetailAction { edit, delete }
+enum _DetailAction { edit, exportPng, delete }
 
 class _CardPagesWrap extends StatelessWidget {
   final List<Widget> cards;

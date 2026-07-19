@@ -80,12 +80,9 @@ class RecordListCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 1),
-                      child: leading,
-                    ),
+                    leading,
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(

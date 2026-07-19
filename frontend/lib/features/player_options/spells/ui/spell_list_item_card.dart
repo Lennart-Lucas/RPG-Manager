@@ -13,6 +13,8 @@ class SpellListItemCard extends StatelessWidget {
     this.onLongPress,
     this.minWidth = 280,
     this.maxWidth = 1060,
+    this.selected = false,
+    this.selectionEmphasis = false,
     super.key,
   });
 
@@ -23,6 +25,8 @@ class SpellListItemCard extends StatelessWidget {
   final VoidCallback? onLongPress;
   final double minWidth;
   final double maxWidth;
+  final bool selected;
+  final bool selectionEmphasis;
 
   @override
   Widget build(BuildContext context) {
@@ -35,13 +39,18 @@ class SpellListItemCard extends StatelessWidget {
     );
 
     return RecordListCard(
-      leading: spell.school.buildIcon(size: 22, color: colors.onSurface),
+      leading: spell.school.buildIcon(size: 30, color: colors.onSurface),
       title: heading,
       subtitle: spell.listSubtitle,
       onTap: onTap,
       onLongPress: onLongPress,
       minWidth: minWidth,
       maxWidth: maxWidth,
+      selected: selected,
+      selectionEmphasis: selectionEmphasis,
+      trailing: selected && selectionEmphasis
+          ? Icon(Icons.check_circle, size: 26, color: colors.primary)
+          : null,
       children: [
         const SizedBox(height: 8),
         Container(

@@ -17,6 +17,8 @@ dependencies:
   path: ^1.9.1
   pdfrx: ^2.4.7
   font_awesome_flutter: ^11.0.0
+  pdf: ^3.11.1
+  printing: ^5.13.0
 
 dev_dependencies:
   flutter_test:
