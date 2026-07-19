@@ -14,4 +14,5 @@ enum AppPage {
   itemProperties,
   rules,
   spellTags,
+  creatures,
 }

@@ -9,6 +9,8 @@ import '../../player_options/items/data/item_model.dart';
 import '../../player_options/items/ui/item_detail_page.dart';
 import '../../player_options/spells/data/spell_model.dart';
 import '../../player_options/spells/ui/spell_detail_page.dart';
+import '../../world/creatures/data/creature_model.dart';
+import '../../world/creatures/ui/creature_detail_page.dart';
 import '../data/catalog_api.dart';
 import '../data/catalog_kind.dart';
 import '../data/catalog_models.dart';
@@ -44,6 +46,8 @@ Future<void> openCatalogRecordDetail({
         await _openSpellDetail(context, auth, item);
       case CatalogKind.items:
         await _openItemDetail(context, auth, item);
+      case CatalogKind.creatures:
+        await _openCreatureDetail(context, auth, item);
       default:
         await Navigator.of(context).push<void>(
           MaterialPageRoute(
@@ -187,6 +191,44 @@ Future<void> _openItemDetail(
         item: item,
         entry: entry.copyWith(name: item.name),
         sourceFileName: sourceFileName,
+      ),
+    ),
+  );
+}
+
+Future<void> _openCreatureDetail(
+  BuildContext context,
+  AuthController auth,
+  CatalogItem item,
+) async {
+  Creature? creature;
+  final payload = item.payload;
+  if (payload == null) {
+    creature = Creature(id: Creature.slugify(item.name), name: item.name);
+  } else {
+    try {
+      final map = Map<String, dynamic>.from(payload);
+      map.putIfAbsent('id', () => Creature.slugify(item.name));
+      map.putIfAbsent('name', () => item.name);
+      creature = Creature.fromJson(map);
+    } catch (_) {
+      creature = null;
+    }
+  }
+  if (creature == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Could not read creature data')),
+    );
+    return;
+  }
+
+  if (!context.mounted) return;
+  await Navigator.of(context).push<void>(
+    MaterialPageRoute(
+      builder: (context) => CreatureDetailPage(
+        auth: auth,
+        item: item,
+        creature: creature!.copyWith(name: item.name),
       ),
     ),
   );

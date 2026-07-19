@@ -4,6 +4,7 @@ import '../auth/state/auth_controller.dart';
 import '../dm_tools/resources/resources_icons.dart';
 import '../mechanics/mechanics_icons.dart';
 import '../player_options/player_options_icons.dart';
+import '../world/world_icons.dart';
 import 'app_page.dart';
 
 class AppSidebar extends StatefulWidget {
@@ -33,6 +34,7 @@ class _AppSidebarState extends State<AppSidebar> {
   final _dmToolsController = ExpansibleController();
   final _playerOptionsController = ExpansibleController();
   final _mechanicsController = ExpansibleController();
+  final _worldController = ExpansibleController();
 
   void _close(BuildContext context) {
     Navigator.of(context).pop();
@@ -49,6 +51,7 @@ class _AppSidebarState extends State<AppSidebar> {
       _dmToolsController,
       _playerOptionsController,
       _mechanicsController,
+      _worldController,
     ]) {
       if (!identical(controller, keep) && controller.isExpanded) {
         controller.collapse();
@@ -77,6 +80,12 @@ class _AppSidebarState extends State<AppSidebar> {
   void _onMechanicsExpansionChanged(bool expanded) {
     if (expanded) {
       _collapseOthers(_mechanicsController);
+    }
+  }
+
+  void _onWorldExpansionChanged(bool expanded) {
+    if (expanded) {
+      _collapseOthers(_worldController);
     }
   }
 
@@ -121,6 +130,7 @@ class _AppSidebarState extends State<AppSidebar> {
         true,
       _ => false,
     };
+    final worldSelected = widget.currentPage == AppPage.creatures;
 
     return Drawer(
       width: 300,
@@ -296,6 +306,26 @@ class _AppSidebarState extends State<AppSidebar> {
                           icon: spellTagsPageIcon,
                           label: 'Spell Tags',
                           page: AppPage.spellTags,
+                        ),
+                      ],
+                    ),
+                    ExpansionTile(
+                      controller: _worldController,
+                      leading: Icon(
+                        worldMenuIcon,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                      title: const Text('World'),
+                      initiallyExpanded: worldSelected,
+                      onExpansionChanged: _onWorldExpansionChanged,
+                      expansionAnimationStyle: _expansionStyle,
+                      childrenPadding: const EdgeInsets.only(left: 8),
+                      children: [
+                        _navTile(
+                          context,
+                          icon: creaturesPageIcon,
+                          label: 'Creatures',
+                          page: AppPage.creatures,
                         ),
                       ],
                     ),

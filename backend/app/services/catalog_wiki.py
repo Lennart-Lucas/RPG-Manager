@@ -15,6 +15,7 @@ LINKABLE_FIELDS: dict[str, tuple[str, ...]] = {
     "spells": ("description", "higherLevels.description"),
     "spell_tags": ("description",),
     "items": ("description",),
+    "creatures": ("trigger",),
 }
 
 WIKI_LINK_RE = re.compile(

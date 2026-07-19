@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../mechanics/mechanics_icons.dart';
 import '../../player_options/player_options_icons.dart';
+import '../../world/world_icons.dart';
 import 'catalog_kind.dart';
 
 extension CatalogKindIcons on CatalogKind {
@@ -13,6 +14,7 @@ extension CatalogKindIcons on CatalogKind {
         CatalogKind.skills => skillsPageIcon,
         CatalogKind.spells => spellsPageIcon,
         CatalogKind.items => itemsPageIcon,
+        CatalogKind.creatures => creaturesPageIcon,
         CatalogKind.conditions => conditionsPageIcon,
         CatalogKind.damageTypes => damageTypesPageIcon,
         CatalogKind.itemProperties => itemPropertiesPageIcon,
