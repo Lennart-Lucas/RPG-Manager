@@ -11,6 +11,7 @@ Future<Spell?> showSpellFormSheet(
   BuildContext context, {
   Spell? initial,
   required List<CatalogItem> casterClasses,
+  required List<CatalogItem> spellTags,
   required List<ResourceFile> resourceFiles,
   CatalogLinkSearch? searchLinks,
   CatalogAutoLinkLoader? loadAutoLinkTargets,
@@ -22,6 +23,7 @@ Future<Spell?> showSpellFormSheet(
     child: _SpellForm(
       initial: initial,
       casterClasses: casterClasses,
+      spellTags: spellTags,
       resourceFiles: resourceFiles,
       searchLinks: searchLinks,
       loadAutoLinkTargets: loadAutoLinkTargets,
@@ -33,6 +35,7 @@ class _SpellForm extends StatefulWidget {
   const _SpellForm({
     this.initial,
     required this.casterClasses,
+    required this.spellTags,
     required this.resourceFiles,
     this.searchLinks,
     this.loadAutoLinkTargets,
@@ -40,6 +43,7 @@ class _SpellForm extends StatefulWidget {
 
   final Spell? initial;
   final List<CatalogItem> casterClasses;
+  final List<CatalogItem> spellTags;
   final List<ResourceFile> resourceFiles;
   final CatalogLinkSearch? searchLinks;
   final CatalogAutoLinkLoader? loadAutoLinkTargets;
@@ -102,6 +106,7 @@ class _SpellFormState extends State<_SpellForm> {
       _resolveDurationType(widget.initial?.duration.type);
   late bool _concentration = widget.initial?.duration.concentration ?? false;
   late final Set<int> _classIds = {...(widget.initial?.classIds ?? const [])};
+  late final Set<int> _tagIds = {...(widget.initial?.tagIds ?? const [])};
   late int? _sourceFileId = widget.initial?.sourceFileId;
 
   bool get _castingTimeAllowsCustomAmount =>
@@ -217,6 +222,7 @@ class _SpellFormState extends State<_SpellForm> {
         higherDesc.isEmpty ? null : SpellScaling(description: higherDesc);
 
     final classIds = _classIds.toList()..sort();
+    final tagIds = _tagIds.toList()..sort();
 
     final spell = Spell(
       id: id,
@@ -236,6 +242,7 @@ class _SpellFormState extends State<_SpellForm> {
       components: components,
       duration: duration,
       classIds: classIds,
+      tagIds: tagIds,
       description: _descriptionController.text.trim(),
       higherLevels: higherLevels,
       damage: widget.initial?.damage,
@@ -569,6 +576,35 @@ class _SpellFormState extends State<_SpellForm> {
                           _classIds.add(casterClass.id);
                         } else {
                           _classIds.remove(casterClass.id);
+                        }
+                      });
+                    },
+                  ),
+              ],
+            ),
+          _section('Spell tags'),
+          if (widget.spellTags.isEmpty)
+            Text(
+              'Add spell tags first',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                for (final tag in widget.spellTags)
+                  FilterChip(
+                    label: Text(tag.name),
+                    selected: _tagIds.contains(tag.id),
+                    onSelected: (selected) {
+                      setState(() {
+                        if (selected) {
+                          _tagIds.add(tag.id);
+                        } else {
+                          _tagIds.remove(tag.id);
                         }
                       });
                     },

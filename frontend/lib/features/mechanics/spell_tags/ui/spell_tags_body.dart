@@ -6,25 +6,21 @@ import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
-import '../../../dm_tools/resources/data/resource_models.dart';
-import '../../../dm_tools/resources/data/resources_api.dart';
-import '../../classes/data/class_model.dart';
-import '../../player_options_icons.dart';
-import '../data/spell_model.dart';
-import 'spell_form_sheet.dart';
+import '../../mechanics_icons.dart';
+import '../data/spell_tag_model.dart';
+import 'spell_tag_form_sheet.dart';
 
-class SpellsBody extends StatefulWidget {
-  const SpellsBody({super.key, required this.auth});
+class SpellTagsBody extends StatefulWidget {
+  const SpellTagsBody({super.key, required this.auth});
 
   final AuthController auth;
 
   @override
-  State<SpellsBody> createState() => _SpellsBodyState();
+  State<SpellTagsBody> createState() => _SpellTagsBodyState();
 }
 
-class _SpellsBodyState extends State<SpellsBody> {
+class _SpellTagsBodyState extends State<SpellTagsBody> {
   final _api = CatalogApi();
-  final _resourcesApi = ResourcesApi();
 
   bool _loading = true;
   String? _error;
@@ -38,68 +34,17 @@ class _SpellsBodyState extends State<SpellsBody> {
 
   Future<String?> _token() => widget.auth.requireAccessToken();
 
-  Spell? _spellFromItem(CatalogItem item) {
-    final payload = item.payload;
-    if (payload == null) {
-      return Spell(
-        id: Spell.slugify(item.name),
-        name: item.name,
-        level: 0,
-        school: SpellSchool.evocation,
-        castingTime: const CastingTime.action(),
-        range: const SpellRange.self(),
-        components: const SpellComponents(
-          verbal: false,
-          somatic: false,
-          material: false,
-        ),
-        duration: const SpellDuration.instantaneous(),
-        classIds: const [],
-        description: '',
-      );
-    }
-    try {
-      return Spell.fromJson(payload);
-    } catch (_) {
-      return null;
-    }
-  }
-
-  Future<
-      ({
-        List<CatalogItem> casters,
-        List<CatalogItem> spellTags,
-        List<ResourceFile> files,
-      })> _loadFormLookups(String token) async {
-    final results = await Future.wait([
-      _api.list(token, CatalogKind.classes),
-      _api.list(token, CatalogKind.spellTags),
-    ]);
-    final classItems = results[0];
-    final spellTags = results[1];
-    final casters = classItems.where((item) {
-      return ClassRecord.fromCatalogPayload(
-        name: item.name,
-        payload: item.payload,
-      ).isCaster;
-    }).toList();
-
-    var files = const <ResourceFile>[];
-    try {
-      files = await _resourcesApi.listFiles(token);
-    } on AuthApiException {
-      // Non-DM users cannot list resources; leave empty.
-    } catch (_) {
-      // Ignore lookup failures; form still works without files.
-    }
-    return (casters: casters, spellTags: spellTags, files: files);
+  SpellTag _tagFromItem(CatalogItem item) {
+    return SpellTag.fromCatalogPayload(
+      name: item.name,
+      payload: item.payload,
+    );
   }
 
   Future<List<CatalogLinkTarget>> _searchLinks(
     String token,
     String query,
   ) async {
-    // If the user typed kind/name, search on the name portion and filter kind.
     var nameQuery = query;
     String? kindPrefix;
     final slash = query.lastIndexOf('/');
@@ -153,7 +98,7 @@ class _SpellsBodyState extends State<SpellsBody> {
       if (token == null) {
         throw AuthApiException('Not authenticated');
       }
-      final items = await _api.list(token, CatalogKind.spells);
+      final items = await _api.list(token, CatalogKind.spellTags);
       if (!mounted) return;
       setState(() {
         _items = items;
@@ -168,7 +113,7 @@ class _SpellsBodyState extends State<SpellsBody> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _error = 'Could not load spells';
+        _error = 'Could not load spell tags';
         _loading = false;
       });
     }
@@ -177,23 +122,18 @@ class _SpellsBodyState extends State<SpellsBody> {
   Future<void> _create() async {
     try {
       final token = await _token();
-      if (token == null) return;
-      final lookups = await _loadFormLookups(token);
-      if (!mounted) return;
-      final spell = await showSpellFormSheet(
+      if (token == null || !mounted) return;
+      final tag = await showSpellTagFormSheet(
         context,
-        casterClasses: lookups.casters,
-        spellTags: lookups.spellTags,
-        resourceFiles: lookups.files,
         searchLinks: (query) => _searchLinks(token, query),
         loadAutoLinkTargets: () => _loadAutoLinkTargets(token),
       );
-      if (spell == null || !mounted) return;
+      if (tag == null || !mounted) return;
       await _api.create(
         accessToken: token,
-        kind: CatalogKind.spells,
-        name: spell.name,
-        payload: spell.toJson(),
+        kind: CatalogKind.spellTags,
+        name: tag.name,
+        payload: tag.toJson(),
       );
       await _reload();
     } on AuthApiException catch (e) {
@@ -204,7 +144,7 @@ class _SpellsBodyState extends State<SpellsBody> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not create spell')),
+        const SnackBar(content: Text('Could not create spell tag')),
       );
     }
   }
@@ -212,26 +152,21 @@ class _SpellsBodyState extends State<SpellsBody> {
   Future<void> _edit(CatalogItem item) async {
     try {
       final token = await _token();
-      if (token == null) return;
-      final lookups = await _loadFormLookups(token);
-      if (!mounted) return;
-      final existing = _spellFromItem(item);
-      final spell = await showSpellFormSheet(
+      if (token == null || !mounted) return;
+      final existing = _tagFromItem(item);
+      final tag = await showSpellTagFormSheet(
         context,
         initial: existing,
-        casterClasses: lookups.casters,
-        spellTags: lookups.spellTags,
-        resourceFiles: lookups.files,
         searchLinks: (query) => _searchLinks(token, query),
         loadAutoLinkTargets: () => _loadAutoLinkTargets(token),
       );
-      if (spell == null || !mounted) return;
+      if (tag == null || !mounted) return;
       await _api.update(
         accessToken: token,
-        kind: CatalogKind.spells,
+        kind: CatalogKind.spellTags,
         itemId: item.id,
-        name: spell.name,
-        payload: spell.toJson(),
+        name: tag.name,
+        payload: tag.toJson(),
       );
       await _reload();
     } on AuthApiException catch (e) {
@@ -242,7 +177,7 @@ class _SpellsBodyState extends State<SpellsBody> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not update spell')),
+        const SnackBar(content: Text('Could not update spell tag')),
       );
     }
   }
@@ -251,7 +186,7 @@ class _SpellsBodyState extends State<SpellsBody> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete spell?'),
+        title: const Text('Delete spell tag?'),
         content: Text('Delete “${item.name}”? This cannot be undone.'),
         actions: [
           TextButton(
@@ -271,7 +206,7 @@ class _SpellsBodyState extends State<SpellsBody> {
       if (token == null) return;
       await _api.delete(
         accessToken: token,
-        kind: CatalogKind.spells,
+        kind: CatalogKind.spellTags,
         itemId: item.id,
       );
       await _reload();
@@ -283,7 +218,7 @@ class _SpellsBodyState extends State<SpellsBody> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not delete spell')),
+        const SnackBar(content: Text('Could not delete spell tag')),
       );
     }
   }
@@ -300,7 +235,7 @@ class _SpellsBodyState extends State<SpellsBody> {
               child: Opacity(
                 opacity: 0.08,
                 child: Icon(
-                  spellsPageIcon,
+                  spellTagsPageIcon,
                   size: 440,
                   color: scheme.onSurface,
                 ),
@@ -345,13 +280,13 @@ class _SpellsBodyState extends State<SpellsBody> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              'No spells yet',
+                              'No spell tags yet',
                               textAlign: TextAlign.center,
                               style: Theme.of(context).textTheme.headlineSmall,
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Tap + to add your first spell.',
+                              'Tap + to add your first spell tag.',
                               textAlign: TextAlign.center,
                               style: Theme.of(context)
                                   .textTheme
@@ -378,7 +313,6 @@ class _SpellsBodyState extends State<SpellsBody> {
               separatorBuilder: (_, _) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
                 final item = _items[index];
-                final spell = _spellFromItem(item);
                 return Material(
                   color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
                   borderRadius: BorderRadius.circular(12),
@@ -386,11 +320,8 @@ class _SpellsBodyState extends State<SpellsBody> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    leading: Icon(spellsPageIcon, color: scheme.primary),
+                    leading: Icon(spellTagsPageIcon, color: scheme.primary),
                     title: Text(item.name),
-                    subtitle: spell == null
-                        ? null
-                        : Text(spell.levelSchoolLabel),
                     trailing: IconButton(
                       tooltip: 'Delete',
                       onPressed: () => _delete(item),

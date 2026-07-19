@@ -115,7 +115,8 @@ class _AppSidebarState extends State<AppSidebar> {
       AppPage.conditions ||
       AppPage.damageTypes ||
       AppPage.itemProperties ||
-      AppPage.rules =>
+      AppPage.rules ||
+      AppPage.spellTags =>
         true,
       _ => false,
     };
@@ -282,6 +283,12 @@ class _AppSidebarState extends State<AppSidebar> {
                           icon: rulesPageIcon,
                           label: 'Rules',
                           page: AppPage.rules,
+                        ),
+                        _navTile(
+                          context,
+                          icon: spellTagsPageIcon,
+                          label: 'Spell Tags',
+                          page: AppPage.spellTags,
                         ),
                       ],
                     ),

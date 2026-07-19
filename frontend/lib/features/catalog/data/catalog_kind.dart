@@ -9,6 +9,7 @@ enum CatalogKind {
   damageTypes,
   itemProperties,
   rules,
+  spellTags,
 }
 
 extension CatalogKindApi on CatalogKind {
@@ -23,6 +24,7 @@ extension CatalogKindApi on CatalogKind {
         CatalogKind.damageTypes => 'damage_types',
         CatalogKind.itemProperties => 'item_properties',
         CatalogKind.rules => 'rules',
+        CatalogKind.spellTags => 'spell_tags',
       };
 
   String get singularLabel => switch (this) {
@@ -36,6 +38,7 @@ extension CatalogKindApi on CatalogKind {
         CatalogKind.damageTypes => 'damage type',
         CatalogKind.itemProperties => 'item property',
         CatalogKind.rules => 'rule',
+        CatalogKind.spellTags => 'spell tag',
       };
 
   String get pluralLabel => switch (this) {
@@ -49,5 +52,6 @@ extension CatalogKindApi on CatalogKind {
         CatalogKind.damageTypes => 'damage types',
         CatalogKind.itemProperties => 'item properties',
         CatalogKind.rules => 'rules',
+        CatalogKind.spellTags => 'spell tags',
       };
 }

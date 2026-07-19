@@ -13,6 +13,7 @@ from app.models.catalog_link import CatalogLink
 # kind -> payload field paths (dot-separated) that may contain wiki links
 LINKABLE_FIELDS: dict[str, tuple[str, ...]] = {
     "spells": ("description", "higherLevels.description"),
+    "spell_tags": ("description",),
 }
 
 WIKI_LINK_RE = re.compile(

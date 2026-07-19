@@ -403,6 +403,8 @@ class Spell {
   final SpellDuration duration;
   /// Catalog item IDs for caster classes.
   final List<int> classIds;
+  /// Catalog item IDs for spell tags.
+  final List<int> tagIds;
   final String description;
   final SpellScaling? higherLevels;
   final SpellDamage? damage;
@@ -422,6 +424,7 @@ class Spell {
     required this.components,
     required this.duration,
     required this.classIds,
+    this.tagIds = const [],
     required this.description,
     this.higherLevels,
     this.damage,
@@ -462,7 +465,7 @@ class Spell {
     return slug.isEmpty ? 'spell' : slug;
   }
 
-  static List<int> _parseClassIds(dynamic raw) {
+  static List<int> _parseIdList(dynamic raw) {
     if (raw is! List) return const [];
     final ids = <int>[];
     for (final item in raw) {
@@ -471,7 +474,6 @@ class Spell {
       } else if (item is num) {
         ids.add(item.toInt());
       }
-      // Legacy string class names are ignored.
     }
     return ids;
   }
@@ -492,7 +494,8 @@ class Spell {
       duration: SpellDuration.fromJson(
         json['duration'] as Map<String, dynamic>,
       ),
-      classIds: _parseClassIds(json['classIds'] ?? json['classes']),
+      classIds: _parseIdList(json['classIds'] ?? json['classes']),
+      tagIds: _parseIdList(json['tagIds'] ?? json['tags']),
       description: json['description'] as String? ?? '',
       higherLevels: json['higherLevels'] != null
           ? SpellScaling.fromJson(
@@ -524,6 +527,7 @@ class Spell {
         'components': components.toJson(),
         'duration': duration.toJson(),
         'classIds': classIds,
+        'tagIds': tagIds,
         'description': description,
         if (higherLevels != null) 'higherLevels': higherLevels!.toJson(),
         if (damage != null) 'damage': damage!.toJson(),
@@ -543,6 +547,7 @@ class Spell {
     SpellComponents? components,
     SpellDuration? duration,
     List<int>? classIds,
+    List<int>? tagIds,
     String? description,
     SpellScaling? higherLevels,
     SpellDamage? damage,
@@ -561,6 +566,7 @@ class Spell {
       components: components ?? this.components,
       duration: duration ?? this.duration,
       classIds: classIds ?? this.classIds,
+      tagIds: tagIds ?? this.tagIds,
       description: description ?? this.description,
       higherLevels: higherLevels ?? this.higherLevels,
       damage: damage ?? this.damage,

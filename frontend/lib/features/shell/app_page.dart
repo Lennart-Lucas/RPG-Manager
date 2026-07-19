@@ -12,4 +12,5 @@ enum AppPage {
   damageTypes,
   itemProperties,
   rules,
+  spellTags,
 }
