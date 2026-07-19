@@ -17,4 +17,5 @@ enum AppPage {
   features,
   creatures,
   atlas,
+  characters,
 }

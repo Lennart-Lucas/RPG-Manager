@@ -58,6 +58,7 @@ class _AppShellState extends State<AppShell> {
         AppPage.features => 'Features',
         AppPage.creatures => 'Creatures',
         AppPage.atlas => 'Atlas',
+        AppPage.characters => 'Characters',
       };
 
   @override
@@ -130,6 +131,8 @@ class _AppShellState extends State<AppShell> {
         AppPage.features => FeaturesBody(auth: widget.auth),
         AppPage.creatures => CreaturesBody(auth: widget.auth),
         AppPage.atlas => _catalog(CatalogKind.locations, atlasPageIcon),
+        AppPage.characters =>
+          _catalog(CatalogKind.characters, charactersPageIcon),
       },
     );
   }

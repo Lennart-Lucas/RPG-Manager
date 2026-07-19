@@ -23,5 +23,6 @@ extension CatalogKindIcons on CatalogKind {
         CatalogKind.spellTags => spellTagsPageIcon,
         CatalogKind.features => featuresPageIcon,
         CatalogKind.locations => atlasPageIcon,
+        CatalogKind.characters => charactersPageIcon,
       };
 }
