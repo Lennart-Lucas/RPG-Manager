@@ -131,10 +131,7 @@ class _AppSidebarState extends State<AppSidebar> {
         true,
       _ => false,
     };
-    final worldSelected = switch (widget.currentPage) {
-      AppPage.creatures || AppPage.creatureTypes => true,
-      _ => false,
-    };
+    final worldSelected = widget.currentPage == AppPage.creatures;
 
     return Drawer(
       width: 300,
@@ -336,12 +333,6 @@ class _AppSidebarState extends State<AppSidebar> {
                           icon: creaturesPageIcon,
                           label: 'Creatures',
                           page: AppPage.creatures,
-                        ),
-                        _navTile(
-                          context,
-                          icon: creatureTypesPageIcon,
-                          label: 'Creature Types',
-                          page: AppPage.creatureTypes,
                         ),
                       ],
                     ),

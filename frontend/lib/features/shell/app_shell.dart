@@ -14,7 +14,6 @@ import '../player_options/items/ui/items_body.dart';
 import '../player_options/player_options_icons.dart';
 import '../player_options/spells/ui/spells_body.dart';
 import '../settings/preferences_page.dart';
-import '../world/creature_types/ui/creature_types_body.dart';
 import '../world/creatures/ui/creatures_body.dart';
 import 'app_page.dart';
 import 'app_sidebar.dart';
@@ -57,7 +56,6 @@ class _AppShellState extends State<AppShell> {
         AppPage.spellTags => 'Spell Tags',
         AppPage.features => 'Features',
         AppPage.creatures => 'Creatures',
-        AppPage.creatureTypes => 'Creature Types',
       };
 
   @override
@@ -129,7 +127,6 @@ class _AppShellState extends State<AppShell> {
         AppPage.spellTags => SpellTagsBody(auth: widget.auth),
         AppPage.features => FeaturesBody(auth: widget.auth),
         AppPage.creatures => CreaturesBody(auth: widget.auth),
-        AppPage.creatureTypes => CreatureTypesBody(auth: widget.auth),
       },
     );
   }
