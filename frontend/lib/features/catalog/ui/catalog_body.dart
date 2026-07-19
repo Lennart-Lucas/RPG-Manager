@@ -140,6 +140,9 @@ class _CatalogBodyState extends State<CatalogBody> {
   }
 
   Future<void> _edit(CatalogItem item) async {
+    if (widget.kind == CatalogKind.skills && isDefaultSkillName(item.name)) {
+      return;
+    }
     if (widget.kind == CatalogKind.skills) {
       final skill = await showSkillFormSheet(
         context,
@@ -342,8 +345,8 @@ class _CatalogBodyState extends State<CatalogBody> {
               itemBuilder: (context, index) {
                 final item = _items[index];
                 final subtitle = catalogRecordSubtitle(item);
-                final canDelete = widget.kind != CatalogKind.skills ||
-                    !isDefaultSkillName(item.name);
+                final isLockedDefault = widget.kind == CatalogKind.skills &&
+                    isDefaultSkillName(item.name);
                 return Material(
                   color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
                   borderRadius: BorderRadius.circular(12),
@@ -354,17 +357,17 @@ class _CatalogBodyState extends State<CatalogBody> {
                     leading: Icon(widget.icon, color: scheme.primary),
                     title: Text(item.name),
                     subtitle: subtitle == null ? null : Text(subtitle),
-                    trailing: canDelete
-                        ? IconButton(
+                    trailing: isLockedDefault
+                        ? null
+                        : IconButton(
                             tooltip: 'Delete',
                             onPressed: () => _delete(item),
                             icon: Icon(
                               Icons.delete_outline,
                               color: scheme.onSurfaceVariant,
                             ),
-                          )
-                        : null,
-                    onTap: () => _edit(item),
+                          ),
+                    onTap: isLockedDefault ? null : () => _edit(item),
                   ),
                 );
               },

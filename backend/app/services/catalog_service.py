@@ -158,6 +158,11 @@ async def update_item(
     data: CatalogItemUpdate,
 ) -> CatalogItem:
     item = await get_item(session, user_id, kind, item_id)
+    if kind == CatalogKind.skills and is_default_skill_name(item.name):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Default skills cannot be edited",
+        )
     old_name = item.name
 
     if data.name is not None:

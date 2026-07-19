@@ -41,6 +41,9 @@ class _CatalogRecordDetailPageState extends State<CatalogRecordDetailPage> {
   Future<String?> _token() => widget.auth.requireAccessToken();
 
   Future<void> _edit() async {
+    if (_item.kind == CatalogKind.skills && isDefaultSkillName(_item.name)) {
+      return;
+    }
     try {
       final token = await _token();
       if (token == null || !mounted) return;
@@ -183,24 +186,25 @@ class _CatalogRecordDetailPageState extends State<CatalogRecordDetailPage> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final subtitle = catalogRecordSubtitle(_item);
-    final canDelete = _item.kind != CatalogKind.skills ||
-        !isDefaultSkillName(_item.name);
+    final isLockedDefault = _item.kind == CatalogKind.skills &&
+        isDefaultSkillName(_item.name);
 
     return Scaffold(
       appBar: AppBar(
         title: Text(_item.name.trim().isEmpty ? _item.kind.displayLabel : _item.name),
         actions: [
-          IconButton(
-            tooltip: 'Edit',
-            icon: const Icon(Icons.edit_outlined),
-            onPressed: _edit,
-          ),
-          if (canDelete)
+          if (!isLockedDefault) ...[
+            IconButton(
+              tooltip: 'Edit',
+              icon: const Icon(Icons.edit_outlined),
+              onPressed: _edit,
+            ),
             IconButton(
               tooltip: 'Delete',
               icon: const Icon(Icons.delete_outline),
               onPressed: _delete,
             ),
+          ],
         ],
       ),
 
