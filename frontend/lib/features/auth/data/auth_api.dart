@@ -81,6 +81,31 @@ class AuthApi {
     );
   }
 
+  Future<UserProfile> updatePreferences({
+    required String accessToken,
+    required bool aiIntegration,
+  }) async {
+    final response = await _client.patch(
+      _uri('/auth/me'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $accessToken',
+      },
+      body: jsonEncode({
+        'ai_integration': aiIntegration,
+      }),
+    );
+    if (response.statusCode != 200) {
+      throw AuthApiException(
+        _errorMessage(response),
+        statusCode: response.statusCode,
+      );
+    }
+    return UserProfile.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
+  }
+
   Future<void> logout({
     required String accessToken,
     String? refreshToken,

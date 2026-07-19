@@ -187,6 +187,7 @@ class _SpellsBodyState extends State<SpellsBody> {
         resourceFiles: lookups.files,
         searchLinks: (query) => _searchLinks(token, query),
         loadAutoLinkTargets: () => _loadAutoLinkTargets(token),
+        aiIntegrationEnabled: widget.auth.user?.aiIntegration ?? false,
       );
       if (spell == null || !mounted) return;
       await _api.create(
@@ -224,6 +225,7 @@ class _SpellsBodyState extends State<SpellsBody> {
         resourceFiles: lookups.files,
         searchLinks: (query) => _searchLinks(token, query),
         loadAutoLinkTargets: () => _loadAutoLinkTargets(token),
+        aiIntegrationEnabled: widget.auth.user?.aiIntegration ?? false,
       );
       if (spell == null || !mounted) return;
       await _api.update(

@@ -5,6 +5,7 @@ import '../../../../core/ui/markdown_form_field.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../../dm_tools/resources/data/resource_models.dart';
 import '../../../dm_tools/resources/ui/resource_form_helpers.dart';
+import '../data/spell_ai_template.dart';
 import '../data/spell_model.dart';
 
 Future<Spell?> showSpellFormSheet(
@@ -15,6 +16,7 @@ Future<Spell?> showSpellFormSheet(
   required List<ResourceFile> resourceFiles,
   CatalogLinkSearch? searchLinks,
   CatalogAutoLinkLoader? loadAutoLinkTargets,
+  bool aiIntegrationEnabled = false,
 }) {
   final editing = initial != null;
   return showAdaptiveResourceForm<Spell>(
@@ -27,6 +29,7 @@ Future<Spell?> showSpellFormSheet(
       resourceFiles: resourceFiles,
       searchLinks: searchLinks,
       loadAutoLinkTargets: loadAutoLinkTargets,
+      aiIntegrationEnabled: aiIntegrationEnabled,
     ),
   );
 }
@@ -39,6 +42,7 @@ class _SpellForm extends StatefulWidget {
     required this.resourceFiles,
     this.searchLinks,
     this.loadAutoLinkTargets,
+    this.aiIntegrationEnabled = false,
   });
 
   final Spell? initial;
@@ -47,6 +51,7 @@ class _SpellForm extends StatefulWidget {
   final List<ResourceFile> resourceFiles;
   final CatalogLinkSearch? searchLinks;
   final CatalogAutoLinkLoader? loadAutoLinkTargets;
+  final bool aiIntegrationEnabled;
 
   @override
   State<_SpellForm> createState() => _SpellFormState();
@@ -108,9 +113,11 @@ class _SpellFormState extends State<_SpellForm> {
   late final Set<int> _classIds = {...(widget.initial?.classIds ?? const [])};
   late final Set<int> _tagIds = {...(widget.initial?.tagIds ?? const [])};
   late int? _sourceFileId = widget.initial?.sourceFileId;
+  int _dropdownEpoch = 0;
 
   bool get _castingTimeAllowsCustomAmount =>
       _castingTimeUnit == 'minute' || _castingTimeUnit == 'hour';
+  bool get _showAiTemplateActions => !widget.aiIntegrationEnabled;
 
   @override
   void dispose() {
@@ -166,6 +173,84 @@ class _SpellFormState extends State<_SpellForm> {
     if (_rangeKey == 'touch') return const SpellRange.touch();
     final feet = int.parse(_rangeKey.split(':').last);
     return SpellRange(type: RangeType.ranged, distanceFeet: feet);
+  }
+
+  Future<void> _copyAiTemplate() async {
+    await Clipboard.setData(
+      ClipboardData(
+        text: buildSpellAiClipboardText(
+          casterClasses: widget.casterClasses,
+          spellTags: widget.spellTags,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Template copied')),
+    );
+  }
+
+  Future<void> _pasteAiTemplate() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    final text = data?.text;
+    if (text == null || text.trim().isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Clipboard is empty')),
+      );
+      return;
+    }
+    try {
+      final template = parseSpellAiTemplate(
+        clipboardText: text,
+        casterClasses: widget.casterClasses,
+        spellTags: widget.spellTags,
+      );
+      setState(() {
+        _nameController.text = template.name;
+        _level = template.level;
+        _school = template.school;
+        _castAmountController.text = '${template.castAmount}';
+        _castingTimeUnit = template.castUnit;
+        _reactionTriggerController.text = template.reactionTrigger ?? '';
+        _rangeKey = template.rangeKey;
+        _verbal = template.verbal;
+        _somatic = template.somatic;
+        _material = template.material;
+        _materialDescriptionController.text =
+            template.materialDescription ?? '';
+        _materialCostController.text =
+            template.materialCostGp?.toString() ?? '';
+        _materialConsumed = template.materialConsumed;
+        _durationType = template.durationType;
+        _concentration = template.concentration;
+        _durationSpecialController.text = template.durationSpecial ?? '';
+        _classIds
+          ..clear()
+          ..addAll(template.classIds);
+        _tagIds
+          ..clear()
+          ..addAll(template.tagIds);
+        _descriptionController.text = template.description;
+        _higherLevelsController.text = template.higherLevels;
+        _sourcePageController.text = template.sourcePage?.toString() ?? '';
+        _dropdownEpoch++;
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Template applied')),
+      );
+    } on SpellAiTemplateException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not apply template')),
+      );
+    }
   }
 
   int? _parseInt(String value) {
@@ -311,6 +396,7 @@ class _SpellFormState extends State<_SpellForm> {
             children: [
               Expanded(
                 child: DropdownButtonFormField<int>(
+                  key: ValueKey('level-$_dropdownEpoch'),
                   initialValue: _level,
                   decoration: ResourceFormStyles.inputDecoration(
                     context,
@@ -334,6 +420,7 @@ class _SpellFormState extends State<_SpellForm> {
               const SizedBox(width: ResourceFormStyles.fieldSpacing),
               Expanded(
                 child: DropdownButtonFormField<SpellSchool>(
+                  key: ValueKey('school-$_dropdownEpoch'),
                   initialValue: _school,
                   decoration: ResourceFormStyles.inputDecoration(
                     context,
@@ -391,6 +478,7 @@ class _SpellFormState extends State<_SpellForm> {
               Expanded(
                 flex: 2,
                 child: DropdownButtonFormField<String>(
+                  key: ValueKey('cast-unit-$_dropdownEpoch'),
                   initialValue: _castingTimeUnit,
                   decoration: ResourceFormStyles.inputDecoration(
                     context,
@@ -433,6 +521,7 @@ class _SpellFormState extends State<_SpellForm> {
           ),
           _section('Range'),
           DropdownButtonFormField<String>(
+            key: ValueKey('range-$_dropdownEpoch'),
             initialValue: _rangeKey,
             decoration: ResourceFormStyles.inputDecoration(
               context,
@@ -511,7 +600,7 @@ class _SpellFormState extends State<_SpellForm> {
           ],
           _section('Duration'),
           DropdownButtonFormField<DurationType>(
-            key: ValueKey(_durationType),
+            key: ValueKey('duration-$_dropdownEpoch-$_durationType'),
             initialValue: _durationType,
             decoration: ResourceFormStyles.inputDecoration(
               context,
@@ -679,10 +768,38 @@ class _SpellFormState extends State<_SpellForm> {
             ],
           ),
           const SizedBox(height: ResourceFormStyles.sectionSpacing),
-          FilledButton(
-            onPressed: _submit,
-            child: Text(widget.initial == null ? 'Create' : 'Save'),
-          ),
+          if (_showAiTemplateActions)
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _copyAiTemplate,
+                    icon: const Icon(Icons.copy_outlined, size: 18),
+                    label: const Text('Copy template'),
+                  ),
+                ),
+                const SizedBox(width: ResourceFormStyles.fieldSpacing),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _pasteAiTemplate,
+                    icon: const Icon(Icons.content_paste_outlined, size: 18),
+                    label: const Text('Paste template'),
+                  ),
+                ),
+                const SizedBox(width: ResourceFormStyles.fieldSpacing),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: _submit,
+                    child: Text(widget.initial == null ? 'Create' : 'Save'),
+                  ),
+                ),
+              ],
+            )
+          else
+            FilledButton(
+              onPressed: _submit,
+              child: Text(widget.initial == null ? 'Create' : 'Save'),
+            ),
         ],
       ),
     );

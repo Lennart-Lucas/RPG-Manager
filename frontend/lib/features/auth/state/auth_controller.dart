@@ -174,6 +174,37 @@ class AuthController extends ChangeNotifier {
     }
   }
 
+  Future<bool> setAiIntegration(bool enabled) async {
+    final token = await requireAccessToken();
+    if (token == null || user == null) {
+      errorMessage = 'Not authenticated';
+      notifyListeners();
+      return false;
+    }
+    final previous = user!;
+    user = previous.copyWith(aiIntegration: enabled);
+    notifyListeners();
+    try {
+      user = await _api.updatePreferences(
+        accessToken: token,
+        aiIntegration: enabled,
+      );
+      errorMessage = null;
+      notifyListeners();
+      return true;
+    } on AuthApiException catch (e) {
+      user = previous;
+      errorMessage = e.message;
+      notifyListeners();
+      return false;
+    } catch (_) {
+      user = previous;
+      errorMessage = 'Could not update preferences';
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> _authenticate(Future<TokenPair> Function() action) async {
     busy = true;
     errorMessage = null;

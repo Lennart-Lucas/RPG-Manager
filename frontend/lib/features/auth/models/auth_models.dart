@@ -24,12 +24,14 @@ class UserProfile {
     required this.email,
     required this.isActive,
     required this.isDm,
+    this.aiIntegration = false,
   });
 
   final int id;
   final String email;
   final bool isActive;
   final bool isDm;
+  final bool aiIntegration;
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
@@ -37,6 +39,23 @@ class UserProfile {
       email: json['email'] as String,
       isActive: json['is_active'] as bool,
       isDm: json['is_dm'] as bool,
+      aiIntegration: json['ai_integration'] as bool? ?? false,
+    );
+  }
+
+  UserProfile copyWith({
+    int? id,
+    String? email,
+    bool? isActive,
+    bool? isDm,
+    bool? aiIntegration,
+  }) {
+    return UserProfile(
+      id: id ?? this.id,
+      email: email ?? this.email,
+      isActive: isActive ?? this.isActive,
+      isDm: isDm ?? this.isDm,
+      aiIntegration: aiIntegration ?? this.aiIntegration,
     );
   }
 }

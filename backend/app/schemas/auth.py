@@ -59,6 +59,11 @@ class UserResponse(BaseModel):
     email: EmailStr
     is_active: bool
     is_dm: bool
+    ai_integration: bool
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class UserPreferencesUpdate(BaseModel):
+    ai_integration: bool

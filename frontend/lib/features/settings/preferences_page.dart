@@ -3,19 +3,26 @@ import 'package:flutter/material.dart';
 import '../../core/config/app_config.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/theme_controller.dart';
+import '../auth/state/auth_controller.dart';
 
 /// Preferences content shown inside [AppShell] (no own AppBar/drawer).
 class PreferencesBody extends StatelessWidget {
-  const PreferencesBody({super.key, required this.themeController});
+  const PreferencesBody({
+    super.key,
+    required this.auth,
+    required this.themeController,
+  });
 
+  final AuthController auth;
   final ThemeController themeController;
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: themeController,
+      animation: Listenable.merge([themeController, auth]),
       builder: (context, _) {
         final scheme = Theme.of(context).colorScheme;
+        final aiEnabled = auth.user?.aiIntegration ?? false;
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
@@ -56,6 +63,37 @@ class PreferencesBody extends StatelessWidget {
                 ),
               );
             }),
+            const Divider(height: 32),
+            Text(
+              'AI',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('AI integration'),
+              subtitle: const Text(
+                'Placeholder for future AI features. When off, spell forms '
+                'offer copy/paste templates for external AI tools.',
+              ),
+              value: aiEnabled,
+              onChanged: auth.busy
+                  ? null
+                  : (value) async {
+                      final ok = await auth.setAiIntegration(value);
+                      if (!context.mounted) return;
+                      if (!ok) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              auth.errorMessage ??
+                                  'Could not update AI preference',
+                            ),
+                          ),
+                        );
+                      }
+                    },
+            ),
             const Divider(height: 32),
             ListTile(
               leading: const Icon(Icons.cloud_outlined),

@@ -75,6 +75,7 @@ class _AppShellState extends State<AppShell> {
       body: switch (_page) {
         AppPage.home => HomeBody(auth: widget.auth),
         AppPage.preferences => PreferencesBody(
+            auth: widget.auth,
             themeController: widget.themeController,
           ),
         AppPage.resources => ResourcesBody(auth: widget.auth),

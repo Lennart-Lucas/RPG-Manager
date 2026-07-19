@@ -11,6 +11,7 @@ from app.schemas.auth import (
     RefreshRequest,
     RegisterRequest,
     TokenResponse,
+    UserPreferencesUpdate,
     UserResponse,
 )
 from app.services import auth_service
@@ -71,4 +72,16 @@ async def logout(
 
 @router.get("/me", response_model=UserResponse)
 async def me(user: User = Depends(get_current_active_user)) -> User:
+    return user
+
+
+@router.patch("/me", response_model=UserResponse)
+async def update_me(
+    body: UserPreferencesUpdate,
+    session: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_active_user),
+) -> User:
+    user.ai_integration = body.ai_integration
+    await session.flush()
+    await session.refresh(user)
     return user
