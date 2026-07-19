@@ -15,6 +15,7 @@ from app.security.tokens import (
     hash_refresh_token,
     refresh_token_expires_at,
 )
+from app.services.catalog_service import ensure_default_skills
 
 
 def normalize_email(email: str) -> str:
@@ -81,6 +82,7 @@ async def register_user(
     )
     session.add(user)
     await session.flush()
+    await ensure_default_skills(session, user.id)
     tokens = await _issue_tokens(session, user)
     return user, tokens
 

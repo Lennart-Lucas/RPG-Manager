@@ -12,13 +12,11 @@ import 'package:rpg_manager/features/mechanics/features/data/feature_model.dart'
 import 'package:rpg_manager/features/mechanics/features/ui/feature_form_sheet.dart';
 import 'package:rpg_manager/features/world/creature_types/data/creature_type_model.dart';
 import 'package:rpg_manager/features/world/creatures/data/ability_assignment.dart';
-import 'package:rpg_manager/features/world/creatures/data/creature_combat_snapshot.dart';
 import 'package:rpg_manager/features/world/creatures/data/creature_inheritance.dart';
 import 'package:rpg_manager/features/world/creatures/data/creature_model.dart';
 import 'package:rpg_manager/features/world/creatures/data/scaler_math.dart';
 import 'package:rpg_manager/features/world/creatures/ui/attribute_assignment_panel.dart';
 import 'package:rpg_manager/features/world/creatures/ui/creature_statblock_view.dart';
-import 'package:rpg_manager/features/world/creatures/ui/statblock_combat_preview.dart';
 import 'package:rpg_manager/features/world/data/labeled_amount.dart';
 import 'package:rpg_manager/features/world/ui/world_form_helpers.dart';
 
@@ -124,9 +122,7 @@ class _CreatureFormState extends State<_CreatureForm> {
 
   late final _nameController =
       TextEditingController(text: widget.initial?.name ?? '');
-  late final _levelController = TextEditingController(
-    text: '${widget.initial?.level ?? 1}',
-  );
+  late int _level = (widget.initial?.level ?? 1).clamp(0, 30);
   late final _threatController = TextEditingController(
     text: '${widget.initial?.threat ?? 4}',
   );
@@ -135,21 +131,6 @@ class _CreatureFormState extends State<_CreatureForm> {
   );
   late final _rangeController = TextEditingController(
     text: widget.initial?.range?.toString() ?? '',
-  );
-  late final _walkController = TextEditingController(
-    text: '${widget.initial?.speeds.walk ?? 30}',
-  );
-  late final _flyController = TextEditingController(
-    text: widget.initial?.speeds.fly?.toString() ?? '',
-  );
-  late final _swimController = TextEditingController(
-    text: widget.initial?.speeds.swim?.toString() ?? '',
-  );
-  late final _climbController = TextEditingController(
-    text: widget.initial?.speeds.climb?.toString() ?? '',
-  );
-  late final _burrowController = TextEditingController(
-    text: widget.initial?.speeds.burrow?.toString() ?? '',
   );
   late final _passivePerceptionController = TextEditingController(
     text: '${widget.initial?.passivePerception ?? 10}',
@@ -166,7 +147,9 @@ class _CreatureFormState extends State<_CreatureForm> {
   late String _size = widget.initial?.size ?? 'Medium';
   late int? _creatureTypeId = widget.initial?.creatureTypeId;
   late int? _creatureSubtypeId = widget.initial?.creatureSubtypeId;
-  late List<LabeledAmount> _movementLabeled = const [];
+  late List<LabeledAmount> _movementLabeled = widget.initial != null
+      ? movementFromSpeeds(widget.initial!.speeds)
+      : const [LabeledAmount(label: 'Normal', amount: 30)];
   late List<LabeledAmount> _sensesLabeled = [
     ...?widget.initial?.sensesLabeled,
   ];
@@ -199,19 +182,8 @@ class _CreatureFormState extends State<_CreatureForm> {
   late List<CreatureFeatureEntry> _features = [
     ...(widget.initial?.features ?? const []),
   ];
-  late CreatureOverrides _overrides =
+  late final CreatureOverrides _overrides =
       widget.initial?.overrides ?? const CreatureOverrides();
-
-  late final _acController = TextEditingController();
-  late final _hpController = TextEditingController();
-  late final _atkController = TextEditingController();
-  late final _dcController = TextEditingController();
-  late final _dmgController = TextEditingController();
-  late final _initController = TextEditingController();
-  late final _crController = TextEditingController();
-  late final _xpController = TextEditingController();
-
-  bool _syncingStats = false;
 
   ScalerComputedStats get _formula => computeScalerStats(
         level: _level,
@@ -219,11 +191,6 @@ class _CreatureFormState extends State<_CreatureForm> {
         role: _role,
         paragonThreat: _rank == ScalerRank.paragon ? _threat : null,
       );
-
-  int get _level {
-    final parsed = int.tryParse(_levelController.text.trim());
-    return (parsed ?? 1).clamp(0, 30);
-  }
 
   @override
   void initState() {
@@ -245,7 +212,6 @@ class _CreatureFormState extends State<_CreatureForm> {
     _trainedAbilityKeys = trainedAbilityKeysFromSaves(
       widget.initial?.trainedSavingThrows ?? const [],
     );
-    _initStatControllers();
     _loadCatalogData();
   }
 
@@ -319,21 +285,29 @@ class _CreatureFormState extends State<_CreatureForm> {
       _conditionIds = merged.conditionImmunityIds;
       _sensesLabeled = merged.sensesLabeled;
       _features = merged.features;
-      _walkController.text = '${merged.speeds.walk}';
-      if (merged.speeds.fly != null) {
-        _flyController.text = '${merged.speeds.fly}';
-      }
-      if (merged.speeds.swim != null) {
-        _swimController.text = '${merged.speeds.swim}';
-      }
-      if (merged.speeds.climb != null) {
-        _climbController.text = '${merged.speeds.climb}';
-      }
-      if (merged.speeds.burrow != null) {
-        _burrowController.text = '${merged.speeds.burrow}';
+      final typeId = _creatureSubtypeId ?? _creatureTypeId;
+      if (typeId != null) {
+        final primary = _typesById[typeId];
+        if (primary != null) {
+          var movement = _movementLabeled;
+          for (final type in creatureTypeAncestry(
+            type: primary,
+            byId: _typesById,
+          )) {
+            movement = mergeLabeledAmounts(movement, type.movement);
+          }
+          _movementLabeled = movement;
+        }
+      } else {
+        _movementLabeled = movementFromSpeeds(merged.speeds);
       }
     });
   }
+
+  CreatureSpeeds get _speedsFromMovement => syncSpeedsFromMovement(
+        speeds: const CreatureSpeeds(),
+        movement: _movementLabeled,
+      );
 
   Creature _buildDraftCreature() {
     return Creature(
@@ -355,13 +329,7 @@ class _CreatureFormState extends State<_CreatureForm> {
       trainedSavingThrows: trainedSavesFromAbilityKeys(_trainedAbilityKeys),
       reach: _parseOptionalInt(_reachController.text),
       range: _parseOptionalInt(_rangeController.text),
-      speeds: CreatureSpeeds(
-        walk: int.tryParse(_walkController.text.trim()) ?? 30,
-        fly: _parseOptionalInt(_flyController.text),
-        swim: _parseOptionalInt(_swimController.text),
-        climb: _parseOptionalInt(_climbController.text),
-        burrow: _parseOptionalInt(_burrowController.text),
-      ),
+      speeds: _speedsFromMovement,
       sensesLabeled: _sensesLabeled,
       passivePerception:
           int.tryParse(_passivePerceptionController.text.trim()) ?? 10,
@@ -410,60 +378,16 @@ class _CreatureFormState extends State<_CreatureForm> {
     return typeName ?? widget.initial?.creatureType ?? '';
   }
 
-  void _syncMovementToSpeeds(List<LabeledAmount> movement) {
-    final speeds = syncSpeedsFromMovement(
-      speeds: CreatureSpeeds(
-        walk: int.tryParse(_walkController.text.trim()) ?? 30,
-        fly: _parseOptionalInt(_flyController.text),
-        swim: _parseOptionalInt(_swimController.text),
-        climb: _parseOptionalInt(_climbController.text),
-        burrow: _parseOptionalInt(_burrowController.text),
-      ),
-      movement: movement,
-    );
-    _walkController.text = '${speeds.walk}';
-    _flyController.text = speeds.fly?.toString() ?? '';
-    _swimController.text = speeds.swim?.toString() ?? '';
-    _climbController.text = speeds.climb?.toString() ?? '';
-    _burrowController.text = speeds.burrow?.toString() ?? '';
-  }
-
-  void _initStatControllers() {
-    final f = _formula;
-    _acController.text = '${_overrides.ac ?? f.ac}';
-    _hpController.text = '${_overrides.hp ?? f.hp}';
-    _atkController.text = '${_overrides.atk ?? f.atk}';
-    _dcController.text = '${_overrides.dc ?? f.dc}';
-    _dmgController.text = '${_overrides.dmg ?? f.dmg}';
-    _initController.text = '${_overrides.initiativeBonus ?? f.initiativeBonus}';
-    _crController.text = _overrides.cr ?? f.cr;
-    _xpController.text = '${_overrides.xp ?? f.xp}';
-  }
-
   @override
   void dispose() {
     _nameController.dispose();
-    _levelController.dispose();
     _threatController.dispose();
     _reachController.dispose();
     _rangeController.dispose();
-    _walkController.dispose();
-    _flyController.dispose();
-    _swimController.dispose();
-    _climbController.dispose();
-    _burrowController.dispose();
     _passivePerceptionController.dispose();
     _itemsController.dispose();
     _triggerController.dispose();
     _countermeasuresController.dispose();
-    _acController.dispose();
-    _hpController.dispose();
-    _atkController.dispose();
-    _dcController.dispose();
-    _dmgController.dispose();
-    _initController.dispose();
-    _crController.dispose();
-    _xpController.dispose();
     super.dispose();
   }
 
@@ -475,22 +399,6 @@ class _CreatureFormState extends State<_CreatureForm> {
         .map((s) => s.trim())
         .where((s) => s.isNotEmpty)
         .toList();
-  }
-
-  void _syncStatControllers() {
-    final f = _formula;
-    _syncingStats = true;
-    if (_overrides.ac == null) _acController.text = '${f.ac}';
-    if (_overrides.hp == null) _hpController.text = '${f.hp}';
-    if (_overrides.atk == null) _atkController.text = '${f.atk}';
-    if (_overrides.dc == null) _dcController.text = '${f.dc}';
-    if (_overrides.dmg == null) _dmgController.text = '${f.dmg}';
-    if (_overrides.initiativeBonus == null) {
-      _initController.text = '${f.initiativeBonus}';
-    }
-    if (_overrides.cr == null) _crController.text = f.cr;
-    if (_overrides.xp == null) _xpController.text = '${f.xp}';
-    _syncingStats = false;
   }
 
   void _recomputeCombat({bool mergeFeatures = true}) {
@@ -526,7 +434,6 @@ class _CreatureFormState extends State<_CreatureForm> {
         ),
         formula: f,
       );
-      _syncStatControllers();
     });
   }
 
@@ -558,7 +465,9 @@ class _CreatureFormState extends State<_CreatureForm> {
     _recomputeCombat();
   }
 
-  void _onLevelChanged() {
+  void _onLevelChanged(int? value) {
+    if (value == null) return;
+    setState(() => _level = value);
     _recomputeCombat();
   }
 
@@ -568,41 +477,6 @@ class _CreatureFormState extends State<_CreatureForm> {
       setState(() => _threat = parsed);
       _recomputeCombat();
     }
-  }
-
-  void _updateIntOverride({
-    required int formulaValue,
-    required String text,
-    required int? current,
-    required void Function(int?) setter,
-    required TextEditingController controller,
-  }) {
-    if (_syncingStats) return;
-    final trimmed = text.trim();
-    if (trimmed.isEmpty) {
-      setState(() {
-        setter(null);
-        controller.text = '$formulaValue';
-      });
-      return;
-    }
-    final parsed = int.tryParse(trimmed);
-    if (parsed == null) return;
-    setState(() {
-      setter(parsed == formulaValue ? null : parsed);
-    });
-  }
-
-  void _updateCrOverride(String text) {
-    if (_syncingStats) return;
-    final trimmed = text.trim();
-    final formulaCr = _formula.cr;
-    setState(() {
-      _overrides = _overrides.copyWith(
-        cr: trimmed.isEmpty || trimmed == formulaCr ? null : trimmed,
-        clearCr: trimmed.isEmpty || trimmed == formulaCr,
-      );
-    });
   }
 
   String? _abilityAssignmentWarning() {
@@ -854,54 +728,22 @@ class _CreatureFormState extends State<_CreatureForm> {
     );
   }
 
-  Widget _statField({
-    required String label,
-    required TextEditingController controller,
-    required int formulaValue,
-    required int? overrideValue,
-    required void Function(int?) onOverrideChanged,
-  }) {
-    return Expanded(
-      child: TextFormField(
-        controller: controller,
-        decoration: ResourceFormStyles.inputDecoration(
-          context,
-          label: label,
-          helperText: overrideValue != null ? 'Formula: $formulaValue' : null,
-        ),
-        keyboardType: TextInputType.number,
-        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        onChanged: (text) => _updateIntOverride(
-          formulaValue: formulaValue,
-          text: text,
-          current: overrideValue,
-          setter: onOverrideChanged,
-          controller: controller,
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final f = _formula;
     final draft = _buildDraftCreature();
-    final previewSnapshot = computeCreatureCombatSnapshot(draft);
     final wide = MediaQuery.sizeOf(context).width >= 1000;
+    final previewSheet = CreatureStatblockView(
+      creature: draft,
+      typeLabel: draft.creatureType.isEmpty ? null : draft.creatureType,
+    );
     final form = SingleChildScrollView(
       padding: EdgeInsets.all(wide ? 20 : 0),
       child: _buildFormFields(f),
     );
     final preview = SingleChildScrollView(
       padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          StatblockCombatPreview(snapshot: previewSnapshot),
-          const SizedBox(height: 12),
-          CreatureStatblockView(creature: draft),
-        ],
-      ),
+      child: previewSheet,
     );
 
     if (wide) {
@@ -927,11 +769,7 @@ class _CreatureFormState extends State<_CreatureForm> {
           _buildFormFields(f),
           ExpansionTile(
             title: const Text('Preview'),
-            children: [
-              StatblockCombatPreview(snapshot: previewSnapshot),
-              const SizedBox(height: 12),
-              CreatureStatblockView(creature: draft),
-            ],
+            children: [previewSheet],
           ),
         ],
       ),
@@ -945,8 +783,8 @@ class _CreatureFormState extends State<_CreatureForm> {
     final ancestral = _budgetSlotCount(FeatureBudgetSlot.ancestral);
     final roleCount = _budgetSlotCount(FeatureBudgetSlot.role);
     final misc = _budgetSlotCount(FeatureBudgetSlot.misc);
-    final effectiveWalk = (int.tryParse(_walkController.text.trim()) ?? 30) +
-        f.speedWalkDelta;
+    final walk = walkSpeedFromMovement(_movementLabeled) ?? 30;
+    final effectiveWalk = walk + f.speedWalkDelta;
     final slotModifiers = slotModifiersForFormula(f);
 
     return Column(
@@ -1071,16 +909,20 @@ class _CreatureFormState extends State<_CreatureForm> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: TextFormField(
-                  controller: _levelController,
+                child: DropdownButtonFormField<int>(
+                  initialValue: _level,
                   decoration: ResourceFormStyles.inputDecoration(
                     context,
                     label: 'Level',
-                    helperText: '0–30',
                   ),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  onChanged: (_) => _onLevelChanged(),
+                  items: [
+                    for (var level = 0; level <= 30; level++)
+                      DropdownMenuItem(
+                        value: level,
+                        child: Text('$level'),
+                      ),
+                  ],
+                  onChanged: _onLevelChanged,
                 ),
               ),
               const SizedBox(width: ResourceFormStyles.fieldSpacing),
@@ -1114,9 +956,6 @@ class _CreatureFormState extends State<_CreatureForm> {
                   decoration: ResourceFormStyles.inputDecoration(
                     context,
                     label: 'Threat',
-                    helperText: _rank == ScalerRank.paragon
-                        ? 'Paragon threat level'
-                        : 'Only for Paragon rank',
                   ),
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
@@ -1170,142 +1009,15 @@ class _CreatureFormState extends State<_CreatureForm> {
               onChanged: (value) => setState(() => _roleSubtype = value),
             ),
           ],
-          _section('Live stats'),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'Edit values to override formula (${f.proficiencyBonus} PB)',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      _statField(
-                        label: 'AC',
-                        controller: _acController,
-                        formulaValue: f.ac,
-                        overrideValue: _overrides.ac,
-                        onOverrideChanged: (v) => setState(
-                          () => _overrides = _overrides.copyWith(
-                            ac: v,
-                            clearAc: v == null,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      _statField(
-                        label: 'HP',
-                        controller: _hpController,
-                        formulaValue: f.hp,
-                        overrideValue: _overrides.hp,
-                        onOverrideChanged: (v) => setState(
-                          () => _overrides = _overrides.copyWith(
-                            hp: v,
-                            clearHp: v == null,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      _statField(
-                        label: 'ATK',
-                        controller: _atkController,
-                        formulaValue: f.atk,
-                        overrideValue: _overrides.atk,
-                        onOverrideChanged: (v) => setState(
-                          () => _overrides = _overrides.copyWith(
-                            atk: v,
-                            clearAtk: v == null,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      _statField(
-                        label: 'DC',
-                        controller: _dcController,
-                        formulaValue: f.dc,
-                        overrideValue: _overrides.dc,
-                        onOverrideChanged: (v) => setState(
-                          () => _overrides = _overrides.copyWith(
-                            dc: v,
-                            clearDc: v == null,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      _statField(
-                        label: 'DMG',
-                        controller: _dmgController,
-                        formulaValue: f.dmg,
-                        overrideValue: _overrides.dmg,
-                        onOverrideChanged: (v) => setState(
-                          () => _overrides = _overrides.copyWith(
-                            dmg: v,
-                            clearDmg: v == null,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      _statField(
-                        label: 'Init',
-                        controller: _initController,
-                        formulaValue: f.initiativeBonus,
-                        overrideValue: _overrides.initiativeBonus,
-                        onOverrideChanged: (v) => setState(
-                          () => _overrides = _overrides.copyWith(
-                            initiativeBonus: v,
-                            clearInitiativeBonus: v == null,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _crController,
-                          decoration: ResourceFormStyles.inputDecoration(
-                            context,
-                            label: 'CR',
-                            helperText: _overrides.cr != null
-                                ? 'Formula: ${f.cr}'
-                                : null,
-                          ),
-                          onChanged: _updateCrOverride,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      _statField(
-                        label: 'XP',
-                        controller: _xpController,
-                        formulaValue: f.xp,
-                        overrideValue: _overrides.xp,
-                        onOverrideChanged: (v) => setState(
-                          () => _overrides = _overrides.copyWith(
-                            xp: v,
-                            clearXp: v == null,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
           _section('Ability assignment'),
+          Text(
+            'Long-press an ability box to toggle trained saves '
+            '(${_trainedAbilityKeys.length}/${f.trainedSaveCount})',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
           if (abilityWarning != null)
             Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.only(top: 8, bottom: 8),
               child: Text(
                 abilityWarning,
                 style: TextStyle(
@@ -1313,7 +1025,9 @@ class _CreatureFormState extends State<_CreatureForm> {
                   fontSize: 13,
                 ),
               ),
-            ),
+            )
+          else
+            const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -1339,12 +1053,6 @@ class _CreatureFormState extends State<_CreatureForm> {
                 },
               ),
             ],
-          ),
-          _section('Trained saves'),
-          Text(
-            'Long-press an ability box to toggle trained saves '
-            '(${_trainedAbilityKeys.length}/${f.trainedSaveCount})',
-            style: Theme.of(context).textTheme.bodySmall,
           ),
           _section('Attack'),
           Row(
@@ -1374,116 +1082,90 @@ class _CreatureFormState extends State<_CreatureForm> {
               ),
             ],
           ),
-          _section('Speeds'),
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: _walkController,
-                  decoration: ResourceFormStyles.inputDecoration(
-                    context,
-                    label: 'Walk (ft.)',
-                    helperText: f.speedWalkDelta == 0
-                        ? 'Effective: $effectiveWalk ft.'
-                        : 'Effective: $effectiveWalk ft. (${f.speedWalkDelta >= 0 ? '+' : ''}${f.speedWalkDelta} from role)',
-                  ),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                ),
-              ),
-              const SizedBox(width: ResourceFormStyles.fieldSpacing),
-              Expanded(
-                child: TextFormField(
-                  controller: _flyController,
-                  decoration: ResourceFormStyles.inputDecoration(
-                    context,
-                    label: 'Fly (ft.)',
-                  ),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: ResourceFormStyles.fieldSpacing),
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: _swimController,
-                  decoration: ResourceFormStyles.inputDecoration(
-                    context,
-                    label: 'Swim (ft.)',
-                  ),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                ),
-              ),
-              const SizedBox(width: ResourceFormStyles.fieldSpacing),
-              Expanded(
-                child: TextFormField(
-                  controller: _climbController,
-                  decoration: ResourceFormStyles.inputDecoration(
-                    context,
-                    label: 'Climb (ft.)',
-                  ),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                ),
-              ),
-              const SizedBox(width: ResourceFormStyles.fieldSpacing),
-              Expanded(
-                child: TextFormField(
-                  controller: _burrowController,
-                  decoration: ResourceFormStyles.inputDecoration(
-                    context,
-                    label: 'Burrow (ft.)',
-                  ),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                ),
-              ),
-            ],
-          ),
           _section('Extras'),
-          LabeledAmountEditor(
-            title: 'Movement',
-            presets: movementPresets,
-            items: _movementLabeled,
-            onChanged: (next) {
-              setState(() {
-                _movementLabeled = next;
-                _syncMovementToSpeeds(next);
-              });
-            },
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: LabeledAmountEditor(
+                  title: 'Movement',
+                  presets: movementPresets,
+                  items: _movementLabeled,
+                  onChanged: (next) => setState(() => _movementLabeled = next),
+                ),
+              ),
+              const SizedBox(width: ResourceFormStyles.fieldSpacing),
+              Expanded(
+                child: LabeledAmountEditor(
+                  title: 'Senses',
+                  presets: sensePresets,
+                  items: _sensesLabeled,
+                  onChanged: (next) => setState(() => _sensesLabeled = next),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: ResourceFormStyles.fieldSpacing),
-          LabeledAmountEditor(
-            title: 'Senses',
-            presets: sensePresets,
-            items: _sensesLabeled,
-            onChanged: (next) => setState(() => _sensesLabeled = next),
-          ),
-          const SizedBox(height: ResourceFormStyles.fieldSpacing),
-          catalogMultiPickTile(
-            context: context,
-            label: 'Skills',
-            summary: summarizeCatalogSelection(
-              selected: _skillIds.toSet(),
-              namesById: _skillNames,
+          if (f.speedWalkDelta != 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                'Effective walk: $effectiveWalk ft. '
+                '(${f.speedWalkDelta >= 0 ? '+' : ''}${f.speedWalkDelta} from role)',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
             ),
-            onTap: () => pickCatalogIds(
-              context: context,
-              title: 'Skills',
-              options: catalogPicklistOptions(_skillNames),
-              selected: _skillIds.toSet(),
-              onDone: (next) => setState(() => _skillIds = next.toList()),
-            ),
-          ),
-          CustomStringListField(
-            label: 'Custom skills',
-            values: _customSkills,
-            onChanged: (next) => setState(() => _customSkills = next),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: catalogMultiPickTile(
+                  context: context,
+                  label: 'Skills',
+                  summary: summarizeCatalogSelection(
+                    selected: _skillIds.toSet(),
+                    namesById: _skillNames,
+                    customStrings: _customSkills,
+                  ),
+                  onTap: () => pickCatalogIdsWithCustoms(
+                    context: context,
+                    title: 'Skills',
+                    options: catalogPicklistOptions(_skillNames),
+                    selected: _skillIds.toSet(),
+                    customStrings: _customSkills,
+                    onDone: (next) => setState(() {
+                      _skillIds = next.ids;
+                      _customSkills = next.customs;
+                    }),
+                  ),
+                ),
+              ),
+              const SizedBox(width: ResourceFormStyles.fieldSpacing),
+              Expanded(
+                child: catalogMultiPickTile(
+                  context: context,
+                  label: 'Languages',
+                  summary: summarizeCatalogSelection(
+                    selected: _languageIds.toSet(),
+                    namesById: _languageNames,
+                    customStrings: _customLanguages,
+                  ),
+                  onTap: () => pickCatalogIdsWithCustoms(
+                    context: context,
+                    title: 'Languages',
+                    options: catalogPicklistOptions(_languageNames),
+                    selected: _languageIds.toSet(),
+                    customStrings: _customLanguages,
+                    onDone: (next) => setState(() {
+                      _languageIds = next.ids;
+                      _customLanguages = next.customs;
+                    }),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
           TextFormField(
@@ -1502,20 +1184,19 @@ class _CreatureFormState extends State<_CreatureForm> {
             summary: summarizeCatalogSelection(
               selected: _vulnerabilityIds.toSet(),
               namesById: _damageTypeNames,
+              customStrings: _customVulnerabilities,
             ),
-            onTap: () => pickCatalogIds(
+            onTap: () => pickCatalogIdsWithCustoms(
               context: context,
               title: 'Vulnerabilities',
               options: catalogPicklistOptions(_damageTypeNames),
               selected: _vulnerabilityIds.toSet(),
-              onDone: (next) =>
-                  setState(() => _vulnerabilityIds = next.toList()),
+              customStrings: _customVulnerabilities,
+              onDone: (next) => setState(() {
+                _vulnerabilityIds = next.ids;
+                _customVulnerabilities = next.customs;
+              }),
             ),
-          ),
-          CustomStringListField(
-            label: 'Custom vulnerabilities',
-            values: _customVulnerabilities,
-            onChanged: (next) => setState(() => _customVulnerabilities = next),
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
           catalogMultiPickTile(
@@ -1524,19 +1205,19 @@ class _CreatureFormState extends State<_CreatureForm> {
             summary: summarizeCatalogSelection(
               selected: _resistanceIds.toSet(),
               namesById: _damageTypeNames,
+              customStrings: _customResistances,
             ),
-            onTap: () => pickCatalogIds(
+            onTap: () => pickCatalogIdsWithCustoms(
               context: context,
               title: 'Resistances',
               options: catalogPicklistOptions(_damageTypeNames),
               selected: _resistanceIds.toSet(),
-              onDone: (next) => setState(() => _resistanceIds = next.toList()),
+              customStrings: _customResistances,
+              onDone: (next) => setState(() {
+                _resistanceIds = next.ids;
+                _customResistances = next.customs;
+              }),
             ),
-          ),
-          CustomStringListField(
-            label: 'Custom resistances',
-            values: _customResistances,
-            onChanged: (next) => setState(() => _customResistances = next),
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
           catalogMultiPickTile(
@@ -1545,40 +1226,19 @@ class _CreatureFormState extends State<_CreatureForm> {
             summary: summarizeCatalogSelection(
               selected: _immunityIds.toSet(),
               namesById: _damageTypeNames,
+              customStrings: _customImmunities,
             ),
-            onTap: () => pickCatalogIds(
+            onTap: () => pickCatalogIdsWithCustoms(
               context: context,
               title: 'Immunities',
               options: catalogPicklistOptions(_damageTypeNames),
               selected: _immunityIds.toSet(),
-              onDone: (next) => setState(() => _immunityIds = next.toList()),
+              customStrings: _customImmunities,
+              onDone: (next) => setState(() {
+                _immunityIds = next.ids;
+                _customImmunities = next.customs;
+              }),
             ),
-          ),
-          CustomStringListField(
-            label: 'Custom immunities',
-            values: _customImmunities,
-            onChanged: (next) => setState(() => _customImmunities = next),
-          ),
-          const SizedBox(height: ResourceFormStyles.fieldSpacing),
-          catalogMultiPickTile(
-            context: context,
-            label: 'Languages',
-            summary: summarizeCatalogSelection(
-              selected: _languageIds.toSet(),
-              namesById: _languageNames,
-            ),
-            onTap: () => pickCatalogIds(
-              context: context,
-              title: 'Languages',
-              options: catalogPicklistOptions(_languageNames),
-              selected: _languageIds.toSet(),
-              onDone: (next) => setState(() => _languageIds = next.toList()),
-            ),
-          ),
-          CustomStringListField(
-            label: 'Custom languages',
-            values: _customLanguages,
-            onChanged: (next) => setState(() => _customLanguages = next),
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
           catalogMultiPickTile(

@@ -93,3 +93,30 @@ CreatureSpeeds syncSpeedsFromMovement({
   }
   return next;
 }
+
+List<LabeledAmount> movementFromSpeeds(CreatureSpeeds speeds) {
+  return [
+    LabeledAmount(label: 'Normal', amount: speeds.walk),
+    if (speeds.fly != null) LabeledAmount(label: 'Fly', amount: speeds.fly!),
+    if (speeds.swim != null) LabeledAmount(label: 'Swim', amount: speeds.swim!),
+    if (speeds.climb != null)
+      LabeledAmount(label: 'Climb', amount: speeds.climb!),
+    if (speeds.burrow != null)
+      LabeledAmount(label: 'Burrow', amount: speeds.burrow!),
+  ];
+}
+
+List<LabeledAmount> mergeLabeledAmounts(
+  List<LabeledAmount> existing,
+  List<LabeledAmount> incoming,
+) {
+  String key(LabeledAmount value) =>
+      '${value.label.trim().toLowerCase()}|${value.amount}';
+  final seen = {for (final value in existing) key(value)};
+  final merged = [...existing];
+  for (final value in incoming) {
+    if (!seen.add(key(value))) continue;
+    merged.add(value);
+  }
+  return merged;
+}

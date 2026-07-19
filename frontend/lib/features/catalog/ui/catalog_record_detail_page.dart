@@ -6,6 +6,8 @@ import '../../mechanics/spell_tags/data/spell_tag_model.dart';
 import '../../mechanics/spell_tags/ui/spell_tag_form_sheet.dart';
 import '../../player_options/classes/data/class_model.dart';
 import '../../player_options/classes/ui/class_form_sheet.dart';
+import '../../player_options/skills/data/skill_model.dart';
+import '../../player_options/skills/ui/skill_form_sheet.dart';
 import '../data/catalog_api.dart';
 import '../data/catalog_kind.dart';
 import '../data/catalog_kind_icons.dart';
@@ -79,6 +81,23 @@ class _CatalogRecordDetailPageState extends State<CatalogRecordDetailPage> {
             itemId: _item.id,
             name: tag.name,
             payload: tag.toJson(),
+          );
+          setState(() => _item = updated);
+        case CatalogKind.skills:
+          final skill = await showSkillFormSheet(
+            context,
+            initial: SkillRecord.fromCatalogPayload(
+              name: _item.name,
+              payload: _item.payload,
+            ),
+          );
+          if (skill == null || !mounted) return;
+          final updated = await _api.update(
+            accessToken: token,
+            kind: CatalogKind.skills,
+            itemId: _item.id,
+            name: skill.name,
+            payload: skill.toJson(),
           );
           setState(() => _item = updated);
         default:

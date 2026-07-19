@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../../auth/data/auth_api.dart';
 import '../../auth/state/auth_controller.dart';
+import '../../player_options/skills/data/skill_model.dart';
+import '../../player_options/skills/ui/skill_form_sheet.dart';
 import '../data/catalog_api.dart';
 import '../data/catalog_kind.dart';
 import '../data/catalog_models.dart';
 import 'name_record_form_sheet.dart';
+import 'open_catalog_detail.dart';
 
 class CatalogBody extends StatefulWidget {
   const CatalogBody({
@@ -78,6 +81,33 @@ class _CatalogBodyState extends State<CatalogBody> {
   }
 
   Future<void> _create() async {
+    if (widget.kind == CatalogKind.skills) {
+      final skill = await showSkillFormSheet(context);
+      if (skill == null || !mounted) return;
+      try {
+        final token = await _token();
+        if (token == null) return;
+        await _api.create(
+          accessToken: token,
+          kind: CatalogKind.skills,
+          name: skill.name,
+          payload: skill.toJson(),
+        );
+        await _reload();
+      } on AuthApiException catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
+      } catch (_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not create skill')),
+        );
+      }
+      return;
+    }
+
     final name = await showNameRecordFormSheet(
       context,
       singularLabel: widget.kind.singularLabel,
@@ -108,6 +138,40 @@ class _CatalogBodyState extends State<CatalogBody> {
   }
 
   Future<void> _edit(CatalogItem item) async {
+    if (widget.kind == CatalogKind.skills) {
+      final skill = await showSkillFormSheet(
+        context,
+        initial: SkillRecord.fromCatalogPayload(
+          name: item.name,
+          payload: item.payload,
+        ),
+      );
+      if (skill == null || !mounted) return;
+      try {
+        final token = await _token();
+        if (token == null) return;
+        await _api.update(
+          accessToken: token,
+          kind: CatalogKind.skills,
+          itemId: item.id,
+          name: skill.name,
+          payload: skill.toJson(),
+        );
+        await _reload();
+      } on AuthApiException catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
+      } catch (_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not update skill')),
+        );
+      }
+      return;
+    }
+
     final name = await showNameRecordFormSheet(
       context,
       singularLabel: widget.kind.singularLabel,
@@ -272,6 +336,7 @@ class _CatalogBodyState extends State<CatalogBody> {
               separatorBuilder: (_, _) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
                 final item = _items[index];
+                final subtitle = catalogRecordSubtitle(item);
                 return Material(
                   color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
                   borderRadius: BorderRadius.circular(12),
@@ -281,6 +346,7 @@ class _CatalogBodyState extends State<CatalogBody> {
                     ),
                     leading: Icon(widget.icon, color: scheme.primary),
                     title: Text(item.name),
+                    subtitle: subtitle == null ? null : Text(subtitle),
                     trailing: IconButton(
                       tooltip: 'Delete',
                       onPressed: () => _delete(item),

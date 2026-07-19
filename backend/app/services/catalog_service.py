@@ -8,15 +8,57 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.data.default_skills import DEFAULT_SKILLS
 from app.models.catalog_item import CatalogItem, CatalogKind
 from app.schemas.catalog import CatalogItemCreate, CatalogItemUpdate
 from app.services import catalog_wiki
 from app.services.resource_common import validate_name
 
 
+async def ensure_default_skills(session: AsyncSession, user_id: int) -> None:
+    """Create any missing base D&D skills for [user_id] (idempotent)."""
+    result = await session.execute(
+        select(CatalogItem).where(
+            CatalogItem.user_id == user_id,
+            CatalogItem.kind == CatalogKind.skills.value,
+            CatalogItem.deleted_at.is_(None),
+        )
+    )
+    existing = list(result.scalars().all())
+    by_name = {item.name.casefold(): item for item in existing}
+
+    created = False
+    for name, attribute in DEFAULT_SKILLS:
+        key = name.casefold()
+        item = by_name.get(key)
+        if item is None:
+            session.add(
+                CatalogItem(
+                    user_id=user_id,
+                    kind=CatalogKind.skills.value,
+                    name=name,
+                    payload={"attribute": attribute},
+                )
+            )
+            created = True
+            continue
+        # Backfill attribute on legacy name-only rows.
+        payload = item.payload if isinstance(item.payload, dict) else None
+        current = payload.get("attribute") if payload else None
+        if not isinstance(current, str) or not current.strip():
+            item.payload = {"attribute": attribute}
+            created = True
+
+    if created:
+        await session.flush()
+
+
 async def list_items(
     session: AsyncSession, user_id: int, kind: CatalogKind
 ) -> list[CatalogItem]:
+    if kind == CatalogKind.skills:
+        await ensure_default_skills(session, user_id)
+
     result = await session.execute(
         select(CatalogItem)
         .where(

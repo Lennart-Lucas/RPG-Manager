@@ -369,21 +369,21 @@ class _CreatureTypeFormState extends State<_CreatureTypeForm> {
               summary: summarizeCatalogSelection(
                 selected: _languageIds.toSet(),
                 namesById: _languageNames,
+                customStrings: _customLanguages,
               ),
-              onTap: () => pickCatalogIds(
+              onTap: () => pickCatalogIdsWithCustoms(
                 context: context,
                 title: 'Languages',
                 options: catalogPicklistOptions(_languageNames),
                 selected: _languageIds.toSet(),
-                onDone: (next) => setState(() => _languageIds = next.toList()),
+                customStrings: _customLanguages,
+                onDone: (next) => setState(() {
+                  _languageIds = next.ids;
+                  _customLanguages = next.customs;
+                }),
               ),
             ),
           ],
-          CustomStringListField(
-            label: 'Custom languages',
-            values: _customLanguages,
-            onChanged: (next) => setState(() => _customLanguages = next),
-          ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
           catalogMultiPickTile(
             context: context,
@@ -391,19 +391,19 @@ class _CreatureTypeFormState extends State<_CreatureTypeForm> {
             summary: summarizeCatalogSelection(
               selected: _vulnerabilityIds.toSet(),
               namesById: _damageTypeNames,
+              customStrings: _customVulnerabilities,
             ),
-            onTap: () => pickCatalogIds(
+            onTap: () => pickCatalogIdsWithCustoms(
               context: context,
               title: 'Damage vulnerabilities',
               options: catalogPicklistOptions(_damageTypeNames),
               selected: _vulnerabilityIds.toSet(),
-              onDone: (next) => setState(() => _vulnerabilityIds = next.toList()),
+              customStrings: _customVulnerabilities,
+              onDone: (next) => setState(() {
+                _vulnerabilityIds = next.ids;
+                _customVulnerabilities = next.customs;
+              }),
             ),
-          ),
-          CustomStringListField(
-            label: 'Custom vulnerabilities',
-            values: _customVulnerabilities,
-            onChanged: (next) => setState(() => _customVulnerabilities = next),
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
           catalogMultiPickTile(
@@ -412,19 +412,19 @@ class _CreatureTypeFormState extends State<_CreatureTypeForm> {
             summary: summarizeCatalogSelection(
               selected: _resistanceIds.toSet(),
               namesById: _damageTypeNames,
+              customStrings: _customResistances,
             ),
-            onTap: () => pickCatalogIds(
+            onTap: () => pickCatalogIdsWithCustoms(
               context: context,
               title: 'Damage resistances',
               options: catalogPicklistOptions(_damageTypeNames),
               selected: _resistanceIds.toSet(),
-              onDone: (next) => setState(() => _resistanceIds = next.toList()),
+              customStrings: _customResistances,
+              onDone: (next) => setState(() {
+                _resistanceIds = next.ids;
+                _customResistances = next.customs;
+              }),
             ),
-          ),
-          CustomStringListField(
-            label: 'Custom resistances',
-            values: _customResistances,
-            onChanged: (next) => setState(() => _customResistances = next),
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
           catalogMultiPickTile(
@@ -433,19 +433,19 @@ class _CreatureTypeFormState extends State<_CreatureTypeForm> {
             summary: summarizeCatalogSelection(
               selected: _immunityIds.toSet(),
               namesById: _damageTypeNames,
+              customStrings: _customImmunities,
             ),
-            onTap: () => pickCatalogIds(
+            onTap: () => pickCatalogIdsWithCustoms(
               context: context,
               title: 'Damage immunities',
               options: catalogPicklistOptions(_damageTypeNames),
               selected: _immunityIds.toSet(),
-              onDone: (next) => setState(() => _immunityIds = next.toList()),
+              customStrings: _customImmunities,
+              onDone: (next) => setState(() {
+                _immunityIds = next.ids;
+                _customImmunities = next.customs;
+              }),
             ),
-          ),
-          CustomStringListField(
-            label: 'Custom immunities',
-            values: _customImmunities,
-            onChanged: (next) => setState(() => _customImmunities = next),
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
           catalogMultiPickTile(

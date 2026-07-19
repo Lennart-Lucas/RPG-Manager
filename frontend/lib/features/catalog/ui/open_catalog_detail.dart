@@ -9,6 +9,7 @@ import '../../mechanics/spell_tags/data/spell_tag_model.dart';
 import '../../player_options/classes/data/class_model.dart';
 import '../../player_options/items/data/item_model.dart';
 import '../../player_options/items/ui/item_detail_page.dart';
+import '../../player_options/skills/data/skill_model.dart';
 import '../../player_options/spells/data/spell_model.dart';
 import '../../player_options/spells/ui/spell_detail_page.dart';
 import '../../world/creature_types/data/creature_type_model.dart';
@@ -385,6 +386,12 @@ String? catalogRecordSubtitle(CatalogItem item) {
       final oneLine = desc.replaceAll(RegExp(r'\s+'), ' ');
       if (oneLine.length <= 120) return oneLine;
       return '${oneLine.substring(0, 117)}…';
+    case CatalogKind.skills:
+      final skill = SkillRecord.fromCatalogPayload(
+        name: item.name,
+        payload: item.payload,
+      );
+      return skill.attribute;
     case CatalogKind.features:
       final feature = MonsterFeature.fromCatalogPayload(
         name: item.name,
