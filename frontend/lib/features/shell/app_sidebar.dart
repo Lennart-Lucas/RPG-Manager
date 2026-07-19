@@ -142,7 +142,8 @@ class _AppSidebarState extends State<AppSidebar> {
       AppPage.creatures ||
       AppPage.atlas ||
       AppPage.characters ||
-      AppPage.organisations =>
+      AppPage.organisations ||
+      AppPage.story =>
         true,
       _ => false,
     };
@@ -365,6 +366,12 @@ class _AppSidebarState extends State<AppSidebar> {
                           icon: organisationsPageIcon,
                           label: 'Organisations',
                           page: AppPage.organisations,
+                        ),
+                        _navTile(
+                          context,
+                          icon: storyPageIcon,
+                          label: 'Story',
+                          page: AppPage.story,
                         ),
                       ],
                     ),

@@ -6,3 +6,4 @@ const creatureTypesPageIcon = Icons.category_outlined;
 const atlasPageIcon = Icons.map_outlined;
 const charactersPageIcon = Icons.person_outline;
 const organisationsPageIcon = Icons.groups_outlined;
+const storyPageIcon = Icons.flag_outlined;
