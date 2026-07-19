@@ -10,6 +10,7 @@ class CreatureListItemCard extends StatelessWidget {
     required this.creature,
     required this.onTap,
     this.onLongPress,
+    this.typeLabel,
     this.minWidth = 280,
     this.maxWidth = 1060,
     super.key,
@@ -18,6 +19,7 @@ class CreatureListItemCard extends StatelessWidget {
   final Creature creature;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
+  final String? typeLabel;
   final double minWidth;
   final double maxWidth;
 
@@ -98,10 +100,10 @@ class CreatureListItemCard extends StatelessWidget {
             ],
           ),
         ),
-        if (creature.creatureType.isNotEmpty) ...[
+        if ((typeLabel ?? creature.creatureType).isNotEmpty) ...[
           const SizedBox(height: 8),
           Text(
-            creature.creatureType,
+            typeLabel ?? creature.creatureType,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: textTheme.bodySmall?.copyWith(

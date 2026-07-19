@@ -4,9 +4,14 @@ import 'package:rpg_manager/features/world/creatures/data/creature_model.dart';
 import 'package:rpg_manager/features/world/creatures/data/scaler_math.dart'; // ScalerRoleLabel
 
 class CreatureStatblockView extends StatelessWidget {
-  const CreatureStatblockView({required this.creature, super.key});
+  const CreatureStatblockView({
+    required this.creature,
+    this.typeLabel,
+    super.key,
+  });
 
   final Creature creature;
+  final String? typeLabel;
 
   String _mod(int score) {
     if (score >= 0) return '+$score';
@@ -50,7 +55,8 @@ class CreatureStatblockView extends StatelessWidget {
 
     final typeLine = [
       creature.size,
-      if (creature.creatureType.isNotEmpty) creature.creatureType,
+      if ((typeLabel ?? creature.creatureType).isNotEmpty)
+        (typeLabel ?? creature.creatureType),
     ].join(' ');
 
     final roleLine = [
@@ -115,8 +121,11 @@ class CreatureStatblockView extends StatelessWidget {
               ),
             if (creature.skills.isNotEmpty)
               _StatLine(label: 'Skills', value: creature.skills.join(', ')),
-            if (creature.senses.isNotEmpty)
-              _StatLine(label: 'Senses', value: creature.senses.join(', ')),
+            if (creature.resolvedSenses().isNotEmpty)
+              _StatLine(
+                label: 'Senses',
+                value: creature.resolvedSenses().join(', '),
+              ),
             _StatLine(
               label: 'Passive Perception',
               value: '${creature.passivePerception}',

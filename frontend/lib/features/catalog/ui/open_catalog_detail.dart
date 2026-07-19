@@ -11,6 +11,8 @@ import '../../player_options/items/data/item_model.dart';
 import '../../player_options/items/ui/item_detail_page.dart';
 import '../../player_options/spells/data/spell_model.dart';
 import '../../player_options/spells/ui/spell_detail_page.dart';
+import '../../world/creature_types/data/creature_type_model.dart';
+import '../../world/creature_types/ui/creature_type_detail_page.dart';
 import '../../world/creatures/data/creature_model.dart';
 import '../../world/creatures/ui/creature_detail_page.dart';
 import '../data/catalog_api.dart';
@@ -50,6 +52,8 @@ Future<void> openCatalogRecordDetail({
         await _openItemDetail(context, auth, item);
       case CatalogKind.creatures:
         await _openCreatureDetail(context, auth, item);
+      case CatalogKind.creatureTypes:
+        await _openCreatureTypeDetail(context, auth, item);
       case CatalogKind.features:
         await _openFeatureDetail(context, auth, item);
       default:
@@ -228,6 +232,46 @@ Future<void> _openFeatureDetail(
         auth: auth,
         item: item,
         feature: feature!.copyWith(name: item.name),
+      ),
+    ),
+  );
+}
+
+Future<void> _openCreatureTypeDetail(
+  BuildContext context,
+  AuthController auth,
+  CatalogItem item,
+) async {
+  final type = CreatureType.fromCatalogPayload(
+    id: item.id,
+    name: item.name,
+    payload: item.payload,
+  );
+  final api = CatalogApi();
+  final token = await auth.requireAccessToken();
+  if (token == null || !context.mounted) return;
+
+  Map<int, CreatureType> typesById = {item.id: type};
+  try {
+    final items = await api.list(token, CatalogKind.creatureTypes);
+    typesById = {
+      for (final catalogItem in items)
+        catalogItem.id: CreatureType.fromCatalogPayload(
+          id: catalogItem.id,
+          name: catalogItem.name,
+          payload: catalogItem.payload,
+        ),
+    };
+  } catch (_) {}
+
+  if (!context.mounted) return;
+  await Navigator.of(context).push<void>(
+    MaterialPageRoute(
+      builder: (context) => CreatureTypeDetailPage(
+        auth: auth,
+        item: item,
+        type: type.copyWith(name: item.name),
+        typesById: typesById,
       ),
     ),
   );

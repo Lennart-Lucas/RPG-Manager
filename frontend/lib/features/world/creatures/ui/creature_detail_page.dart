@@ -32,6 +32,25 @@ class _CreatureDetailPageState extends State<CreatureDetailPage> {
 
   late CatalogItem _item = widget.item;
   late Creature _creature = widget.creature;
+  Map<int, String> _typeNamesById = const {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTypeNames();
+  }
+
+  Future<void> _loadTypeNames() async {
+    try {
+      final token = await _token();
+      if (token == null) return;
+      final types = await _api.list(token, CatalogKind.creatureTypes);
+      if (!mounted) return;
+      setState(() {
+        _typeNamesById = {for (final t in types) t.id: t.name};
+      });
+    } catch (_) {}
+  }
 
   Future<String?> _token() => widget.auth.requireAccessToken();
 
@@ -174,7 +193,12 @@ class _CreatureDetailPageState extends State<CreatureDetailPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    CreatureStatblockView(creature: _creature),
+                    CreatureStatblockView(
+                      creature: _creature,
+                      typeLabel: _creature.resolvedTypeLabel(
+                        typeNamesById: _typeNamesById,
+                      ),
+                    ),
                     if (hasExtras) ...[
                       const SizedBox(height: 12),
                       DecoratedBox(

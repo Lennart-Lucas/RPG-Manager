@@ -10,8 +10,17 @@ import 'package:rpg_manager/features/catalog/data/catalog_models.dart';
 import 'package:rpg_manager/features/dm_tools/resources/ui/resource_form_helpers.dart';
 import 'package:rpg_manager/features/mechanics/features/data/feature_model.dart';
 import 'package:rpg_manager/features/mechanics/features/ui/feature_form_sheet.dart';
+import 'package:rpg_manager/features/world/creature_types/data/creature_type_model.dart';
+import 'package:rpg_manager/features/world/creatures/data/ability_assignment.dart';
+import 'package:rpg_manager/features/world/creatures/data/creature_combat_snapshot.dart';
+import 'package:rpg_manager/features/world/creatures/data/creature_inheritance.dart';
 import 'package:rpg_manager/features/world/creatures/data/creature_model.dart';
 import 'package:rpg_manager/features/world/creatures/data/scaler_math.dart';
+import 'package:rpg_manager/features/world/creatures/ui/attribute_assignment_panel.dart';
+import 'package:rpg_manager/features/world/creatures/ui/creature_statblock_view.dart';
+import 'package:rpg_manager/features/world/creatures/ui/statblock_combat_preview.dart';
+import 'package:rpg_manager/features/world/data/labeled_amount.dart';
+import 'package:rpg_manager/features/world/ui/world_form_helpers.dart';
 
 Future<Creature?> showCreatureFormSheet(
   BuildContext context, {
@@ -19,11 +28,76 @@ Future<Creature?> showCreatureFormSheet(
   AuthController? auth,
 }) {
   final editing = initial != null;
+  final title = editing ? 'Edit creature' : 'New creature';
+  final width = MediaQuery.sizeOf(context).width;
+  if (width >= 1000) {
+    return showDialog<Creature>(
+      context: context,
+      builder: (context) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1400, maxHeight: 900),
+          child: _WideCreatureFormScaffold(
+            title: title,
+            child: _CreatureForm(initial: initial, auth: auth),
+          ),
+        ),
+      ),
+    );
+  }
   return showAdaptiveResourceForm<Creature>(
     context,
-    title: editing ? 'Edit creature' : 'New creature',
+    title: title,
     child: _CreatureForm(initial: initial, auth: auth),
   );
+}
+
+class _WideCreatureFormScaffold extends StatelessWidget {
+  const _WideCreatureFormScaffold({
+    required this.title,
+    required this.child,
+  });
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 160),
+      curve: Curves.easeOut,
+      padding: EdgeInsets.only(bottom: bottomInset),
+      child: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 8, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Close',
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(child: child),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 const _creatureSizes = [
@@ -34,27 +108,6 @@ const _creatureSizes = [
   'Huge',
   'Gargantuan',
 ];
-
-const _saveKeys = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
-const _saveLabels = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
-
-enum _AbilityTier { high, mid, low, minus5 }
-
-extension on _AbilityTier {
-  String get label => switch (this) {
-        _AbilityTier.high => 'High',
-        _AbilityTier.mid => 'Mid',
-        _AbilityTier.low => 'Low',
-        _AbilityTier.minus5 => '−5',
-      };
-
-  int score(ScalerComputedStats formula) => switch (this) {
-        _AbilityTier.high => formula.abilityHigh,
-        _AbilityTier.mid => formula.abilityMid,
-        _AbilityTier.low => formula.abilityLow,
-        _AbilityTier.minus5 => -5,
-      };
-}
 
 class _CreatureForm extends StatefulWidget {
   const _CreatureForm({this.initial, this.auth});
@@ -71,8 +124,6 @@ class _CreatureFormState extends State<_CreatureForm> {
 
   late final _nameController =
       TextEditingController(text: widget.initial?.name ?? '');
-  late final _creatureTypeController =
-      TextEditingController(text: widget.initial?.creatureType ?? '');
   late final _levelController = TextEditingController(
     text: '${widget.initial?.level ?? 1}',
   );
@@ -100,26 +151,8 @@ class _CreatureFormState extends State<_CreatureForm> {
   late final _burrowController = TextEditingController(
     text: widget.initial?.speeds.burrow?.toString() ?? '',
   );
-  late final _sensesController = TextEditingController(
-    text: _listToText(widget.initial?.senses ?? const []),
-  );
-  late final _skillsController = TextEditingController(
-    text: _listToText(widget.initial?.skills ?? const []),
-  );
   late final _passivePerceptionController = TextEditingController(
     text: '${widget.initial?.passivePerception ?? 10}',
-  );
-  late final _vulnerabilitiesController = TextEditingController(
-    text: _listToText(widget.initial?.vulnerabilities ?? const []),
-  );
-  late final _resistancesController = TextEditingController(
-    text: _listToText(widget.initial?.resistances ?? const []),
-  );
-  late final _immunitiesController = TextEditingController(
-    text: _listToText(widget.initial?.immunities ?? const []),
-  );
-  late final _languagesController = TextEditingController(
-    text: _listToText(widget.initial?.languages ?? const []),
   );
   late final _itemsController = TextEditingController(
     text: _listToText(widget.initial?.items ?? const []),
@@ -131,19 +164,43 @@ class _CreatureFormState extends State<_CreatureForm> {
   );
 
   late String _size = widget.initial?.size ?? 'Medium';
+  late int? _creatureTypeId = widget.initial?.creatureTypeId;
+  late int? _creatureSubtypeId = widget.initial?.creatureSubtypeId;
+  late List<LabeledAmount> _movementLabeled = const [];
+  late List<LabeledAmount> _sensesLabeled = [
+    ...?widget.initial?.sensesLabeled,
+  ];
+  late List<int> _skillIds = [...?widget.initial?.skillIds];
+  late List<int> _languageIds = [...?widget.initial?.languageIds];
+  late List<int> _vulnerabilityIds = [...?widget.initial?.damageVulnerabilityIds];
+  late List<int> _resistanceIds = [...?widget.initial?.damageResistanceIds];
+  late List<int> _immunityIds = [...?widget.initial?.damageImmunityIds];
+  late List<int> _conditionIds = [...?widget.initial?.conditionImmunityIds];
+  late List<String> _customSkills = [...?widget.initial?.customSkills];
+  late List<String> _customLanguages = [...?widget.initial?.customLanguages];
+  late List<String> _customVulnerabilities =
+      [...?widget.initial?.customDamageVulnerabilities];
+  late List<String> _customResistances =
+      [...?widget.initial?.customDamageResistances];
+  late List<String> _customImmunities =
+      [...?widget.initial?.customDamageImmunities];
+  late List<CreatureType> _creatureTypes = const [];
+  late Map<int, String> _skillNames = const {};
+  late Map<int, String> _languageNames = const {};
+  late Map<int, String> _damageTypeNames = const {};
+  late Map<int, String> _conditionNames = const {};
+  late Map<AbilityKey, String> _assignments = {};
+  late Set<AbilityKey> _trainedAbilityKeys = {};
   late ScalerRank _rank = widget.initial?.rank ?? ScalerRank.grunt;
-  late num _threat =
-      widget.initial?.threat ?? effectiveThreat(ScalerRank.grunt);
   late ScalerRole? _role = widget.initial?.role;
   late String? _roleSubtype = widget.initial?.roleSubtype;
-  late final List<String> _trainedSaves = [
-    ...?(widget.initial?.trainedSavingThrows.map((s) => s.toLowerCase())),
-  ];
+  late num _threat =
+      widget.initial?.threat ?? effectiveThreat(ScalerRank.grunt);
   late List<CreatureFeatureEntry> _features = [
     ...(widget.initial?.features ?? const []),
   ];
-  late CreatureOverrides _overrides = widget.initial?.overrides ?? const CreatureOverrides();
-  late Map<AbilityKey, _AbilityTier> _abilityTiers;
+  late CreatureOverrides _overrides =
+      widget.initial?.overrides ?? const CreatureOverrides();
 
   late final _acController = TextEditingController();
   late final _hpController = TextEditingController();
@@ -180,8 +237,195 @@ class _CreatureFormState extends State<_CreatureForm> {
         role: _role,
       );
     }
-    _abilityTiers = _tiersFromInitial();
+    _assignments = abilityAssignmentsFromScores(
+      scores: widget.initial?.abilityScores ??
+          defaultAbilityAssignment(_formula),
+      formula: _formula,
+    );
+    _trainedAbilityKeys = trainedAbilityKeysFromSaves(
+      widget.initial?.trainedSavingThrows ?? const [],
+    );
     _initStatControllers();
+    _loadCatalogData();
+  }
+
+  Future<void> _loadCatalogData() async {
+    final auth = widget.auth;
+    if (auth == null) return;
+    try {
+      final token = await auth.requireAccessToken();
+      if (token == null || !mounted) return;
+      final api = CatalogApi();
+      final results = await Future.wait([
+        api.list(token, CatalogKind.creatureTypes),
+        api.list(token, CatalogKind.skills),
+        api.list(token, CatalogKind.languages),
+        api.list(token, CatalogKind.damageTypes),
+        api.list(token, CatalogKind.conditions),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _creatureTypes = [
+          for (final item in results[0])
+            CreatureType.fromCatalogPayload(
+              id: item.id,
+              name: item.name,
+              payload: item.payload,
+            ),
+        ];
+        _skillNames = {for (final i in results[1]) i.id: i.name};
+        _languageNames = {for (final i in results[2]) i.id: i.name};
+        _damageTypeNames = {for (final i in results[3]) i.id: i.name};
+        _conditionNames = {for (final i in results[4]) i.id: i.name};
+      });
+    } catch (_) {}
+  }
+
+  Map<int, CreatureType> get _typesById => {
+        for (final type in _creatureTypes) type.id: type,
+      };
+
+  List<CreatureType> get _rootCreatureTypes =>
+      creatureTypeRoots(_creatureTypes);
+
+  List<CreatureType> _subtypeOptions(int? typeId) {
+    if (typeId == null) return const [];
+    return _creatureTypes
+        .where((t) => t.parentCreatureTypeId == typeId)
+        .toList()
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+  }
+
+  void _applyTypeInheritance({bool replace = false}) {
+    final draft = _buildDraftCreature();
+    final merged = mergeCreatureTypeInheritance(
+      creature: draft,
+      typesById: _typesById,
+      creatureTypeId: _creatureTypeId,
+      creatureSubtypeId: _creatureSubtypeId,
+    );
+    setState(() {
+      _size = merged.size;
+      _skillIds = merged.skillIds;
+      _customSkills = merged.customSkills;
+      _languageIds = merged.languageIds;
+      _customLanguages = merged.customLanguages;
+      _vulnerabilityIds = merged.damageVulnerabilityIds;
+      _customVulnerabilities = merged.customDamageVulnerabilities;
+      _resistanceIds = merged.damageResistanceIds;
+      _customResistances = merged.customDamageResistances;
+      _immunityIds = merged.damageImmunityIds;
+      _customImmunities = merged.customDamageImmunities;
+      _conditionIds = merged.conditionImmunityIds;
+      _sensesLabeled = merged.sensesLabeled;
+      _features = merged.features;
+      _walkController.text = '${merged.speeds.walk}';
+      if (merged.speeds.fly != null) {
+        _flyController.text = '${merged.speeds.fly}';
+      }
+      if (merged.speeds.swim != null) {
+        _swimController.text = '${merged.speeds.swim}';
+      }
+      if (merged.speeds.climb != null) {
+        _climbController.text = '${merged.speeds.climb}';
+      }
+      if (merged.speeds.burrow != null) {
+        _burrowController.text = '${merged.speeds.burrow}';
+      }
+    });
+  }
+
+  Creature _buildDraftCreature() {
+    return Creature(
+      id: widget.initial?.id ?? Creature.slugify(_nameController.text.trim()),
+      name: _nameController.text.trim(),
+      size: _size,
+      creatureType: _resolvedTypeLabel(),
+      creatureTypeId: _creatureTypeId,
+      creatureSubtypeId: _creatureSubtypeId,
+      level: _level,
+      rank: _rank,
+      threat: _rank == ScalerRank.paragon ? _threat : effectiveThreat(_rank),
+      role: _role,
+      roleSubtype: _roleSubtype,
+      abilityScores: abilityScoresFromAssignments(
+        assignments: _assignments,
+        slotModifiers: slotModifiersForFormula(_formula),
+      ),
+      trainedSavingThrows: trainedSavesFromAbilityKeys(_trainedAbilityKeys),
+      reach: _parseOptionalInt(_reachController.text),
+      range: _parseOptionalInt(_rangeController.text),
+      speeds: CreatureSpeeds(
+        walk: int.tryParse(_walkController.text.trim()) ?? 30,
+        fly: _parseOptionalInt(_flyController.text),
+        swim: _parseOptionalInt(_swimController.text),
+        climb: _parseOptionalInt(_climbController.text),
+        burrow: _parseOptionalInt(_burrowController.text),
+      ),
+      sensesLabeled: _sensesLabeled,
+      passivePerception:
+          int.tryParse(_passivePerceptionController.text.trim()) ?? 10,
+      skillIds: _skillIds,
+      customSkills: _customSkills,
+      languageIds: _languageIds,
+      customLanguages: _customLanguages,
+      damageVulnerabilityIds: _vulnerabilityIds,
+      customDamageVulnerabilities: _customVulnerabilities,
+      damageResistanceIds: _resistanceIds,
+      customDamageResistances: _customResistances,
+      damageImmunityIds: _immunityIds,
+      customDamageImmunities: _customImmunities,
+      conditionImmunityIds: _conditionIds,
+      items: _parseList(_itemsController.text),
+      trigger: _triggerController.text.trim().isEmpty
+          ? null
+          : _triggerController.text.trim(),
+      countermeasures: _countermeasuresController.text
+          .split('\n')
+          .map((s) => s.trim())
+          .where((s) => s.isNotEmpty)
+          .toList(),
+      features: _features,
+      overrides: _overrides,
+    ).copyWithResolvedDisplayLists(
+      skillNames: _skillNames,
+      languageNames: _languageNames,
+      damageTypeNames: _damageTypeNames,
+      conditionNames: _conditionNames,
+    );
+  }
+
+  String _resolvedTypeLabel() {
+    final typeName =
+        _creatureTypeId != null ? _typesById[_creatureTypeId!]?.name : null;
+    final subtypeName = _creatureSubtypeId != null
+        ? _typesById[_creatureSubtypeId!]?.name
+        : null;
+    if (subtypeName != null && subtypeName.isNotEmpty) {
+      if (typeName != null && typeName.isNotEmpty) {
+        return '$typeName ($subtypeName)';
+      }
+      return subtypeName;
+    }
+    return typeName ?? widget.initial?.creatureType ?? '';
+  }
+
+  void _syncMovementToSpeeds(List<LabeledAmount> movement) {
+    final speeds = syncSpeedsFromMovement(
+      speeds: CreatureSpeeds(
+        walk: int.tryParse(_walkController.text.trim()) ?? 30,
+        fly: _parseOptionalInt(_flyController.text),
+        swim: _parseOptionalInt(_swimController.text),
+        climb: _parseOptionalInt(_climbController.text),
+        burrow: _parseOptionalInt(_burrowController.text),
+      ),
+      movement: movement,
+    );
+    _walkController.text = '${speeds.walk}';
+    _flyController.text = speeds.fly?.toString() ?? '';
+    _swimController.text = speeds.swim?.toString() ?? '';
+    _climbController.text = speeds.climb?.toString() ?? '';
+    _burrowController.text = speeds.burrow?.toString() ?? '';
   }
 
   void _initStatControllers() {
@@ -199,7 +443,6 @@ class _CreatureFormState extends State<_CreatureForm> {
   @override
   void dispose() {
     _nameController.dispose();
-    _creatureTypeController.dispose();
     _levelController.dispose();
     _threatController.dispose();
     _reachController.dispose();
@@ -209,13 +452,7 @@ class _CreatureFormState extends State<_CreatureForm> {
     _swimController.dispose();
     _climbController.dispose();
     _burrowController.dispose();
-    _sensesController.dispose();
-    _skillsController.dispose();
     _passivePerceptionController.dispose();
-    _vulnerabilitiesController.dispose();
-    _resistancesController.dispose();
-    _immunitiesController.dispose();
-    _languagesController.dispose();
     _itemsController.dispose();
     _triggerController.dispose();
     _countermeasuresController.dispose();
@@ -238,46 +475,6 @@ class _CreatureFormState extends State<_CreatureForm> {
         .map((s) => s.trim())
         .where((s) => s.isNotEmpty)
         .toList();
-  }
-
-  Map<AbilityKey, _AbilityTier> _tiersFromInitial() {
-    final formula = _formula;
-    final scores = widget.initial?.abilityScores ??
-        defaultAbilityAssignment(formula);
-    final defaults = defaultAbilityAssignment(formula);
-    final source = widget.initial?.abilityScores ?? defaults;
-
-    _AbilityTier tierFor(AbilityKey key, int value) {
-      if (value == formula.abilityHigh) return _AbilityTier.high;
-      if (value == formula.abilityMid) return _AbilityTier.mid;
-      if (value == formula.abilityLow) return _AbilityTier.low;
-      if (value == -5) return _AbilityTier.minus5;
-      final def = source[key];
-      if (def == defaults[key]) {
-        if (key == AbilityKey.str || key == AbilityKey.dex) {
-          return _AbilityTier.high;
-        }
-        if (key == AbilityKey.con || key == AbilityKey.int_) {
-          return _AbilityTier.mid;
-        }
-        return _AbilityTier.low;
-      }
-      return _AbilityTier.mid;
-    }
-
-    return {
-      for (final key in AbilityKey.values)
-        key: tierFor(key, scores[key]),
-    };
-  }
-
-  CreatureAbilityScores _abilityScoresFromTiers() {
-    final formula = _formula;
-    var scores = const CreatureAbilityScores();
-    for (final key in AbilityKey.values) {
-      scores = scores.withAbility(key, _abilityTiers[key]!.score(formula));
-    }
-    return scores;
   }
 
   void _syncStatControllers() {
@@ -310,12 +507,25 @@ class _CreatureFormState extends State<_CreatureForm> {
       }
       final granted = f.grantedSkill;
       if (granted != null) {
-        final skills = _parseList(_skillsController.text);
-        if (!skills.any((s) => s.toLowerCase() == granted.toLowerCase())) {
-          skills.add(granted);
-          _skillsController.text = _listToText(skills);
+        final match = _skillNames.entries.firstWhere(
+          (e) => e.value.toLowerCase() == granted.toLowerCase(),
+          orElse: () => const MapEntry(-1, ''),
+        );
+        if (match.key != -1 && !_skillIds.contains(match.key)) {
+          _skillIds = [..._skillIds, match.key];
+        } else if (!_customSkills.any(
+          (s) => s.toLowerCase() == granted.toLowerCase(),
+        )) {
+          _customSkills = [..._customSkills, granted];
         }
       }
+      _assignments = abilityAssignmentsFromScores(
+        scores: abilityScoresFromAssignments(
+          assignments: _assignments,
+          slotModifiers: slotModifiersForFormula(f),
+        ),
+        formula: f,
+      );
       _syncStatControllers();
     });
   }
@@ -396,21 +606,10 @@ class _CreatureFormState extends State<_CreatureForm> {
   }
 
   String? _abilityAssignmentWarning() {
-    var high = 0;
-    var mid = 0;
-    var low = 0;
-    for (final tier in _abilityTiers.values) {
-      switch (tier) {
-        case _AbilityTier.high:
-          high++;
-        case _AbilityTier.mid:
-          mid++;
-        case _AbilityTier.low:
-          low++;
-        case _AbilityTier.minus5:
-          break;
-      }
-    }
+    final slots = _assignments.values;
+    final high = slots.where((s) => s.startsWith('high')).length;
+    final mid = slots.where((s) => s.startsWith('medium')).length;
+    final low = slots.where((s) => s.startsWith('low')).length;
     if (high == 2 && mid == 2 && low == 2) return null;
     return 'Recommended: two High, two Mid, and two Low assignments.';
   }
@@ -626,56 +825,14 @@ class _CreatureFormState extends State<_CreatureForm> {
   void _submit() {
     final form = _formKey.currentState;
     if (form == null || !form.validate()) return;
-
-    final name = _nameController.text.trim();
     final f = _formula;
-    var saves = [..._trainedSaves];
-    if (saves.length > f.trainedSaveCount) {
-      saves = saves.take(f.trainedSaveCount).toList();
+    var trained = trainedSavesFromAbilityKeys(_trainedAbilityKeys);
+    if (trained.length > f.trainedSaveCount) {
+      trained = trained.take(f.trainedSaveCount).toList();
     }
-
-    final creature = Creature(
-      id: widget.initial?.id ?? Creature.slugify(name),
-      name: name,
-      size: _size,
-      creatureType: _creatureTypeController.text.trim(),
-      level: _level,
-      rank: _rank,
-      threat: _rank == ScalerRank.paragon ? _threat : effectiveThreat(_rank),
-      role: _role,
-      roleSubtype: _roleSubtype,
-      abilityScores: _abilityScoresFromTiers(),
-      trainedSavingThrows: saves,
-      reach: _parseOptionalInt(_reachController.text),
-      range: _parseOptionalInt(_rangeController.text),
-      speeds: CreatureSpeeds(
-        walk: int.tryParse(_walkController.text.trim()) ?? 30,
-        fly: _parseOptionalInt(_flyController.text),
-        swim: _parseOptionalInt(_swimController.text),
-        climb: _parseOptionalInt(_climbController.text),
-        burrow: _parseOptionalInt(_burrowController.text),
-      ),
-      senses: _parseList(_sensesController.text),
-      passivePerception:
-          int.tryParse(_passivePerceptionController.text.trim()) ?? 10,
-      skills: _parseList(_skillsController.text),
-      vulnerabilities: _parseList(_vulnerabilitiesController.text),
-      resistances: _parseList(_resistancesController.text),
-      immunities: _parseList(_immunitiesController.text),
-      languages: _parseList(_languagesController.text),
-      items: _parseList(_itemsController.text),
-      trigger: _triggerController.text.trim().isEmpty
-          ? null
-          : _triggerController.text.trim(),
-      countermeasures: _countermeasuresController.text
-          .split('\n')
-          .map((s) => s.trim())
-          .where((s) => s.isNotEmpty)
-          .toList(),
-      features: _features,
-      overrides: _overrides,
+    final creature = _buildDraftCreature().copyWith(
+      trainedSavingThrows: trained,
     );
-
     Navigator.pop(context, creature);
   }
 
@@ -728,20 +885,73 @@ class _CreatureFormState extends State<_CreatureForm> {
   @override
   Widget build(BuildContext context) {
     final f = _formula;
-    final abilityWarning = _abilityAssignmentWarning();
-    final userFeatureCount =
-        _features.where((feat) => !feat.isAuto).length;
-    final ancestral = _budgetSlotCount(FeatureBudgetSlot.ancestral);
-    final role = _budgetSlotCount(FeatureBudgetSlot.role);
-    final misc = _budgetSlotCount(FeatureBudgetSlot.misc);
-    final effectiveWalk = (int.tryParse(_walkController.text.trim()) ?? 30) +
-        f.speedWalkDelta;
+    final draft = _buildDraftCreature();
+    final previewSnapshot = computeCreatureCombatSnapshot(draft);
+    final wide = MediaQuery.sizeOf(context).width >= 1000;
+    final form = SingleChildScrollView(
+      padding: EdgeInsets.all(wide ? 20 : 0),
+      child: _buildFormFields(f),
+    );
+    final preview = SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          StatblockCombatPreview(snapshot: previewSnapshot),
+          const SizedBox(height: 12),
+          CreatureStatblockView(creature: draft),
+        ],
+      ),
+    );
 
+    if (wide) {
+      return Form(
+        key: _formKey,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(flex: 5, child: form),
+            const VerticalDivider(width: 1),
+            Expanded(flex: 4, child: preview),
+          ],
+        ),
+      );
+    }
+
+    // Parent `showAdaptiveResourceForm` already provides a scroll view.
     return Form(
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          _buildFormFields(f),
+          ExpansionTile(
+            title: const Text('Preview'),
+            children: [
+              StatblockCombatPreview(snapshot: previewSnapshot),
+              const SizedBox(height: 12),
+              CreatureStatblockView(creature: draft),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFormFields(ScalerComputedStats f) {
+    final abilityWarning = _abilityAssignmentWarning();
+    final userFeatureCount =
+        _features.where((feat) => !feat.isAuto).length;
+    final ancestral = _budgetSlotCount(FeatureBudgetSlot.ancestral);
+    final roleCount = _budgetSlotCount(FeatureBudgetSlot.role);
+    final misc = _budgetSlotCount(FeatureBudgetSlot.misc);
+    final effectiveWalk = (int.tryParse(_walkController.text.trim()) ?? 30) +
+        f.speedWalkDelta;
+    final slotModifiers = slotModifiersForFormula(f);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
           _section('Identity'),
           TextFormField(
             controller: _nameController,
@@ -781,17 +991,81 @@ class _CreatureFormState extends State<_CreatureForm> {
               ),
               const SizedBox(width: ResourceFormStyles.fieldSpacing),
               Expanded(
-                child: TextFormField(
-                  controller: _creatureTypeController,
+                child: DropdownButtonFormField<int?>(
+                  initialValue: _creatureTypeId,
                   decoration: ResourceFormStyles.inputDecoration(
                     context,
-                    label: 'Type',
-                    hintText: 'e.g. humanoid',
+                    label: 'Creature type',
                   ),
+                  items: [
+                    const DropdownMenuItem<int?>(
+                      value: null,
+                      child: Text('None'),
+                    ),
+                    for (final type in _rootCreatureTypes)
+                      DropdownMenuItem(
+                        value: type.id,
+                        child: Text(type.name),
+                      ),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _creatureTypeId = value;
+                      if (_creatureSubtypeId != null &&
+                          _subtypeOptions(value)
+                              .every((t) => t.id != _creatureSubtypeId)) {
+                        _creatureSubtypeId = null;
+                      }
+                    });
+                    _applyTypeInheritance();
+                  },
                 ),
               ),
             ],
           ),
+          if (_creatureTypeId != null) ...[
+            const SizedBox(height: ResourceFormStyles.fieldSpacing),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<int?>(
+                    initialValue: _creatureSubtypeId,
+                    decoration: ResourceFormStyles.inputDecoration(
+                      context,
+                      label: 'Subtype',
+                    ),
+                    items: [
+                      const DropdownMenuItem<int?>(
+                        value: null,
+                        child: Text('None'),
+                      ),
+                      for (final subtype
+                          in _subtypeOptions(_creatureTypeId))
+                        DropdownMenuItem(
+                          value: subtype.id,
+                          child: Text(subtype.name),
+                        ),
+                    ],
+                    onChanged: (value) {
+                      setState(() => _creatureSubtypeId = value);
+                      _applyTypeInheritance();
+                    },
+                  ),
+                ),
+                const SizedBox(width: ResourceFormStyles.fieldSpacing),
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: OutlinedButton.icon(
+                      onPressed: _applyTypeInheritance,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Re-apply type defaults'),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
           _section('Combat'),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1044,56 +1318,33 @@ class _CreatureFormState extends State<_CreatureForm> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              for (final key in AbilityKey.values)
-                SizedBox(
-                  width: 150,
-                  child: DropdownButtonFormField<_AbilityTier>(
-                    initialValue: _abilityTiers[key],
-                    decoration: ResourceFormStyles.inputDecoration(
-                      context,
-                      label: key.label,
-                    ),
-                    items: [
-                      for (final tier in _AbilityTier.values)
-                        DropdownMenuItem(
-                          value: tier,
-                          child: Text(tier.label),
-                        ),
-                    ],
-                    onChanged: (value) {
-                      if (value == null) return;
-                      setState(() => _abilityTiers[key] = value);
-                    },
-                  ),
-                ),
+              AttributeAssignmentPanel(
+                assignments: _assignments,
+                slotModifiers: slotModifiers,
+                trainedAttributes: _trainedAbilityKeys,
+                trainedSavingThrows: f.trainedSaveCount,
+                onSwapRequested: (first, second) {
+                  setState(() {
+                    swapAbilityAssignments(_assignments, first, second);
+                  });
+                },
+                onToggleTrained: (attribute) {
+                  setState(() {
+                    if (_trainedAbilityKeys.contains(attribute)) {
+                      _trainedAbilityKeys.remove(attribute);
+                    } else {
+                      _trainedAbilityKeys.add(attribute);
+                    }
+                  });
+                },
+              ),
             ],
           ),
           _section('Trained saves'),
           Text(
-            'Select ${f.trainedSaveCount} save(s)',
+            'Long-press an ability box to toggle trained saves '
+            '(${_trainedAbilityKeys.length}/${f.trainedSaveCount})',
             style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 4,
-            children: [
-              for (var i = 0; i < _saveKeys.length; i++)
-                FilterChip(
-                  label: Text(_saveLabels[i]),
-                  selected: _trainedSaves.contains(_saveKeys[i]),
-                  onSelected: (selected) {
-                    setState(() {
-                      if (selected) {
-                        if (!_trainedSaves.contains(_saveKeys[i])) {
-                          _trainedSaves.add(_saveKeys[i]);
-                        }
-                      } else {
-                        _trainedSaves.remove(_saveKeys[i]);
-                      }
-                    });
-                  },
-                ),
-            ],
           ),
           _section('Attack'),
           Row(
@@ -1195,22 +1446,44 @@ class _CreatureFormState extends State<_CreatureForm> {
             ],
           ),
           _section('Extras'),
-          TextFormField(
-            controller: _sensesController,
-            decoration: ResourceFormStyles.inputDecoration(
-              context,
-              label: 'Senses',
-              hintText: 'darkvision 60 ft., …',
-            ),
+          LabeledAmountEditor(
+            title: 'Movement',
+            presets: movementPresets,
+            items: _movementLabeled,
+            onChanged: (next) {
+              setState(() {
+                _movementLabeled = next;
+                _syncMovementToSpeeds(next);
+              });
+            },
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
-          TextFormField(
-            controller: _skillsController,
-            decoration: ResourceFormStyles.inputDecoration(
-              context,
-              label: 'Skills',
-              hintText: 'Stealth +5, Perception +3',
+          LabeledAmountEditor(
+            title: 'Senses',
+            presets: sensePresets,
+            items: _sensesLabeled,
+            onChanged: (next) => setState(() => _sensesLabeled = next),
+          ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          catalogMultiPickTile(
+            context: context,
+            label: 'Skills',
+            summary: summarizeCatalogSelection(
+              selected: _skillIds.toSet(),
+              namesById: _skillNames,
             ),
+            onTap: () => pickCatalogIds(
+              context: context,
+              title: 'Skills',
+              options: catalogPicklistOptions(_skillNames),
+              selected: _skillIds.toSet(),
+              onDone: (next) => setState(() => _skillIds = next.toList()),
+            ),
+          ),
+          CustomStringListField(
+            label: 'Custom skills',
+            values: _customSkills,
+            onChanged: (next) => setState(() => _customSkills = next),
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
           TextFormField(
@@ -1223,35 +1496,104 @@ class _CreatureFormState extends State<_CreatureForm> {
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
-          TextFormField(
-            controller: _vulnerabilitiesController,
-            decoration: ResourceFormStyles.inputDecoration(
-              context,
-              label: 'Vulnerabilities',
+          catalogMultiPickTile(
+            context: context,
+            label: 'Vulnerabilities',
+            summary: summarizeCatalogSelection(
+              selected: _vulnerabilityIds.toSet(),
+              namesById: _damageTypeNames,
+            ),
+            onTap: () => pickCatalogIds(
+              context: context,
+              title: 'Vulnerabilities',
+              options: catalogPicklistOptions(_damageTypeNames),
+              selected: _vulnerabilityIds.toSet(),
+              onDone: (next) =>
+                  setState(() => _vulnerabilityIds = next.toList()),
             ),
           ),
-          const SizedBox(height: ResourceFormStyles.fieldSpacing),
-          TextFormField(
-            controller: _resistancesController,
-            decoration: ResourceFormStyles.inputDecoration(
-              context,
-              label: 'Resistances',
-            ),
+          CustomStringListField(
+            label: 'Custom vulnerabilities',
+            values: _customVulnerabilities,
+            onChanged: (next) => setState(() => _customVulnerabilities = next),
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
-          TextFormField(
-            controller: _immunitiesController,
-            decoration: ResourceFormStyles.inputDecoration(
-              context,
-              label: 'Immunities',
+          catalogMultiPickTile(
+            context: context,
+            label: 'Resistances',
+            summary: summarizeCatalogSelection(
+              selected: _resistanceIds.toSet(),
+              namesById: _damageTypeNames,
+            ),
+            onTap: () => pickCatalogIds(
+              context: context,
+              title: 'Resistances',
+              options: catalogPicklistOptions(_damageTypeNames),
+              selected: _resistanceIds.toSet(),
+              onDone: (next) => setState(() => _resistanceIds = next.toList()),
             ),
           ),
+          CustomStringListField(
+            label: 'Custom resistances',
+            values: _customResistances,
+            onChanged: (next) => setState(() => _customResistances = next),
+          ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
-          TextFormField(
-            controller: _languagesController,
-            decoration: ResourceFormStyles.inputDecoration(
-              context,
-              label: 'Languages',
+          catalogMultiPickTile(
+            context: context,
+            label: 'Immunities',
+            summary: summarizeCatalogSelection(
+              selected: _immunityIds.toSet(),
+              namesById: _damageTypeNames,
+            ),
+            onTap: () => pickCatalogIds(
+              context: context,
+              title: 'Immunities',
+              options: catalogPicklistOptions(_damageTypeNames),
+              selected: _immunityIds.toSet(),
+              onDone: (next) => setState(() => _immunityIds = next.toList()),
+            ),
+          ),
+          CustomStringListField(
+            label: 'Custom immunities',
+            values: _customImmunities,
+            onChanged: (next) => setState(() => _customImmunities = next),
+          ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          catalogMultiPickTile(
+            context: context,
+            label: 'Languages',
+            summary: summarizeCatalogSelection(
+              selected: _languageIds.toSet(),
+              namesById: _languageNames,
+            ),
+            onTap: () => pickCatalogIds(
+              context: context,
+              title: 'Languages',
+              options: catalogPicklistOptions(_languageNames),
+              selected: _languageIds.toSet(),
+              onDone: (next) => setState(() => _languageIds = next.toList()),
+            ),
+          ),
+          CustomStringListField(
+            label: 'Custom languages',
+            values: _customLanguages,
+            onChanged: (next) => setState(() => _customLanguages = next),
+          ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          catalogMultiPickTile(
+            context: context,
+            label: 'Condition immunities',
+            summary: summarizeCatalogSelection(
+              selected: _conditionIds.toSet(),
+              namesById: _conditionNames,
+            ),
+            onTap: () => pickCatalogIds(
+              context: context,
+              title: 'Condition immunities',
+              options: catalogPicklistOptions(_conditionNames),
+              selected: _conditionIds.toSet(),
+              onDone: (next) => setState(() => _conditionIds = next.toList()),
             ),
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
@@ -1290,7 +1632,7 @@ class _CreatureFormState extends State<_CreatureForm> {
             style: Theme.of(context).textTheme.bodySmall,
           ),
           Text(
-            'Slots — ancestral: $ancestral · role: $role · misc: $misc',
+            'Slots — ancestral: $ancestral · role: $roleCount · misc: $misc',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
@@ -1364,7 +1706,6 @@ class _CreatureFormState extends State<_CreatureForm> {
             child: Text(widget.initial == null ? 'Create' : 'Save'),
           ),
         ],
-      ),
     );
   }
 }

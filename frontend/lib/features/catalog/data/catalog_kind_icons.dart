@@ -15,6 +15,7 @@ extension CatalogKindIcons on CatalogKind {
         CatalogKind.spells => spellsPageIcon,
         CatalogKind.items => itemsPageIcon,
         CatalogKind.creatures => creaturesPageIcon,
+        CatalogKind.creatureTypes => creatureTypesPageIcon,
         CatalogKind.conditions => conditionsPageIcon,
         CatalogKind.damageTypes => damageTypesPageIcon,
         CatalogKind.itemProperties => itemPropertiesPageIcon,

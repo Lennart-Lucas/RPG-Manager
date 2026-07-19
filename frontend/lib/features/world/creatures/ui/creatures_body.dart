@@ -26,6 +26,7 @@ class _CreaturesBodyState extends State<CreaturesBody> {
   bool _loading = true;
   String? _error;
   List<CatalogItem> _items = const [];
+  Map<int, String> _typeNamesById = const {};
 
   @override
   void initState() {
@@ -76,9 +77,11 @@ class _CreaturesBodyState extends State<CreaturesBody> {
         throw AuthApiException('Not authenticated');
       }
       final items = await _api.list(token, CatalogKind.creatures);
+      final typeItems = await _api.list(token, CatalogKind.creatureTypes);
       if (!mounted) return;
       setState(() {
         _items = items;
+        _typeNamesById = {for (final t in typeItems) t.id: t.name};
         _loading = false;
       });
     } on AuthApiException catch (e) {
@@ -292,6 +295,9 @@ class _CreaturesBodyState extends State<CreaturesBody> {
                             width: itemWidth,
                             child: CreatureListItemCard(
                               creature: entry.creature,
+                              typeLabel: entry.creature.resolvedTypeLabel(
+                                typeNamesById: _typeNamesById,
+                              ),
                               onTap: () => _openDetail(entry),
                               onLongPress: () => _edit(entry.item),
                               minWidth: minItemWidth,

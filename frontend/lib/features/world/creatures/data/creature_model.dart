@@ -1,5 +1,7 @@
 import 'package:rpg_manager/features/mechanics/features/data/feature_model.dart';
 
+import 'package:rpg_manager/features/world/data/labeled_amount.dart';
+
 import 'scaler_math.dart';
 
 enum AbilityKey { str, dex, con, int_, wis, cha }
@@ -274,6 +276,8 @@ class Creature {
     required this.name,
     this.size = 'Medium',
     this.creatureType = '',
+    this.creatureTypeId,
+    this.creatureSubtypeId,
     this.level = 1,
     this.rank = ScalerRank.grunt,
     this.threat = 1,
@@ -285,12 +289,24 @@ class Creature {
     this.range,
     this.speeds = const CreatureSpeeds(),
     this.senses = const [],
+    this.sensesLabeled = const [],
     this.passivePerception = 10,
     this.skills = const [],
+    this.skillIds = const [],
+    this.customSkills = const [],
     this.vulnerabilities = const [],
+    this.damageVulnerabilityIds = const [],
+    this.customDamageVulnerabilities = const [],
     this.resistances = const [],
+    this.damageResistanceIds = const [],
+    this.customDamageResistances = const [],
     this.immunities = const [],
+    this.damageImmunityIds = const [],
+    this.customDamageImmunities = const [],
+    this.conditionImmunityIds = const [],
     this.languages = const [],
+    this.languageIds = const [],
+    this.customLanguages = const [],
     this.items = const [],
     this.trigger,
     this.countermeasures = const [],
@@ -303,6 +319,8 @@ class Creature {
   final String name;
   final String size;
   final String creatureType;
+  final int? creatureTypeId;
+  final int? creatureSubtypeId;
   final int level;
   final ScalerRank rank;
   final num threat;
@@ -314,12 +332,24 @@ class Creature {
   final int? range;
   final CreatureSpeeds speeds;
   final List<String> senses;
+  final List<LabeledAmount> sensesLabeled;
   final int passivePerception;
   final List<String> skills;
+  final List<int> skillIds;
+  final List<String> customSkills;
   final List<String> vulnerabilities;
+  final List<int> damageVulnerabilityIds;
+  final List<String> customDamageVulnerabilities;
   final List<String> resistances;
+  final List<int> damageResistanceIds;
+  final List<String> customDamageResistances;
   final List<String> immunities;
+  final List<int> damageImmunityIds;
+  final List<String> customDamageImmunities;
+  final List<int> conditionImmunityIds;
   final List<String> languages;
+  final List<int> languageIds;
+  final List<String> customLanguages;
   final List<String> items;
   final String? trigger;
   final List<String> countermeasures;
@@ -369,11 +399,23 @@ class Creature {
     final rank = ScalerRankLabel.fromJson(
       json['rank'] as String? ?? 'grunt',
     );
+    final legacySkills = _stringList(json['skills']);
+    final legacyLanguages = _stringList(json['languages']);
+    final legacyVulnerabilities = _stringList(json['vulnerabilities']);
+    final legacyResistances = _stringList(json['resistances']);
+    final legacyImmunities = _stringList(json['immunities']);
+    final skillIds = _intList(json['skillIds']);
+    final languageIds = _intList(json['languageIds']);
+    final vulnerabilityIds = _intList(json['damageVulnerabilityIds']);
+    final resistanceIds = _intList(json['damageResistanceIds']);
+    final immunityIds = _intList(json['damageImmunityIds']);
     return Creature(
       id: json['id'] as String? ?? slugify(json['name'] as String? ?? ''),
       name: json['name'] as String? ?? '',
       size: json['size'] as String? ?? 'Medium',
       creatureType: json['creatureType'] as String? ?? '',
+      creatureTypeId: (json['creatureTypeId'] as num?)?.toInt(),
+      creatureSubtypeId: (json['creatureSubtypeId'] as num?)?.toInt(),
       level: (json['level'] as num?)?.toInt() ?? 1,
       rank: rank,
       threat: (json['threat'] as num?) ??
@@ -388,12 +430,44 @@ class Creature {
       range: (json['range'] as num?)?.toInt(),
       speeds: CreatureSpeeds.fromJson(json['speeds'] as Map<String, dynamic>?),
       senses: _stringList(json['senses']),
+      sensesLabeled: labeledAmountsFromJson(json['sensesLabeled']),
       passivePerception: (json['passivePerception'] as num?)?.toInt() ?? 10,
-      skills: _stringList(json['skills']),
-      vulnerabilities: _stringList(json['vulnerabilities']),
-      resistances: _stringList(json['resistances']),
-      immunities: _stringList(json['immunities']),
-      languages: _stringList(json['languages']),
+      skills: legacySkills,
+      skillIds: skillIds,
+      customSkills: skillIds.isEmpty
+          ? (legacySkills.isNotEmpty
+              ? legacySkills
+              : _stringList(json['customSkills']))
+          : _stringList(json['customSkills']),
+      vulnerabilities: legacyVulnerabilities,
+      damageVulnerabilityIds: vulnerabilityIds,
+      customDamageVulnerabilities: vulnerabilityIds.isEmpty
+          ? (legacyVulnerabilities.isNotEmpty
+              ? legacyVulnerabilities
+              : _stringList(json['customDamageVulnerabilities']))
+          : _stringList(json['customDamageVulnerabilities']),
+      resistances: legacyResistances,
+      damageResistanceIds: resistanceIds,
+      customDamageResistances: resistanceIds.isEmpty
+          ? (legacyResistances.isNotEmpty
+              ? legacyResistances
+              : _stringList(json['customDamageResistances']))
+          : _stringList(json['customDamageResistances']),
+      immunities: legacyImmunities,
+      damageImmunityIds: immunityIds,
+      customDamageImmunities: immunityIds.isEmpty
+          ? (legacyImmunities.isNotEmpty
+              ? legacyImmunities
+              : _stringList(json['customDamageImmunities']))
+          : _stringList(json['customDamageImmunities']),
+      conditionImmunityIds: _intList(json['conditionImmunityIds']),
+      languages: legacyLanguages,
+      languageIds: languageIds,
+      customLanguages: languageIds.isEmpty
+          ? (legacyLanguages.isNotEmpty
+              ? legacyLanguages
+              : _stringList(json['customLanguages']))
+          : _stringList(json['customLanguages']),
       items: _stringList(json['items']),
       trigger: json['trigger'] as String?,
       countermeasures: _stringList(json['countermeasures']),
@@ -408,13 +482,108 @@ class Creature {
     );
   }
 
-  Map<String, dynamic> toJson() {
+  List<String> resolvedSkills(Map<int, String> namesById) =>
+      _mergeIdAndCustomLabels(namesById, skillIds, customSkills);
+
+  List<String> resolvedLanguages(Map<int, String> namesById) =>
+      _mergeIdAndCustomLabels(namesById, languageIds, customLanguages);
+
+  List<String> resolvedVulnerabilities(Map<int, String> namesById) =>
+      _mergeIdAndCustomLabels(
+        namesById,
+        damageVulnerabilityIds,
+        customDamageVulnerabilities,
+      );
+
+  List<String> resolvedResistances(Map<int, String> namesById) =>
+      _mergeIdAndCustomLabels(
+        namesById,
+        damageResistanceIds,
+        customDamageResistances,
+      );
+
+  List<String> resolvedImmunities(Map<int, String> namesById) =>
+      _mergeIdAndCustomLabels(
+        namesById,
+        damageImmunityIds,
+        customDamageImmunities,
+      );
+
+  List<String> resolvedConditionImmunities(Map<int, String> namesById) =>
+      _labelsFromIds(namesById, conditionImmunityIds);
+
+  List<String> resolvedSenses() {
+    final labeled = labeledAmountsDisplay(sensesLabeled);
+    if (labeled.isNotEmpty) return [labeled];
+    return senses;
+  }
+
+  String? resolvedTypeLabel({
+    required Map<int, String> typeNamesById,
+  }) {
+    final typeName = creatureTypeId != null
+        ? typeNamesById[creatureTypeId!]
+        : null;
+    final subtypeName = creatureSubtypeId != null
+        ? typeNamesById[creatureSubtypeId!]
+        : null;
+    if (subtypeName != null && subtypeName.isNotEmpty) {
+      if (typeName != null && typeName.isNotEmpty) {
+        return '$typeName ($subtypeName)';
+      }
+      return subtypeName;
+    }
+    if (typeName != null && typeName.isNotEmpty) return typeName;
+    if (creatureType.isNotEmpty) return creatureType;
+    return null;
+  }
+
+  Creature copyWithResolvedDisplayLists({
+    Map<int, String> skillNames = const {},
+    Map<int, String> languageNames = const {},
+    Map<int, String> damageTypeNames = const {},
+    Map<int, String> conditionNames = const {},
+  }) {
+    return copyWith(
+      skills: resolvedSkills(skillNames),
+      languages: resolvedLanguages(languageNames),
+      vulnerabilities: resolvedVulnerabilities(damageTypeNames),
+      resistances: resolvedResistances(damageTypeNames),
+      immunities: resolvedImmunities(damageTypeNames),
+      senses: resolvedSenses(),
+    );
+  }
+
+  Map<String, dynamic> toJson({
+    Map<int, String> skillNames = const {},
+    Map<int, String> languageNames = const {},
+    Map<int, String> damageTypeNames = const {},
+    Map<int, String> conditionNames = const {},
+  }) {
     final f = formula;
+    final displaySkills = skillNames.isEmpty
+        ? skills
+        : resolvedSkills(skillNames);
+    final displayLanguages = languageNames.isEmpty
+        ? languages
+        : resolvedLanguages(languageNames);
+    final displayVulnerabilities = damageTypeNames.isEmpty
+        ? vulnerabilities
+        : resolvedVulnerabilities(damageTypeNames);
+    final displayResistances = damageTypeNames.isEmpty
+        ? resistances
+        : resolvedResistances(damageTypeNames);
+    final displayImmunities = damageTypeNames.isEmpty
+        ? immunities
+        : resolvedImmunities(damageTypeNames);
+    final displaySenses = resolvedSenses();
     return {
       'id': id,
       'name': name,
       'size': size,
       'creatureType': creatureType,
+      if (creatureTypeId != null) 'creatureTypeId': creatureTypeId,
+      if (creatureSubtypeId != null) 'creatureSubtypeId': creatureSubtypeId,
       'level': level,
       'rank': rank.toJson(),
       'threat': threat,
@@ -434,13 +603,32 @@ class Creature {
       'range': range,
       'speeds': speeds.toJson(),
       'initiativeBonus': initiativeBonus,
-      'senses': senses,
+      'senses': displaySenses,
+      if (sensesLabeled.isNotEmpty)
+        'sensesLabeled': labeledAmountsToJson(sensesLabeled),
       'passivePerception': passivePerception,
-      'skills': skills,
-      'vulnerabilities': vulnerabilities,
-      'resistances': resistances,
-      'immunities': immunities,
-      'languages': languages,
+      'skills': displaySkills,
+      if (skillIds.isNotEmpty) 'skillIds': skillIds,
+      if (customSkills.isNotEmpty) 'customSkills': customSkills,
+      'vulnerabilities': displayVulnerabilities,
+      if (damageVulnerabilityIds.isNotEmpty)
+        'damageVulnerabilityIds': damageVulnerabilityIds,
+      if (customDamageVulnerabilities.isNotEmpty)
+        'customDamageVulnerabilities': customDamageVulnerabilities,
+      'resistances': displayResistances,
+      if (damageResistanceIds.isNotEmpty)
+        'damageResistanceIds': damageResistanceIds,
+      if (customDamageResistances.isNotEmpty)
+        'customDamageResistances': customDamageResistances,
+      'immunities': displayImmunities,
+      if (damageImmunityIds.isNotEmpty) 'damageImmunityIds': damageImmunityIds,
+      if (customDamageImmunities.isNotEmpty)
+        'customDamageImmunities': customDamageImmunities,
+      if (conditionImmunityIds.isNotEmpty)
+        'conditionImmunityIds': conditionImmunityIds,
+      'languages': displayLanguages,
+      if (languageIds.isNotEmpty) 'languageIds': languageIds,
+      if (customLanguages.isNotEmpty) 'customLanguages': customLanguages,
       'items': items,
       'trigger': trigger,
       'countermeasures': countermeasures,
@@ -462,6 +650,10 @@ class Creature {
     String? name,
     String? size,
     String? creatureType,
+    int? creatureTypeId,
+    bool clearCreatureTypeId = false,
+    int? creatureSubtypeId,
+    bool clearCreatureSubtypeId = false,
     int? level,
     ScalerRank? rank,
     num? threat,
@@ -477,12 +669,24 @@ class Creature {
     bool clearRange = false,
     CreatureSpeeds? speeds,
     List<String>? senses,
+    List<LabeledAmount>? sensesLabeled,
     int? passivePerception,
     List<String>? skills,
+    List<int>? skillIds,
+    List<String>? customSkills,
     List<String>? vulnerabilities,
+    List<int>? damageVulnerabilityIds,
+    List<String>? customDamageVulnerabilities,
     List<String>? resistances,
+    List<int>? damageResistanceIds,
+    List<String>? customDamageResistances,
     List<String>? immunities,
+    List<int>? damageImmunityIds,
+    List<String>? customDamageImmunities,
+    List<int>? conditionImmunityIds,
     List<String>? languages,
+    List<int>? languageIds,
+    List<String>? customLanguages,
     List<String>? items,
     String? trigger,
     bool clearTrigger = false,
@@ -497,6 +701,11 @@ class Creature {
       name: name ?? this.name,
       size: size ?? this.size,
       creatureType: creatureType ?? this.creatureType,
+      creatureTypeId:
+          clearCreatureTypeId ? null : (creatureTypeId ?? this.creatureTypeId),
+      creatureSubtypeId: clearCreatureSubtypeId
+          ? null
+          : (creatureSubtypeId ?? this.creatureSubtypeId),
       level: level ?? this.level,
       rank: rank ?? this.rank,
       threat: threat ?? this.threat,
@@ -509,12 +718,29 @@ class Creature {
       range: clearRange ? null : (range ?? this.range),
       speeds: speeds ?? this.speeds,
       senses: senses ?? this.senses,
+      sensesLabeled: sensesLabeled ?? this.sensesLabeled,
       passivePerception: passivePerception ?? this.passivePerception,
       skills: skills ?? this.skills,
+      skillIds: skillIds ?? this.skillIds,
+      customSkills: customSkills ?? this.customSkills,
       vulnerabilities: vulnerabilities ?? this.vulnerabilities,
+      damageVulnerabilityIds:
+          damageVulnerabilityIds ?? this.damageVulnerabilityIds,
+      customDamageVulnerabilities:
+          customDamageVulnerabilities ?? this.customDamageVulnerabilities,
       resistances: resistances ?? this.resistances,
+      damageResistanceIds: damageResistanceIds ?? this.damageResistanceIds,
+      customDamageResistances:
+          customDamageResistances ?? this.customDamageResistances,
       immunities: immunities ?? this.immunities,
+      damageImmunityIds: damageImmunityIds ?? this.damageImmunityIds,
+      customDamageImmunities:
+          customDamageImmunities ?? this.customDamageImmunities,
+      conditionImmunityIds:
+          conditionImmunityIds ?? this.conditionImmunityIds,
       languages: languages ?? this.languages,
+      languageIds: languageIds ?? this.languageIds,
+      customLanguages: customLanguages ?? this.customLanguages,
       items: items ?? this.items,
       trigger: clearTrigger ? null : (trigger ?? this.trigger),
       countermeasures: countermeasures ?? this.countermeasures,
@@ -533,6 +759,32 @@ List<String> _stringList(dynamic raw) {
     for (final item in raw)
       if (item != null) '$item',
   ];
+}
+
+List<int> _intList(dynamic raw) {
+  if (raw is! List) return const [];
+  return [
+    for (final item in raw)
+      if (item is num) item.toInt() else if (item is String) ...[
+        if (int.tryParse(item.trim()) case final id?) id,
+      ],
+  ];
+}
+
+List<String> _labelsFromIds(Map<int, String> namesById, List<int> ids) {
+  return [
+    for (final id in ids)
+      if ((namesById[id] ?? '$id').trim().isNotEmpty)
+        namesById[id] ?? '$id',
+  ];
+}
+
+List<String> _mergeIdAndCustomLabels(
+  Map<int, String> namesById,
+  List<int> ids,
+  List<String> custom,
+) {
+  return [..._labelsFromIds(namesById, ids), ...custom];
 }
 
 /// Auto-injected rank/role features (replace matching [autoKey] entries).
