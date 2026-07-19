@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
+import '../data/anyflip_downloader.dart';
 import '../data/local_resource_file_copy.dart';
 import '../data/resource_models.dart';
 import 'resource_form_helpers.dart';
@@ -55,16 +56,19 @@ class _FileFormSheet extends StatefulWidget {
 
 class _FileFormSheetState extends State<_FileFormSheet> {
   final _formKey = GlobalKey<FormState>();
+  final _downloader = AnyFlipDownloader();
   late final _nameController = TextEditingController(
     text: widget.initial?.name ?? '',
   );
   late final _sourceController = TextEditingController(
     text: widget.initial?.source ?? '',
   );
+  late final _anyflipController = TextEditingController();
   late int _authorId = widget.initial?.authorId ?? widget.authors.first.id;
   String? _pickedPath;
   String? _pickedName;
   bool _submitted = false;
+  bool _downloading = false;
 
   bool get _editing => widget.initial != null;
   bool get _hasExistingLocal =>
@@ -85,6 +89,7 @@ class _FileFormSheetState extends State<_FileFormSheet> {
     _sourceController.removeListener(_refreshValidation);
     _nameController.dispose();
     _sourceController.dispose();
+    _anyflipController.dispose();
     super.dispose();
   }
 
@@ -122,6 +127,57 @@ class _FileFormSheetState extends State<_FileFormSheet> {
     }
   }
 
+  Future<void> _downloadAnyFlip() async {
+    final url = _anyflipController.text.trim();
+    final urlError = _validateRequiredUrl(url);
+    if (urlError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(urlError)),
+      );
+      return;
+    }
+
+    setState(() => _downloading = true);
+    try {
+      final preferredTitle = _nameController.text.trim().isEmpty
+          ? null
+          : _nameController.text.trim();
+      final pdfPath = await _downloader.downloadPdf(
+        url,
+        preferredTitle: preferredTitle,
+      );
+      if (!mounted) return;
+      final basename = p.basename(pdfPath);
+      setState(() {
+        _pickedPath = pdfPath;
+        _pickedName = basename;
+        if (_sourceController.text.trim().isEmpty) {
+          _sourceController.text = url;
+        }
+        if (_nameController.text.trim().isEmpty) {
+          _nameController.text = p.basenameWithoutExtension(basename);
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('AnyFlip PDF downloaded.')),
+      );
+    } on AnyFlipDownloaderException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('AnyFlip download failed: $error')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _downloading = false);
+      }
+    }
+  }
+
   void _submit() {
     setState(() => _submitted = true);
     final form = _formKey.currentState;
@@ -151,6 +207,8 @@ class _FileFormSheetState extends State<_FileFormSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final desktop = isDesktopFileStorageSupported;
     final showMissingFile = _submitted &&
         desktop &&
@@ -194,10 +252,12 @@ class _FileFormSheetState extends State<_FileFormSheet> {
                   child: Text(author.name),
                 ),
             ],
-            onChanged: (value) {
-              if (value == null) return;
-              setState(() => _authorId = value);
-            },
+            onChanged: _downloading
+                ? null
+                : (value) {
+                    if (value == null) return;
+                    setState(() => _authorId = value);
+                  },
             validator: (value) => value == null ? 'Author is required' : null,
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
@@ -209,6 +269,7 @@ class _FileFormSheetState extends State<_FileFormSheet> {
               hintText: 'Optional URL',
             ),
             keyboardType: TextInputType.url,
+            enabled: !_downloading,
             validator: (value) => _validateOptionalUrl(value),
           ),
           const SizedBox(height: ResourceFormStyles.sectionSpacing),
@@ -216,46 +277,77 @@ class _FileFormSheetState extends State<_FileFormSheet> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                color: scheme.surfaceContainerLowest,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                ),
+                border: Border.all(color: scheme.outlineVariant),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
                     'Local file',
-                    style: Theme.of(context).textTheme.titleMedium,
+                    style: theme.textTheme.titleMedium,
                   ),
                   const SizedBox(height: 6),
                   Text(
                     _editing
                         ? 'Optional: choose a new file to replace the local copy.'
                         : 'The file is copied into this app on this device only.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurfaceVariant,
-                        ),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
-                    onPressed: _pickFile,
+                    onPressed: _downloading ? null : _pickFile,
                     icon: const Icon(Icons.attach_file),
                     label: Text(
                       _pickedName ??
                           (_editing ? 'Replace file' : 'Choose file'),
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  Text('AnyFlip', style: theme.textTheme.titleSmall),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Paste an AnyFlip book URL to download a PDF. Only use this '
+                    'for books that officially allow PDF downloads.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _anyflipController,
+                    enabled: !_downloading,
+                    decoration: ResourceFormStyles.inputDecoration(
+                      context,
+                      label: 'AnyFlip URL',
+                      hintText: 'https://anyflip.com/...',
+                    ),
+                    keyboardType: TextInputType.url,
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: _downloading ? null : _downloadAnyFlip,
+                    icon: _downloading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.download_outlined),
+                    label: Text(
+                      _downloading ? 'Downloading…' : 'Download PDF',
+                    ),
+                  ),
                   if (showMissingFile) ...[
                     const SizedBox(height: 8),
                     Text(
                       'A file is required on desktop.',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.error,
-                          ),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: scheme.error,
+                      ),
                     ),
                   ],
                 ],
@@ -265,13 +357,13 @@ class _FileFormSheetState extends State<_FileFormSheet> {
             Text(
               'File picker is desktop only. You can still save metadata '
               'and a source URL.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
             ),
           const SizedBox(height: ResourceFormStyles.sectionSpacing),
           FilledButton(
-            onPressed: _submit,
+            onPressed: _downloading ? null : _submit,
             child: Text(_editing ? 'Save file' : 'Create file'),
           ),
         ],
@@ -289,6 +381,10 @@ class _FileFormSheetState extends State<_FileFormSheet> {
     if (trimmed.isEmpty) {
       return null;
     }
+    return _validateRequiredUrl(trimmed);
+  }
+
+  String? _validateRequiredUrl(String trimmed) {
     final uri = Uri.tryParse(trimmed);
     if (uri == null || !uri.hasScheme || uri.host.isEmpty) {
       return 'Enter a valid URL';
