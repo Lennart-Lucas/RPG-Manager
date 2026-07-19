@@ -16,4 +16,5 @@ enum AppPage {
   spellTags,
   features,
   creatures,
+  atlas,
 }
