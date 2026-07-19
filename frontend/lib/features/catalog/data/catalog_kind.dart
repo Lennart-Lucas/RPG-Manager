@@ -16,7 +16,8 @@ enum CatalogKind {
   features,
   locations,
   characters,
-  organisations;
+  organisations,
+  generators;
 
   static CatalogKind? tryParseApiValue(String value) {
     for (final kind in CatalogKind.values) {
@@ -46,6 +47,7 @@ extension CatalogKindApi on CatalogKind {
         CatalogKind.locations => 'locations',
         CatalogKind.characters => 'characters',
         CatalogKind.organisations => 'organisations',
+        CatalogKind.generators => 'generators',
       };
 
   String get singularLabel => switch (this) {
@@ -67,6 +69,7 @@ extension CatalogKindApi on CatalogKind {
         CatalogKind.locations => 'location',
         CatalogKind.characters => 'character',
         CatalogKind.organisations => 'organisation',
+        CatalogKind.generators => 'generator',
       };
 
   String get pluralLabel => switch (this) {
@@ -88,6 +91,7 @@ extension CatalogKindApi on CatalogKind {
         CatalogKind.locations => 'locations',
         CatalogKind.characters => 'characters',
         CatalogKind.organisations => 'organisations',
+        CatalogKind.generators => 'generators',
       };
 
   /// Title-cased singular label for UI (e.g. "Spell", "Damage type").

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../mechanics/mechanics_icons.dart';
 import '../../player_options/player_options_icons.dart';
+import '../../settings/settings_icons.dart';
 import '../../world/world_icons.dart';
 import 'catalog_kind.dart';
 
@@ -25,5 +26,6 @@ extension CatalogKindIcons on CatalogKind {
         CatalogKind.locations => atlasPageIcon,
         CatalogKind.characters => charactersPageIcon,
         CatalogKind.organisations => organisationsPageIcon,
+        CatalogKind.generators => generatorPageIcon,
       };
 }

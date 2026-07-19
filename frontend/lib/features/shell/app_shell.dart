@@ -16,6 +16,7 @@ import '../player_options/items/ui/items_body.dart';
 import '../player_options/player_options_icons.dart';
 import '../player_options/spells/ui/spells_body.dart';
 import '../settings/preferences_page.dart';
+import '../settings/settings_icons.dart';
 import '../world/creatures/ui/creatures_body.dart';
 import '../world/world_icons.dart';
 import 'app_page.dart';
@@ -43,7 +44,8 @@ class _AppShellState extends State<AppShell> {
 
   String get _title => switch (_page) {
         AppPage.home => 'RPG Manager',
-        AppPage.preferences => 'Settings',
+        AppPage.preferences => 'Preferences',
+        AppPage.generator => 'Generator',
         AppPage.resources => 'Resources',
         AppPage.mapMaker => 'Map maker',
         AppPage.playlists => 'Playlists',
@@ -116,6 +118,8 @@ class _AppShellState extends State<AppShell> {
             auth: widget.auth,
             themeController: widget.themeController,
           ),
+        AppPage.generator =>
+          _catalog(CatalogKind.generators, generatorPageIcon),
         AppPage.resources => ResourcesBody(auth: widget.auth),
         AppPage.mapMaker => const DmToolPlaceholderBody(
             title: 'Map maker',

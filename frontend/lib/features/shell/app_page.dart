@@ -1,6 +1,7 @@
 enum AppPage {
   home,
   preferences,
+  generator,
   resources,
   mapMaker,
   playlists,

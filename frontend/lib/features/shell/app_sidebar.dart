@@ -4,6 +4,7 @@ import '../auth/state/auth_controller.dart';
 import '../dm_tools/resources/resources_icons.dart';
 import '../mechanics/mechanics_icons.dart';
 import '../player_options/player_options_icons.dart';
+import '../settings/settings_icons.dart';
 import '../world/world_icons.dart';
 import 'app_page.dart';
 
@@ -108,7 +109,10 @@ class _AppSidebarState extends State<AppSidebar> {
     final isDm = user?.isDm == true;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final preferencesSelected = widget.currentPage == AppPage.preferences;
+    final preferencesSelected = switch (widget.currentPage) {
+      AppPage.preferences || AppPage.generator => true,
+      _ => false,
+    };
     final resourcesSelected = switch (widget.currentPage) {
       AppPage.resources || AppPage.mapMaker || AppPage.playlists => true,
       _ => false,
@@ -411,7 +415,13 @@ class _AppSidebarState extends State<AppSidebar> {
                       children: [
                         _navTile(
                           context,
-                          icon: Icons.tune_outlined,
+                          icon: generatorPageIcon,
+                          label: 'Generator',
+                          page: AppPage.generator,
+                        ),
+                        _navTile(
+                          context,
+                          icon: preferencesPageIcon,
                           label: 'Preferences',
                           page: AppPage.preferences,
                         ),
