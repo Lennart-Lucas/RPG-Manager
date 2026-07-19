@@ -12,6 +12,8 @@ import '../../player_options/items/ui/item_detail_page.dart';
 import '../../player_options/skills/data/skill_model.dart';
 import '../../player_options/spells/data/spell_model.dart';
 import '../../player_options/spells/ui/spell_detail_page.dart';
+import '../../settings/generators/data/generator_model.dart';
+import '../../settings/generators/ui/generator_detail_page.dart';
 import '../../world/creature_types/data/creature_type_model.dart';
 import '../../world/creature_types/ui/creature_type_detail_page.dart';
 import '../../world/creatures/data/creature_model.dart';
@@ -57,6 +59,15 @@ Future<void> openCatalogRecordDetail({
         await _openCreatureTypeDetail(context, auth, item);
       case CatalogKind.features:
         await _openFeatureDetail(context, auth, item);
+      case CatalogKind.generators:
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            builder: (context) => GeneratorDetailPage(
+              auth: auth,
+              item: item,
+            ),
+          ),
+        );
       default:
         await Navigator.of(context).push<void>(
           MaterialPageRoute(
@@ -404,6 +415,12 @@ String? catalogRecordSubtitle(CatalogItem item) {
       final oneLine = text.replaceAll(RegExp(r'\s+'), ' ');
       if (oneLine.length <= 120) return oneLine;
       return '${oneLine.substring(0, 117)}…';
+    case CatalogKind.generators:
+      final record = GeneratorRecord.fromCatalogPayload(
+        name: item.name,
+        payload: item.payload,
+      );
+      return 'Type: ${record.recordTypeLabel}';
     default:
       return null;
   }

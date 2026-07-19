@@ -19,6 +19,8 @@ dependencies:
   font_awesome_flutter: ^11.0.0
   pdf: ^3.11.1
   printing: ^5.13.0
+  random_table_engine:
+    path: ../packages/random_table_engine
 
 dev_dependencies:
   flutter_test:

@@ -1,0 +1,32 @@
+{
+  "recordType": "settlement",
+  "steps": [
+    { "op": "roll", "table": "origin", "field": "origin", "modifierFrom": null },
+    { "op": "lookup", "table": "wealthDie", "keyField": "origin", "field": "wealthRoll" },
+    { "op": "roll", "table": "shopCount", "field": "shopCount" },
+    {
+      "op": "rollMany",
+      "table": "shops",
+      "countField": "shopCount",
+      "emitAs": "shop",
+      "parentField": "shops",
+      "fieldMap": { "value": "name" }
+    },
+    {
+      "op": "gate",
+      "table": "hasTemple",
+      "proceedValue": "yes",
+      "emitAs": "temple",
+      "parentField": "temple",
+      "then": [
+        { "op": "roll", "table": "templeSize", "field": "size" }
+      ]
+    },
+    {
+      "op": "addDefaultRecord",
+      "emitAs": "note",
+      "parentField": "notes",
+      "staticFields": { "text": "generated" }
+    }
+  ]
+}

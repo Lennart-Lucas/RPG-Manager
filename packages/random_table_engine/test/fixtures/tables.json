@@ -1,0 +1,55 @@
+{
+  "tables": {
+    "main": {
+      "type": "random",
+      "dice": { "count": 1, "sides": 6, "bonus": 0 },
+      "duplicatePolicy": "keepDuplicates",
+      "entries": [
+        { "min": 1, "max": 2, "value": "low", "modifiers": { "crime": 1 } },
+        {
+          "min": 3,
+          "max": 4,
+          "value": "mid",
+          "subTable": "detail",
+          "modifiers": { "crime": 2 }
+        },
+        { "min": 5, "max": 6, "value": "high", "modifiers": { "crime": -1 }, "tags": { "rare": true } }
+      ]
+    },
+    "detail": {
+      "type": "random",
+      "dice": { "count": 1, "sides": 2, "bonus": 0 },
+      "entries": [
+        { "min": 1, "max": 1, "value": "alpha" },
+        { "min": 2, "max": 2, "value": "beta" }
+      ]
+    },
+    "dupPool": {
+      "type": "random",
+      "dice": { "count": 1, "sides": 2, "bonus": 0 },
+      "duplicatePolicy": "rerollDuplicates",
+      "maxRerollAttempts": 5,
+      "entries": [
+        { "min": 1, "max": 1, "value": "a" },
+        { "min": 2, "max": 2, "value": "b" }
+      ]
+    },
+    "ignorePool": {
+      "type": "random",
+      "dice": { "count": 1, "sides": 2, "bonus": 0 },
+      "duplicatePolicy": "ignoreDuplicates",
+      "entries": [
+        { "min": 1, "max": 1, "value": "a" },
+        { "min": 2, "max": 2, "value": "b" }
+      ]
+    },
+    "bySize": {
+      "type": "lookup",
+      "keyedBy": "size",
+      "values": {
+        "small": { "count": 1, "sides": 4, "bonus": 0 },
+        "large": { "count": 2, "sides": 4, "bonus": 1 }
+      }
+    }
+  }
+}

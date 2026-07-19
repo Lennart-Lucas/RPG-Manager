@@ -9,6 +9,8 @@ import '../../player_options/classes/ui/class_form_sheet.dart';
 import '../../player_options/skills/data/default_skills.dart';
 import '../../player_options/skills/data/skill_model.dart';
 import '../../player_options/skills/ui/skill_form_sheet.dart';
+import '../../settings/generators/data/generator_model.dart';
+import '../../settings/generators/ui/generator_form_sheet.dart';
 import '../data/catalog_api.dart';
 import '../data/catalog_kind.dart';
 import '../data/catalog_kind_icons.dart';
@@ -103,6 +105,23 @@ class _CatalogRecordDetailPageState extends State<CatalogRecordDetailPage> {
             itemId: _item.id,
             name: skill.name,
             payload: skill.toJson(),
+          );
+          setState(() => _item = updated);
+        case CatalogKind.generators:
+          final record = await showGeneratorFormSheet(
+            context,
+            initial: GeneratorRecord.fromCatalogPayload(
+              name: _item.name,
+              payload: _item.payload,
+            ),
+          );
+          if (record == null || !mounted) return;
+          final updated = await _api.update(
+            accessToken: token,
+            kind: CatalogKind.generators,
+            itemId: _item.id,
+            name: record.name,
+            payload: record.toJson(),
           );
           setState(() => _item = updated);
         default:
