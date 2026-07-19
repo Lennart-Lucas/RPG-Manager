@@ -1,6 +1,7 @@
 // D&D 5e spell data model. Hand-written fromJson/toJson (no codegen).
 
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 enum SpellSchool {
   abjuration,
@@ -21,6 +22,7 @@ enum SpellSchool {
         SpellSchool.enchantment => Icons.favorite_outline,
         SpellSchool.evocation => Icons.local_fire_department_outlined,
         SpellSchool.illusion => Icons.blur_on_outlined,
+        // Material has no skull; UI uses Font Awesome via [buildIcon].
         SpellSchool.necromancy => Icons.sick_outlined,
         SpellSchool.transmutation => Icons.change_circle_outlined,
       };
@@ -32,17 +34,12 @@ enum SpellSchool {
 
   String toJson() => name;
 
-  /// Prefer this for UI; necromancy uses a skull glyph (no Material skull icon).
   Widget buildIcon({double size = 20, Color? color}) {
     if (this == SpellSchool.necromancy) {
-      return Text(
-        '☠',
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          fontSize: size,
-          height: 1,
-          color: color,
-        ),
+      return FaIcon(
+        FontAwesomeIcons.skullCrossbones,
+        size: size * 0.85,
+        color: color,
       );
     }
     return Icon(icon, size: size, color: color);
