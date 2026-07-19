@@ -473,10 +473,14 @@ class CatalogAndCustomPick {
   const CatalogAndCustomPick({
     required this.ids,
     required this.customs,
+    this.expertiseIds = const [],
+    this.expertiseCustoms = const [],
   });
 
   final List<int> ids;
   final List<String> customs;
+  final List<int> expertiseIds;
+  final List<String> expertiseCustoms;
 }
 
 Future<void> pickCatalogIdsWithCustoms({
@@ -486,6 +490,9 @@ Future<void> pickCatalogIdsWithCustoms({
   required Set<int> selected,
   required List<String> customStrings,
   required ValueChanged<CatalogAndCustomPick> onDone,
+  bool enableExpertise = false,
+  Set<int> expertiseIds = const {},
+  List<String> expertiseCustoms = const [],
 }) async {
   final result = await showMultiPicklistWithCustomsSheet(
     context,
@@ -494,15 +501,33 @@ Future<void> pickCatalogIdsWithCustoms({
     selected: {for (final id in selected) '$id'},
     customStrings: customStrings,
     allowCustomEntries: true,
+    enableExpertise: enableExpertise,
+    expertise: {
+      for (final id in expertiseIds) '$id',
+      ...expertiseCustoms,
+    },
   );
   if (result == null) return;
+  final ids = <int>[
+    for (final id in result.selected)
+      if (int.tryParse(id) case final parsed?) parsed,
+  ];
+  final idSet = ids.toSet();
+  final customSet = result.customStrings.map((s) => s.trim()).toSet();
   onDone(
     CatalogAndCustomPick(
-      ids: [
-        for (final id in result.selected)
-          if (int.tryParse(id) case final parsed?) parsed,
-      ],
+      ids: ids,
       customs: result.customStrings,
+      expertiseIds: [
+        for (final id in result.expertise)
+          if (int.tryParse(id) case final parsed?)
+            if (idSet.contains(parsed)) parsed,
+      ],
+      expertiseCustoms: [
+        for (final name in result.expertise)
+          if (int.tryParse(name) == null && customSet.contains(name.trim()))
+            name.trim(),
+      ],
     ),
   );
 }
@@ -511,11 +536,22 @@ String summarizeCatalogSelection({
   required Set<int> selected,
   required Map<int, String> namesById,
   List<String> customStrings = const [],
+  Set<int> expertiseIds = const {},
+  List<String> expertiseCustoms = const [],
   String empty = 'None',
 }) {
+  final expertiseCustomKeys = {
+    for (final s in expertiseCustoms) s.trim().toLowerCase(),
+  };
   final labels = [
-    for (final id in selected) namesById[id] ?? '$id',
-    ...customStrings.where((s) => s.trim().isNotEmpty),
+    for (final id in selected)
+      expertiseIds.contains(id)
+          ? '${namesById[id] ?? '$id'} (Expertise)'
+          : (namesById[id] ?? '$id'),
+    for (final s in customStrings.where((s) => s.trim().isNotEmpty))
+      expertiseCustomKeys.contains(s.trim().toLowerCase())
+          ? '$s (Expertise)'
+          : s,
   ];
   if (labels.isEmpty) return empty;
   labels.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));

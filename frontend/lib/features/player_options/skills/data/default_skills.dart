@@ -31,6 +31,13 @@ final Set<String> _defaultSkillNames = {
   for (final skill in defaultSkills) skill.name.toLowerCase(),
 };
 
+final Map<String, String> defaultSkillAttributesByName = {
+  for (final skill in defaultSkills) skill.name.toLowerCase(): skill.attribute,
+};
+
 bool isDefaultSkillName(String name) =>
     _defaultSkillNames.contains(name.trim().toLowerCase());
+
+String? defaultSkillAttribute(String name) =>
+    defaultSkillAttributesByName[name.trim().toLowerCase()];
 

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
-import 'package:rpg_manager/core/ui/markdown_form_field.dart';
 import 'package:rpg_manager/features/auth/data/auth_api.dart';
 import 'package:rpg_manager/features/auth/state/auth_controller.dart';
 import 'package:rpg_manager/features/catalog/data/catalog_api.dart';
@@ -10,6 +8,7 @@ import 'package:rpg_manager/features/catalog/data/catalog_models.dart';
 import 'package:rpg_manager/features/dm_tools/resources/ui/resource_form_helpers.dart';
 import 'package:rpg_manager/features/mechanics/features/data/feature_model.dart';
 import 'package:rpg_manager/features/mechanics/features/ui/feature_form_sheet.dart';
+import 'package:rpg_manager/features/player_options/skills/data/skill_model.dart';
 import 'package:rpg_manager/features/world/creature_types/data/creature_type_model.dart';
 import 'package:rpg_manager/features/world/creatures/data/ability_assignment.dart';
 import 'package:rpg_manager/features/world/creatures/data/creature_inheritance.dart';
@@ -126,20 +125,6 @@ class _CreatureFormState extends State<_CreatureForm> {
   late final _threatController = TextEditingController(
     text: '${widget.initial?.threat ?? 4}',
   );
-  late final _reachController = TextEditingController(
-    text: widget.initial?.reach?.toString() ?? '',
-  );
-  late final _rangeController = TextEditingController(
-    text: widget.initial?.range?.toString() ?? '',
-  );
-  late final _itemsController = TextEditingController(
-    text: _listToText(widget.initial?.items ?? const []),
-  );
-  late final _triggerController =
-      TextEditingController(text: widget.initial?.trigger ?? '');
-  late final _countermeasuresController = TextEditingController(
-    text: (widget.initial?.countermeasures ?? const []).join('\n'),
-  );
 
   late String _size = widget.initial?.size ?? 'Medium';
   late int? _creatureTypeId = widget.initial?.creatureTypeId;
@@ -151,12 +136,16 @@ class _CreatureFormState extends State<_CreatureForm> {
     ...?widget.initial?.sensesLabeled,
   ];
   late List<int> _skillIds = [...?widget.initial?.skillIds];
+  late List<int> _skillExpertiseIds = [...?widget.initial?.skillExpertiseIds];
   late List<int> _languageIds = [...?widget.initial?.languageIds];
   late List<int> _vulnerabilityIds = [...?widget.initial?.damageVulnerabilityIds];
   late List<int> _resistanceIds = [...?widget.initial?.damageResistanceIds];
   late List<int> _immunityIds = [...?widget.initial?.damageImmunityIds];
   late List<int> _conditionIds = [...?widget.initial?.conditionImmunityIds];
   late List<String> _customSkills = [...?widget.initial?.customSkills];
+  late List<String> _customSkillExpertise = [
+    ...?widget.initial?.customSkillExpertise,
+  ];
   late List<String> _customLanguages = [...?widget.initial?.customLanguages];
   late List<String> _customVulnerabilities =
       [...?widget.initial?.customDamageVulnerabilities];
@@ -166,6 +155,7 @@ class _CreatureFormState extends State<_CreatureForm> {
       [...?widget.initial?.customDamageImmunities];
   late List<CreatureType> _creatureTypes = const [];
   late Map<int, String> _skillNames = const {};
+  late Map<int, String> _skillAttributes = const {};
   late Map<int, String> _languageNames = const {};
   late Map<int, String> _damageTypeNames = const {};
   late Map<int, String> _conditionNames = const {};
@@ -237,6 +227,13 @@ class _CreatureFormState extends State<_CreatureForm> {
             ),
         ];
         _skillNames = {for (final i in results[1]) i.id: i.name};
+        _skillAttributes = {
+          for (final i in results[1])
+            i.id: SkillRecord.fromCatalogPayload(
+              name: i.name,
+              payload: i.payload,
+            ).attribute,
+        };
         _languageNames = {for (final i in results[2]) i.id: i.name};
         _damageTypeNames = {for (final i in results[3]) i.id: i.name};
         _conditionNames = {for (final i in results[4]) i.id: i.name};
@@ -271,6 +268,17 @@ class _CreatureFormState extends State<_CreatureForm> {
       _size = merged.size;
       _skillIds = merged.skillIds;
       _customSkills = merged.customSkills;
+      _skillExpertiseIds = [
+        for (final id in merged.skillExpertiseIds)
+          if (merged.skillIds.contains(id)) id,
+      ];
+      _customSkillExpertise = [
+        for (final name in merged.customSkillExpertise)
+          if (merged.customSkills.any(
+            (s) => s.toLowerCase() == name.toLowerCase(),
+          ))
+            name,
+      ];
       _languageIds = merged.languageIds;
       _customLanguages = merged.customLanguages;
       _vulnerabilityIds = merged.damageVulnerabilityIds;
@@ -324,12 +332,12 @@ class _CreatureFormState extends State<_CreatureForm> {
         slotModifiers: slotModifiersForFormula(_formula),
       ),
       trainedSavingThrows: trainedSavesFromAbilityKeys(_trainedAbilityKeys),
-      reach: _parseOptionalInt(_reachController.text),
-      range: _parseOptionalInt(_rangeController.text),
       speeds: _speedsFromMovement,
       sensesLabeled: _sensesLabeled,
       skillIds: _skillIds,
       customSkills: _customSkills,
+      skillExpertiseIds: _skillExpertiseIds,
+      customSkillExpertise: _customSkillExpertise,
       languageIds: _languageIds,
       customLanguages: _customLanguages,
       damageVulnerabilityIds: _vulnerabilityIds,
@@ -339,15 +347,9 @@ class _CreatureFormState extends State<_CreatureForm> {
       damageImmunityIds: _immunityIds,
       customDamageImmunities: _customImmunities,
       conditionImmunityIds: _conditionIds,
-      items: _parseList(_itemsController.text),
-      trigger: _triggerController.text.trim().isEmpty
-          ? null
-          : _triggerController.text.trim(),
-      countermeasures: _countermeasuresController.text
-          .split('\n')
-          .map((s) => s.trim())
-          .where((s) => s.isNotEmpty)
-          .toList(),
+      items: widget.initial?.items ?? const [],
+      trigger: widget.initial?.trigger,
+      countermeasures: widget.initial?.countermeasures ?? const [],
       features: _features,
       overrides: _overrides,
     ).copyWithResolvedDisplayLists(
@@ -377,22 +379,7 @@ class _CreatureFormState extends State<_CreatureForm> {
   void dispose() {
     _nameController.dispose();
     _threatController.dispose();
-    _reachController.dispose();
-    _rangeController.dispose();
-    _itemsController.dispose();
-    _triggerController.dispose();
-    _countermeasuresController.dispose();
     super.dispose();
-  }
-
-  static String _listToText(List<String> items) => items.join(', ');
-
-  static List<String> _parseList(String text) {
-    return text
-        .split(RegExp(r'[,\n]'))
-        .map((s) => s.trim())
-        .where((s) => s.isNotEmpty)
-        .toList();
   }
 
   void _recomputeCombat({bool mergeFeatures = true}) {
@@ -704,12 +691,6 @@ class _CreatureFormState extends State<_CreatureForm> {
     Navigator.pop(context, creature);
   }
 
-  int? _parseOptionalInt(String text) {
-    final trimmed = text.trim();
-    if (trimmed.isEmpty) return null;
-    return int.tryParse(trimmed);
-  }
-
   Widget _section(String title) {
     return Padding(
       padding: const EdgeInsets.only(top: 8, bottom: 8),
@@ -730,6 +711,9 @@ class _CreatureFormState extends State<_CreatureForm> {
     final previewSheet = CreatureStatblockView(
       creature: draft,
       typeLabel: draft.creatureType.isEmpty ? null : draft.creatureType,
+      skillNames: _skillNames,
+      skillAttributes: _skillAttributes,
+      conditionNames: _conditionNames,
     );
     final form = SingleChildScrollView(
       padding: EdgeInsets.all(wide ? 20 : 0),
@@ -1048,34 +1032,6 @@ class _CreatureFormState extends State<_CreatureForm> {
               ),
             ],
           ),
-          _section('Attack'),
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: _reachController,
-                  decoration: ResourceFormStyles.inputDecoration(
-                    context,
-                    label: 'Reach (ft.)',
-                  ),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                ),
-              ),
-              const SizedBox(width: ResourceFormStyles.fieldSpacing),
-              Expanded(
-                child: TextFormField(
-                  controller: _rangeController,
-                  decoration: ResourceFormStyles.inputDecoration(
-                    context,
-                    label: 'Range (ft.)',
-                  ),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                ),
-              ),
-            ],
-          ),
           _section('Extras'),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1122,6 +1078,8 @@ class _CreatureFormState extends State<_CreatureForm> {
                     selected: _skillIds.toSet(),
                     namesById: _skillNames,
                     customStrings: _customSkills,
+                    expertiseIds: _skillExpertiseIds.toSet(),
+                    expertiseCustoms: _customSkillExpertise,
                   ),
                   onTap: () => pickCatalogIdsWithCustoms(
                     context: context,
@@ -1129,9 +1087,14 @@ class _CreatureFormState extends State<_CreatureForm> {
                     options: catalogPicklistOptions(_skillNames),
                     selected: _skillIds.toSet(),
                     customStrings: _customSkills,
+                    enableExpertise: true,
+                    expertiseIds: _skillExpertiseIds.toSet(),
+                    expertiseCustoms: _customSkillExpertise,
                     onDone: (next) => setState(() {
                       _skillIds = next.ids;
                       _customSkills = next.customs;
+                      _skillExpertiseIds = next.expertiseIds;
+                      _customSkillExpertise = next.expertiseCustoms;
                     }),
                   ),
                 ),
@@ -1162,112 +1125,102 @@ class _CreatureFormState extends State<_CreatureForm> {
             ],
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
-          catalogMultiPickTile(
-            context: context,
-            label: 'Vulnerabilities',
-            summary: summarizeCatalogSelection(
-              selected: _vulnerabilityIds.toSet(),
-              namesById: _damageTypeNames,
-              customStrings: _customVulnerabilities,
-            ),
-            onTap: () => pickCatalogIdsWithCustoms(
-              context: context,
-              title: 'Vulnerabilities',
-              options: catalogPicklistOptions(_damageTypeNames),
-              selected: _vulnerabilityIds.toSet(),
-              customStrings: _customVulnerabilities,
-              onDone: (next) => setState(() {
-                _vulnerabilityIds = next.ids;
-                _customVulnerabilities = next.customs;
-              }),
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: catalogMultiPickTile(
+                  context: context,
+                  label: 'Damage Vulnerabilities',
+                  summary: summarizeCatalogSelection(
+                    selected: _vulnerabilityIds.toSet(),
+                    namesById: _damageTypeNames,
+                    customStrings: _customVulnerabilities,
+                  ),
+                  onTap: () => pickCatalogIdsWithCustoms(
+                    context: context,
+                    title: 'Damage Vulnerabilities',
+                    options: catalogPicklistOptions(_damageTypeNames),
+                    selected: _vulnerabilityIds.toSet(),
+                    customStrings: _customVulnerabilities,
+                    onDone: (next) => setState(() {
+                      _vulnerabilityIds = next.ids;
+                      _customVulnerabilities = next.customs;
+                    }),
+                  ),
+                ),
+              ),
+              const SizedBox(width: ResourceFormStyles.fieldSpacing),
+              Expanded(
+                child: catalogMultiPickTile(
+                  context: context,
+                  label: 'Damage Resistances',
+                  summary: summarizeCatalogSelection(
+                    selected: _resistanceIds.toSet(),
+                    namesById: _damageTypeNames,
+                    customStrings: _customResistances,
+                  ),
+                  onTap: () => pickCatalogIdsWithCustoms(
+                    context: context,
+                    title: 'Damage Resistances',
+                    options: catalogPicklistOptions(_damageTypeNames),
+                    selected: _resistanceIds.toSet(),
+                    customStrings: _customResistances,
+                    onDone: (next) => setState(() {
+                      _resistanceIds = next.ids;
+                      _customResistances = next.customs;
+                    }),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
-          catalogMultiPickTile(
-            context: context,
-            label: 'Resistances',
-            summary: summarizeCatalogSelection(
-              selected: _resistanceIds.toSet(),
-              namesById: _damageTypeNames,
-              customStrings: _customResistances,
-            ),
-            onTap: () => pickCatalogIdsWithCustoms(
-              context: context,
-              title: 'Resistances',
-              options: catalogPicklistOptions(_damageTypeNames),
-              selected: _resistanceIds.toSet(),
-              customStrings: _customResistances,
-              onDone: (next) => setState(() {
-                _resistanceIds = next.ids;
-                _customResistances = next.customs;
-              }),
-            ),
-          ),
-          const SizedBox(height: ResourceFormStyles.fieldSpacing),
-          catalogMultiPickTile(
-            context: context,
-            label: 'Immunities',
-            summary: summarizeCatalogSelection(
-              selected: _immunityIds.toSet(),
-              namesById: _damageTypeNames,
-              customStrings: _customImmunities,
-            ),
-            onTap: () => pickCatalogIdsWithCustoms(
-              context: context,
-              title: 'Immunities',
-              options: catalogPicklistOptions(_damageTypeNames),
-              selected: _immunityIds.toSet(),
-              customStrings: _customImmunities,
-              onDone: (next) => setState(() {
-                _immunityIds = next.ids;
-                _customImmunities = next.customs;
-              }),
-            ),
-          ),
-          const SizedBox(height: ResourceFormStyles.fieldSpacing),
-          catalogMultiPickTile(
-            context: context,
-            label: 'Condition immunities',
-            summary: summarizeCatalogSelection(
-              selected: _conditionIds.toSet(),
-              namesById: _conditionNames,
-            ),
-            onTap: () => pickCatalogIds(
-              context: context,
-              title: 'Condition immunities',
-              options: catalogPicklistOptions(_conditionNames),
-              selected: _conditionIds.toSet(),
-              onDone: (next) => setState(() => _conditionIds = next.toList()),
-            ),
-          ),
-          const SizedBox(height: ResourceFormStyles.fieldSpacing),
-          TextFormField(
-            controller: _itemsController,
-            decoration: ResourceFormStyles.inputDecoration(
-              context,
-              label: 'Items',
-              hintText: 'Comma-separated or one per line',
-            ),
-            minLines: 1,
-            maxLines: 3,
-          ),
-          const SizedBox(height: ResourceFormStyles.fieldSpacing),
-          MarkdownFormField(
-            controller: _triggerController,
-            label: 'Trigger',
-            minLines: 2,
-            maxLines: 6,
-          ),
-          const SizedBox(height: ResourceFormStyles.fieldSpacing),
-          TextFormField(
-            controller: _countermeasuresController,
-            decoration: ResourceFormStyles.inputDecoration(
-              context,
-              label: 'Countermeasures',
-              hintText: 'One per line',
-            ),
-            minLines: 2,
-            maxLines: 6,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: catalogMultiPickTile(
+                  context: context,
+                  label: 'Damage Immunities',
+                  summary: summarizeCatalogSelection(
+                    selected: _immunityIds.toSet(),
+                    namesById: _damageTypeNames,
+                    customStrings: _customImmunities,
+                  ),
+                  onTap: () => pickCatalogIdsWithCustoms(
+                    context: context,
+                    title: 'Damage Immunities',
+                    options: catalogPicklistOptions(_damageTypeNames),
+                    selected: _immunityIds.toSet(),
+                    customStrings: _customImmunities,
+                    onDone: (next) => setState(() {
+                      _immunityIds = next.ids;
+                      _customImmunities = next.customs;
+                    }),
+                  ),
+                ),
+              ),
+              const SizedBox(width: ResourceFormStyles.fieldSpacing),
+              Expanded(
+                child: catalogMultiPickTile(
+                  context: context,
+                  label: 'Condition Immunities',
+                  summary: summarizeCatalogSelection(
+                    selected: _conditionIds.toSet(),
+                    namesById: _conditionNames,
+                  ),
+                  onTap: () => pickCatalogIds(
+                    context: context,
+                    title: 'Condition Immunities',
+                    options: catalogPicklistOptions(_conditionNames),
+                    selected: _conditionIds.toSet(),
+                    onDone: (next) =>
+                        setState(() => _conditionIds = next.toList()),
+                  ),
+                ),
+              ),
+            ],
           ),
           _section('Features'),
           Text(

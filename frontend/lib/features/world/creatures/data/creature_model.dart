@@ -1,5 +1,5 @@
 import 'package:rpg_manager/features/mechanics/features/data/feature_model.dart';
-
+import 'package:rpg_manager/features/player_options/skills/data/default_skills.dart';
 import 'package:rpg_manager/features/world/data/labeled_amount.dart';
 
 import 'scaler_math.dart';
@@ -34,6 +34,18 @@ extension AbilityKeyApi on AbilityKey {
       'wis' => AbilityKey.wis,
       'cha' => AbilityKey.cha,
       _ => null,
+    };
+  }
+
+  static AbilityKey? fromCode(String value) {
+    return switch (value.trim().toUpperCase()) {
+      'STR' => AbilityKey.str,
+      'DEX' => AbilityKey.dex,
+      'CON' => AbilityKey.con,
+      'INT' => AbilityKey.int_,
+      'WIS' => AbilityKey.wis,
+      'CHA' => AbilityKey.cha,
+      _ => fromJson(value.trim().toLowerCase()),
     };
   }
 }
@@ -294,6 +306,9 @@ class Creature {
     this.skills = const [],
     this.skillIds = const [],
     this.customSkills = const [],
+    this.skillExpertise = const [],
+    this.skillExpertiseIds = const [],
+    this.customSkillExpertise = const [],
     this.vulnerabilities = const [],
     this.damageVulnerabilityIds = const [],
     this.customDamageVulnerabilities = const [],
@@ -337,6 +352,12 @@ class Creature {
   final List<String> skills;
   final List<int> skillIds;
   final List<String> customSkills;
+  /// Resolved expertise skill names (for display / passive perception).
+  final List<String> skillExpertise;
+  /// Catalog skill ids that have expertise (PB doubled).
+  final List<int> skillExpertiseIds;
+  /// Custom skill names that have expertise (PB doubled).
+  final List<String> customSkillExpertise;
   final List<String> vulnerabilities;
   final List<int> damageVulnerabilityIds;
   final List<String> customDamageVulnerabilities;
@@ -378,17 +399,114 @@ class Creature {
   String get cr => overrides.cr ?? formula.cr;
   int get xp => overrides.xp ?? formula.xp;
 
-  /// 10 + WIS modifier, plus proficiency bonus when Perception is a selected skill.
-  int get computedPassivePerception =>
-      passivePerceptionFor(skillLabels: [...skills, ...customSkills]);
+  /// 10 + WIS modifier, plus PB (or 2×PB with Perception expertise) when selected.
+  int get computedPassivePerception => passivePerceptionFor(
+        skillLabels: [...skills, ...customSkills],
+      );
 
-  int passivePerceptionFor({List<String> skillLabels = const []}) {
+  int passivePerceptionFor({
+    List<String> skillLabels = const [],
+    Map<int, String> skillNames = const {},
+  }) {
     final hasPerception = skillLabels.any(
       (name) => name.trim().toLowerCase() == 'perception',
     );
+    if (!hasPerception) return 10 + abilityScores.wis;
+    final hasExpertise = hasSkillExpertise(
+      'Perception',
+      skillNames: skillNames,
+    );
     return 10 +
         abilityScores.wis +
-        (hasPerception ? proficiencyBonus : 0);
+        proficiencyBonus * (hasExpertise ? 2 : 1);
+  }
+
+  bool hasSkillExpertise(
+    String skillName, {
+    Map<int, String> skillNames = const {},
+  }) {
+    final key = skillName.trim().toLowerCase();
+    if (skillExpertise.any((s) => s.trim().toLowerCase() == key)) {
+      return true;
+    }
+    if (customSkillExpertise.any((s) => s.trim().toLowerCase() == key)) {
+      return true;
+    }
+    for (final id in skillExpertiseIds) {
+      final name = skillNames[id];
+      if (name != null && name.trim().toLowerCase() == key) return true;
+    }
+    return false;
+  }
+
+  List<String> resolvedSkillExpertise(Map<int, String> namesById) =>
+      _mergeIdAndCustomLabels(
+        namesById,
+        skillExpertiseIds,
+        customSkillExpertise,
+      );
+
+  /// Skill lines for the statblock, e.g. `Perception +7`.
+  List<String> formattedSkillLines({
+    Map<int, String> skillNames = const {},
+    Map<int, String> skillAttributes = const {},
+  }) {
+    final labels = skillNames.isEmpty ? skills : resolvedSkills(skillNames);
+    if (labels.isEmpty && customSkills.isEmpty && skillIds.isEmpty) {
+      return const [];
+    }
+
+    final lines = <String>[];
+    final seen = <String>{};
+
+    void addLine(String name, {required bool expertise, String? attribute}) {
+      final trimmed = name.trim();
+      if (trimmed.isEmpty) return;
+      final key = trimmed.toLowerCase();
+      if (!seen.add(key)) return;
+      final attr = attribute ?? defaultSkillAttribute(trimmed);
+      final ability = attr == null ? null : AbilityKeyApi.fromCode(attr);
+      if (ability == null) {
+        lines.add(expertise ? '$trimmed (Expertise)' : trimmed);
+        return;
+      }
+      final bonus =
+          abilityScores[ability] + proficiencyBonus * (expertise ? 2 : 1);
+      final signed = bonus > 0 ? '+$bonus' : '$bonus';
+      lines.add('$trimmed $signed');
+    }
+
+    if (skillNames.isNotEmpty &&
+        (skillIds.isNotEmpty || customSkills.isNotEmpty)) {
+      for (final id in skillIds) {
+        final name = skillNames[id] ?? '$id';
+        addLine(
+          name,
+          expertise: skillExpertiseIds.contains(id) ||
+              hasSkillExpertise(name, skillNames: skillNames),
+          attribute: skillAttributes[id],
+        );
+      }
+      for (final name in customSkills) {
+        addLine(
+          name,
+          expertise: customSkillExpertise.any(
+                (s) => s.trim().toLowerCase() == name.trim().toLowerCase(),
+              ) ||
+              hasSkillExpertise(name, skillNames: skillNames),
+        );
+      }
+    } else {
+      for (final name in labels) {
+        addLine(
+          name,
+          expertise: hasSkillExpertise(name, skillNames: skillNames),
+        );
+      }
+    }
+
+    lines.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return lines;
   }
 
   String get rankDisplay {
@@ -452,6 +570,9 @@ class Creature {
               ? legacySkills
               : _stringList(json['customSkills']))
           : _stringList(json['customSkills']),
+      skillExpertise: _stringList(json['skillExpertise']),
+      skillExpertiseIds: _intList(json['skillExpertiseIds']),
+      customSkillExpertise: _stringList(json['customSkillExpertise']),
       vulnerabilities: legacyVulnerabilities,
       damageVulnerabilityIds: vulnerabilityIds,
       customDamageVulnerabilities: vulnerabilityIds.isEmpty
@@ -559,6 +680,7 @@ class Creature {
   }) {
     return copyWith(
       skills: resolvedSkills(skillNames),
+      skillExpertise: resolvedSkillExpertise(skillNames),
       languages: resolvedLanguages(languageNames),
       vulnerabilities: resolvedVulnerabilities(damageTypeNames),
       resistances: resolvedResistances(damageTypeNames),
@@ -621,10 +743,17 @@ class Creature {
         'sensesLabeled': labeledAmountsToJson(sensesLabeled),
       'passivePerception': passivePerceptionFor(
         skillLabels: [...displaySkills, ...customSkills],
+        skillNames: skillNames,
       ),
       'skills': displaySkills,
       if (skillIds.isNotEmpty) 'skillIds': skillIds,
       if (customSkills.isNotEmpty) 'customSkills': customSkills,
+      'skillExpertise': skillNames.isEmpty
+          ? skillExpertise
+          : resolvedSkillExpertise(skillNames),
+      if (skillExpertiseIds.isNotEmpty) 'skillExpertiseIds': skillExpertiseIds,
+      if (customSkillExpertise.isNotEmpty)
+        'customSkillExpertise': customSkillExpertise,
       'vulnerabilities': displayVulnerabilities,
       if (damageVulnerabilityIds.isNotEmpty)
         'damageVulnerabilityIds': damageVulnerabilityIds,
@@ -689,6 +818,9 @@ class Creature {
     List<String>? skills,
     List<int>? skillIds,
     List<String>? customSkills,
+    List<String>? skillExpertise,
+    List<int>? skillExpertiseIds,
+    List<String>? customSkillExpertise,
     List<String>? vulnerabilities,
     List<int>? damageVulnerabilityIds,
     List<String>? customDamageVulnerabilities,
@@ -738,6 +870,10 @@ class Creature {
       skills: skills ?? this.skills,
       skillIds: skillIds ?? this.skillIds,
       customSkills: customSkills ?? this.customSkills,
+      skillExpertise: skillExpertise ?? this.skillExpertise,
+      skillExpertiseIds: skillExpertiseIds ?? this.skillExpertiseIds,
+      customSkillExpertise:
+          customSkillExpertise ?? this.customSkillExpertise,
       vulnerabilities: vulnerabilities ?? this.vulnerabilities,
       damageVulnerabilityIds:
           damageVulnerabilityIds ?? this.damageVulnerabilityIds,

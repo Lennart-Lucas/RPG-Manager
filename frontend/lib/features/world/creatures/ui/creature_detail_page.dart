@@ -6,6 +6,7 @@ import 'package:rpg_manager/features/auth/state/auth_controller.dart';
 import 'package:rpg_manager/features/catalog/data/catalog_api.dart';
 import 'package:rpg_manager/features/catalog/data/catalog_kind.dart';
 import 'package:rpg_manager/features/catalog/data/catalog_models.dart';
+import 'package:rpg_manager/features/player_options/skills/data/skill_model.dart';
 import 'package:rpg_manager/features/world/creatures/data/creature_model.dart';
 import 'package:rpg_manager/features/world/creatures/ui/creature_form_sheet.dart';
 import 'package:rpg_manager/features/world/creatures/ui/creature_statblock_view.dart';
@@ -33,21 +34,37 @@ class _CreatureDetailPageState extends State<CreatureDetailPage> {
   late CatalogItem _item = widget.item;
   late Creature _creature = widget.creature;
   Map<int, String> _typeNamesById = const {};
+  Map<int, String> _skillNames = const {};
+  Map<int, String> _skillAttributes = const {};
+  Map<int, String> _conditionNames = const {};
 
   @override
   void initState() {
     super.initState();
-    _loadTypeNames();
+    _loadCatalogNames();
   }
 
-  Future<void> _loadTypeNames() async {
+  Future<void> _loadCatalogNames() async {
     try {
       final token = await _token();
       if (token == null) return;
-      final types = await _api.list(token, CatalogKind.creatureTypes);
+      final results = await Future.wait([
+        _api.list(token, CatalogKind.creatureTypes),
+        _api.list(token, CatalogKind.skills),
+        _api.list(token, CatalogKind.conditions),
+      ]);
       if (!mounted) return;
       setState(() {
-        _typeNamesById = {for (final t in types) t.id: t.name};
+        _typeNamesById = {for (final t in results[0]) t.id: t.name};
+        _skillNames = {for (final s in results[1]) s.id: s.name};
+        _skillAttributes = {
+          for (final s in results[1])
+            s.id: SkillRecord.fromCatalogPayload(
+              name: s.name,
+              payload: s.payload,
+            ).attribute,
+        };
+        _conditionNames = {for (final c in results[2]) c.id: c.name};
       });
     } catch (_) {}
   }
@@ -198,6 +215,9 @@ class _CreatureDetailPageState extends State<CreatureDetailPage> {
                       typeLabel: _creature.resolvedTypeLabel(
                         typeNamesById: _typeNamesById,
                       ),
+                      skillNames: _skillNames,
+                      skillAttributes: _skillAttributes,
+                      conditionNames: _conditionNames,
                     ),
                     if (hasExtras) ...[
                       const SizedBox(height: 12),

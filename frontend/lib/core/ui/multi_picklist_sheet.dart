@@ -13,10 +13,13 @@ class MultiPicklistResult {
   const MultiPicklistResult({
     required this.selected,
     this.customStrings = const [],
+    this.expertise = const {},
   });
 
   final Set<String> selected;
   final List<String> customStrings;
+  /// Option ids and/or custom strings marked as expertise.
+  final Set<String> expertise;
 }
 
 /// Multi-select from [options] (checkbox list).
@@ -44,6 +47,8 @@ Future<MultiPicklistResult?> showMultiPicklistWithCustomsSheet(
   required Set<String> selected,
   List<String> customStrings = const [],
   bool allowCustomEntries = true,
+  bool enableExpertise = false,
+  Set<String> expertise = const {},
 }) async {
   return showModalBottomSheet<MultiPicklistResult>(
     context: context,
@@ -56,16 +61,22 @@ Future<MultiPicklistResult?> showMultiPicklistWithCustomsSheet(
         initialSelected: selected,
         initialCustoms: customStrings,
         allowCustomEntries: allowCustomEntries,
+        enableExpertise: enableExpertise,
+        initialExpertise: expertise,
       );
     },
   );
 }
 
 class _CustomDraftEntry {
-  _CustomDraftEntry({required this.checked, String text = ''})
-      : controller = TextEditingController(text: text);
+  _CustomDraftEntry({
+    required this.checked,
+    String text = '',
+    this.expertise = false,
+  }) : controller = TextEditingController(text: text);
 
   bool checked;
+  bool expertise;
   final TextEditingController controller;
 
   void dispose() => controller.dispose();
@@ -78,6 +89,8 @@ class _MultiPicklistSheetBody extends StatefulWidget {
     required this.initialSelected,
     required this.initialCustoms,
     required this.allowCustomEntries,
+    required this.enableExpertise,
+    required this.initialExpertise,
   });
 
   final String title;
@@ -85,6 +98,8 @@ class _MultiPicklistSheetBody extends StatefulWidget {
   final Set<String> initialSelected;
   final List<String> initialCustoms;
   final bool allowCustomEntries;
+  final bool enableExpertise;
+  final Set<String> initialExpertise;
 
   @override
   State<_MultiPicklistSheetBody> createState() =>
@@ -93,6 +108,7 @@ class _MultiPicklistSheetBody extends StatefulWidget {
 
 class _MultiPicklistSheetBodyState extends State<_MultiPicklistSheetBody> {
   late final Set<String> _working = Set<String>.from(widget.initialSelected);
+  late final Set<String> _expertise = Set<String>.from(widget.initialExpertise);
   late final TextEditingController _searchController = TextEditingController();
   String _query = '';
   late List<_CustomDraftEntry> _customDraftEntries;
@@ -103,7 +119,11 @@ class _MultiPicklistSheetBodyState extends State<_MultiPicklistSheetBody> {
     if (widget.allowCustomEntries) {
       _customDraftEntries = [
         for (final s in widget.initialCustoms)
-          _CustomDraftEntry(checked: true, text: s),
+          _CustomDraftEntry(
+            checked: true,
+            text: s,
+            expertise: widget.initialExpertise.contains(s),
+          ),
         _CustomDraftEntry(checked: false),
       ];
     } else {
@@ -149,6 +169,39 @@ class _MultiPicklistSheetBodyState extends State<_MultiPicklistSheetBody> {
         if (row.checked && row.controller.text.trim().isNotEmpty)
           row.controller.text.trim(),
     ];
+  }
+
+  Set<String> _committedExpertise() {
+    if (!widget.enableExpertise) return const {};
+    final next = <String>{
+      for (final id in _working)
+        if (_expertise.contains(id)) id,
+    };
+    for (final row in _customDraftEntries) {
+      final text = row.controller.text.trim();
+      if (row.checked && row.expertise && text.isNotEmpty) {
+        next.add(text);
+      }
+    }
+    return next;
+  }
+
+  Widget? _expertiseTrailing({
+    required bool selected,
+    required bool expertise,
+    required ValueChanged<bool> onChanged,
+  }) {
+    if (!widget.enableExpertise || !selected) return null;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text('Expertise'),
+        Checkbox(
+          value: expertise,
+          onChanged: (value) => onChanged(value == true),
+        ),
+      ],
+    );
   }
 
   InputDecoration _customDecoration(BuildContext context) {
@@ -224,37 +277,71 @@ class _MultiPicklistSheetBodyState extends State<_MultiPicklistSheetBody> {
                   child: ListView(
                     children: [
                       for (final opt in filtered)
-                        CheckboxListTile(
-                          value: _working.contains(opt.id),
-                          onChanged: (v) {
-                            setState(() {
-                              if (v == true) {
-                                _working.add(opt.id);
-                              } else {
-                                _working.remove(opt.id);
-                              }
-                            });
-                          },
+                        ListTile(
+                          dense: true,
+                          contentPadding:
+                              const EdgeInsets.symmetric(horizontal: 8),
+                          leading: Checkbox(
+                            value: _working.contains(opt.id),
+                            onChanged: (v) {
+                              setState(() {
+                                if (v == true) {
+                                  _working.add(opt.id);
+                                } else {
+                                  _working.remove(opt.id);
+                                  _expertise.remove(opt.id);
+                                }
+                              });
+                            },
+                          ),
                           title: Text(opt.label),
-                          controlAffinity: ListTileControlAffinity.leading,
+                          trailing: _expertiseTrailing(
+                            selected: _working.contains(opt.id),
+                            expertise: _expertise.contains(opt.id),
+                            onChanged: (value) {
+                              setState(() {
+                                if (value) {
+                                  _expertise.add(opt.id);
+                                } else {
+                                  _expertise.remove(opt.id);
+                                }
+                              });
+                            },
+                          ),
                         ),
                       if (widget.allowCustomEntries) ...[
                         if (filtered.isNotEmpty || _query.isNotEmpty)
                           const Divider(height: 24),
                         for (var i = 0; i < _customDraftEntries.length; i++)
-                          CheckboxListTile(
-                            value: _customDraftEntries[i].checked,
-                            onChanged: (v) {
-                              setState(() {
-                                _customDraftEntries[i].checked = v ?? false;
-                              });
-                            },
+                          ListTile(
+                            dense: true,
+                            contentPadding:
+                                const EdgeInsets.symmetric(horizontal: 8),
+                            leading: Checkbox(
+                              value: _customDraftEntries[i].checked,
+                              onChanged: (v) {
+                                setState(() {
+                                  _customDraftEntries[i].checked = v ?? false;
+                                  if (v != true) {
+                                    _customDraftEntries[i].expertise = false;
+                                  }
+                                });
+                              },
+                            ),
                             title: TextField(
                               controller: _customDraftEntries[i].controller,
                               decoration: _customDecoration(context),
                               onChanged: (v) => _onCustomTextChanged(i, v),
                             ),
-                            controlAffinity: ListTileControlAffinity.leading,
+                            trailing: _expertiseTrailing(
+                              selected: _customDraftEntries[i].checked,
+                              expertise: _customDraftEntries[i].expertise,
+                              onChanged: (value) {
+                                setState(() {
+                                  _customDraftEntries[i].expertise = value;
+                                });
+                              },
+                            ),
                           ),
                       ],
                     ],
@@ -271,6 +358,7 @@ class _MultiPicklistSheetBodyState extends State<_MultiPicklistSheetBody> {
                         onPressed: () {
                           setState(() {
                             _working.clear();
+                            _expertise.clear();
                             if (widget.allowCustomEntries) {
                               for (final e in _customDraftEntries) {
                                 e.dispose();
@@ -291,6 +379,7 @@ class _MultiPicklistSheetBodyState extends State<_MultiPicklistSheetBody> {
                             customStrings: widget.allowCustomEntries
                                 ? _committedCustoms()
                                 : const [],
+                            expertise: _committedExpertise(),
                           ),
                         ),
                         child: const Text('Done'),

@@ -38,11 +38,17 @@ class CreatureStatblockView extends StatelessWidget {
   const CreatureStatblockView({
     required this.creature,
     this.typeLabel,
+    this.skillNames = const {},
+    this.skillAttributes = const {},
+    this.conditionNames = const {},
     super.key,
   });
 
   final Creature creature;
   final String? typeLabel;
+  final Map<int, String> skillNames;
+  final Map<int, String> skillAttributes;
+  final Map<int, String> conditionNames;
 
   String _speedLine(ScalerComputedStats formula) {
     final parts = <String>[];
@@ -73,6 +79,37 @@ class CreatureStatblockView extends StatelessWidget {
         if (trained.contains(saveKeys[i]))
           '${saveLabels[i]} ${_signed(scores[AbilityKey.values[i]] + pb)}',
     ].join(', ');
+  }
+
+  List<InlineSpan> _defenceDetailSpans(TextStyle? baseStyle) {
+    final spans = <InlineSpan>[];
+
+    void addGroup(String label, List<String> values) {
+      final cleaned = [
+        for (final value in values)
+          if (value.trim().isNotEmpty) value.trim(),
+      ];
+      if (cleaned.isEmpty) return;
+      if (spans.isNotEmpty) spans.add(const TextSpan(text: '.  '));
+      spans.add(
+        TextSpan(
+          text: '$label ',
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+      );
+      spans.add(TextSpan(text: cleaned.join(', '), style: baseStyle));
+    }
+
+    addGroup('Vulnerabilities', creature.vulnerabilities);
+    addGroup('Resistances', creature.resistances);
+    addGroup('Damage Immunities', creature.immunities);
+    addGroup(
+      'Condition Immunities',
+      conditionNames.isEmpty
+          ? const <String>[]
+          : creature.resolvedConditionImmunities(conditionNames),
+    );
+    return spans;
   }
 
   Widget _rankIcon(String rankDisplay, {required Color color, double size = 24}) {
@@ -112,7 +149,26 @@ class CreatureStatblockView extends StatelessWidget {
         'PB ${_signed(creature.proficiencyBonus)}, CR ${creature.cr}, '
         'XP ${_withCommas(creature.xp)}';
     final saves = _savesText();
-    final senses = creature.resolvedSenses().join(', ');
+    final defenceDetails = _defenceDetailSpans(
+      textTheme.bodyLarge?.copyWith(color: scheme.onSurface),
+    );
+    final sensesOnly = creature.resolvedSenses().join(', ').trim();
+    final skillLines = creature.formattedSkillLines(
+      skillNames: skillNames,
+      skillAttributes: skillAttributes,
+    );
+    final passivePerception = creature.passivePerceptionFor(
+      skillLabels: skillNames.isEmpty
+          ? [...creature.skills, ...creature.customSkills]
+          : [
+              ...creature.resolvedSkills(skillNames),
+              ...creature.customSkills,
+            ],
+      skillNames: skillNames,
+    );
+    final sensesText = sensesOnly.isEmpty
+        ? 'Passive Perception $passivePerception'
+        : '$sensesOnly, Passive Perception $passivePerception';
     final blockColor = _lighterVariant(scheme.surfaceContainerHigh, amount: 0.07);
     final rowsColor = _lighterVariant(scheme.surface, amount: 0.06);
     final rowValueColor =
@@ -291,6 +347,10 @@ class CreatureStatblockView extends StatelessWidget {
                               style: TextStyle(fontWeight: FontWeight.w700),
                             ),
                             TextSpan(text: ' ${creature.ac}'),
+                            if (defenceDetails.isNotEmpty) ...[
+                              const TextSpan(text: '.  '),
+                              ...defenceDetails,
+                            ],
                             if (saves.isNotEmpty) ...[
                               const TextSpan(text: '.  '),
                               const TextSpan(
@@ -327,10 +387,6 @@ class CreatureStatblockView extends StatelessWidget {
                               style: TextStyle(fontWeight: FontWeight.w700),
                             ),
                             TextSpan(text: ' ${creature.dmg} damage'),
-                            if (creature.reach != null)
-                              TextSpan(text: ', reach ${creature.reach} ft.'),
-                            if (creature.range != null)
-                              TextSpan(text: ', range ${creature.range} ft.'),
                             const TextSpan(text: '.'),
                           ],
                         ),
@@ -358,16 +414,15 @@ class CreatureStatblockView extends StatelessWidget {
                     valueBackgroundColor: rowValueColor,
                     dividerColor: dividerColor,
                     rows: [
-                      if (senses.isNotEmpty)
-                        _LabeledValueRow(
-                          label: 'Senses',
-                          value: senses,
-                          scheme: scheme,
-                        ),
-                      if (creature.skills.isNotEmpty)
+                      _LabeledValueRow(
+                        label: 'Senses',
+                        value: sensesText,
+                        scheme: scheme,
+                      ),
+                      if (skillLines.isNotEmpty)
                         _LabeledValueRow(
                           label: 'Skills',
-                          value: creature.skills.join(', '),
+                          value: skillLines.join(', '),
                           scheme: scheme,
                         ),
                       if (creature.languages.isNotEmpty)
@@ -393,29 +448,6 @@ class CreatureStatblockView extends StatelessWidget {
                             TextSpan(text: _signed(creature.initiativeBonus)),
                           ],
                         ),
-                      ),
-                      if (creature.vulnerabilities.isNotEmpty)
-                        _LabeledValueRow(
-                          label: 'Vulnerabilities',
-                          value: creature.vulnerabilities.join(', '),
-                          scheme: scheme,
-                        ),
-                      if (creature.resistances.isNotEmpty)
-                        _LabeledValueRow(
-                          label: 'Resistances',
-                          value: creature.resistances.join(', '),
-                          scheme: scheme,
-                        ),
-                      if (creature.immunities.isNotEmpty)
-                        _LabeledValueRow(
-                          label: 'Immunities',
-                          value: creature.immunities.join(', '),
-                          scheme: scheme,
-                        ),
-                      _LabeledValueRow(
-                        label: 'Passive',
-                        value: 'Perception ${creature.computedPassivePerception}',
-                        scheme: scheme,
                       ),
                     ],
                   ),
