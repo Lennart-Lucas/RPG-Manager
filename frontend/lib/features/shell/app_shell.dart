@@ -5,7 +5,9 @@ import '../auth/state/auth_controller.dart';
 import '../auth/ui/home_screen.dart';
 import '../catalog/data/catalog_kind.dart';
 import '../catalog/ui/catalog_body.dart';
+import '../dm_tools/resources/resources_icons.dart';
 import '../dm_tools/resources/ui/resources_body.dart';
+import '../dm_tools/ui/dm_tool_placeholder_body.dart';
 import '../mechanics/mechanics_icons.dart';
 import '../mechanics/features/ui/features_body.dart';
 import '../mechanics/spell_tags/ui/spell_tags_body.dart';
@@ -43,6 +45,8 @@ class _AppShellState extends State<AppShell> {
         AppPage.home => 'RPG Manager',
         AppPage.preferences => 'Settings',
         AppPage.resources => 'Resources',
+        AppPage.mapMaker => 'Map maker',
+        AppPage.playlists => 'Playlists',
         AppPage.classes => 'Classes',
         AppPage.feats => 'Feats',
         AppPage.items => 'Items',
@@ -113,6 +117,14 @@ class _AppShellState extends State<AppShell> {
             themeController: widget.themeController,
           ),
         AppPage.resources => ResourcesBody(auth: widget.auth),
+        AppPage.mapMaker => const DmToolPlaceholderBody(
+            title: 'Map maker',
+            icon: mapMakerPageIcon,
+          ),
+        AppPage.playlists => const DmToolPlaceholderBody(
+            title: 'Playlists',
+            icon: playlistsPageIcon,
+          ),
         AppPage.classes => ClassesBody(auth: widget.auth),
         AppPage.feats => _catalog(CatalogKind.feats, featsPageIcon),
         AppPage.items => ItemsBody(auth: widget.auth),

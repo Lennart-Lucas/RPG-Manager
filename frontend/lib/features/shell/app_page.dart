@@ -2,6 +2,8 @@ enum AppPage {
   home,
   preferences,
   resources,
+  mapMaker,
+  playlists,
   classes,
   feats,
   items,

@@ -109,7 +109,10 @@ class _AppSidebarState extends State<AppSidebar> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final preferencesSelected = widget.currentPage == AppPage.preferences;
-    final resourcesSelected = widget.currentPage == AppPage.resources;
+    final resourcesSelected = switch (widget.currentPage) {
+      AppPage.resources || AppPage.mapMaker || AppPage.playlists => true,
+      _ => false,
+    };
     final playerOptionSelected = switch (widget.currentPage) {
       AppPage.classes ||
       AppPage.feats ||
@@ -337,12 +340,6 @@ class _AppSidebarState extends State<AppSidebar> {
                       children: [
                         _navTile(
                           context,
-                          icon: creaturesPageIcon,
-                          label: 'Creatures',
-                          page: AppPage.creatures,
-                        ),
-                        _navTile(
-                          context,
                           icon: atlasPageIcon,
                           label: 'Atlas',
                           page: AppPage.atlas,
@@ -352,6 +349,12 @@ class _AppSidebarState extends State<AppSidebar> {
                           icon: charactersPageIcon,
                           label: 'Characters',
                           page: AppPage.characters,
+                        ),
+                        _navTile(
+                          context,
+                          icon: creaturesPageIcon,
+                          label: 'Creatures',
+                          page: AppPage.creatures,
                         ),
                         _navTile(
                           context,
@@ -374,6 +377,18 @@ class _AppSidebarState extends State<AppSidebar> {
                         expansionAnimationStyle: _expansionStyle,
                         childrenPadding: const EdgeInsets.only(left: 8),
                         children: [
+                          _navTile(
+                            context,
+                            icon: mapMakerPageIcon,
+                            label: 'Map maker',
+                            page: AppPage.mapMaker,
+                          ),
+                          _navTile(
+                            context,
+                            icon: playlistsPageIcon,
+                            label: 'Playlists',
+                            page: AppPage.playlists,
+                          ),
                           _navTile(
                             context,
                             icon: resourcesMenuIcon,
