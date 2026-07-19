@@ -111,3 +111,71 @@ String rewriteWikiLinkNames(
     return formatWikiLink(kind: kind, name: newName, alias: alias);
   });
 }
+
+class _AutoLinkTarget {
+  const _AutoLinkTarget({required this.kind, required this.name});
+
+  final String kind;
+  final String name;
+}
+
+/// Wraps plain-text mentions of [targets] as `[[kind/name]]`.
+///
+/// Longer names are applied first. Existing wiki links are left untouched.
+/// Matching is case-insensitive and uses word boundaries.
+String autoLinkCatalogNames(
+  String text, {
+  required Iterable<({String kind, String name})> targets,
+}) {
+  final sorted = targets
+      .where((t) => t.name.trim().isNotEmpty)
+      .map((t) => _AutoLinkTarget(kind: t.kind, name: t.name.trim()))
+      .toList()
+    ..sort((a, b) => b.name.length.compareTo(a.name.length));
+
+  if (sorted.isEmpty || text.isEmpty) return text;
+
+  var result = text;
+  for (final target in sorted) {
+    final protected = _wikiLinkRanges(result);
+    final pattern = RegExp(
+      '(?<![\\w])${RegExp.escape(target.name)}(?![\\w])',
+      caseSensitive: false,
+    );
+    final replacements = <({int start, int end, String replacement})>[];
+    for (final match in pattern.allMatches(result)) {
+      if (_overlapsAny(match.start, match.end, protected)) continue;
+      replacements.add((
+        start: match.start,
+        end: match.end,
+        replacement: formatWikiLink(kind: target.kind, name: target.name),
+      ));
+    }
+    for (final replacement in replacements.reversed) {
+      result = result.replaceRange(
+        replacement.start,
+        replacement.end,
+        replacement.replacement,
+      );
+    }
+  }
+  return result;
+}
+
+List<({int start, int end})> _wikiLinkRanges(String text) {
+  return [
+    for (final match in wikiLinkPattern.allMatches(text))
+      (start: match.start, end: match.end),
+  ];
+}
+
+bool _overlapsAny(
+  int start,
+  int end,
+  List<({int start, int end})> ranges,
+) {
+  for (final range in ranges) {
+    if (start < range.end && end > range.start) return true;
+  }
+  return false;
+}

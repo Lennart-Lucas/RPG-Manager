@@ -109,6 +109,31 @@ class _SpellsBodyState extends State<SpellsBody> {
     }
   }
 
+  Future<List<CatalogLinkTarget>> _loadAutoLinkTargets(String token) async {
+    try {
+      final results = await Future.wait([
+        _api.list(token, CatalogKind.conditions),
+        _api.list(token, CatalogKind.damageTypes),
+      ]);
+      return [
+        for (final item in results[0])
+          CatalogLinkTarget(
+            id: item.id,
+            kind: item.kind.apiValue,
+            name: item.name,
+          ),
+        for (final item in results[1])
+          CatalogLinkTarget(
+            id: item.id,
+            kind: item.kind.apiValue,
+            name: item.name,
+          ),
+      ];
+    } catch (_) {
+      return const [];
+    }
+  }
+
   Future<void> _reload() async {
     setState(() {
       _loading = true;
@@ -151,6 +176,7 @@ class _SpellsBodyState extends State<SpellsBody> {
         casterClasses: lookups.casters,
         resourceFiles: lookups.files,
         searchLinks: (query) => _searchLinks(token, query),
+        loadAutoLinkTargets: () => _loadAutoLinkTargets(token),
       );
       if (spell == null || !mounted) return;
       await _api.create(
@@ -186,6 +212,7 @@ class _SpellsBodyState extends State<SpellsBody> {
         casterClasses: lookups.casters,
         resourceFiles: lookups.files,
         searchLinks: (query) => _searchLinks(token, query),
+        loadAutoLinkTargets: () => _loadAutoLinkTargets(token),
       );
       if (spell == null || !mounted) return;
       await _api.update(

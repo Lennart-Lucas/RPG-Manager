@@ -30,6 +30,8 @@ typedef CatalogLinkSearch = Future<List<CatalogLinkTarget>> Function(
   String query,
 );
 
+typedef CatalogAutoLinkLoader = Future<List<CatalogLinkTarget>> Function();
+
 /// Multiline markdown editor with a formatting toolbar and `[[` wiki-link
 /// autocomplete. Stores raw markdown text.
 class MarkdownFormField extends StatefulWidget {
@@ -42,6 +44,7 @@ class MarkdownFormField extends StatefulWidget {
     this.minLines = 4,
     this.maxLines = 12,
     this.searchLinks,
+    this.loadAutoLinkTargets,
     this.searchDebounce = const Duration(milliseconds: 200),
     this.validator,
     this.onChanged,
@@ -58,6 +61,8 @@ class MarkdownFormField extends StatefulWidget {
   final int minLines;
   final int maxLines;
   final CatalogLinkSearch? searchLinks;
+  /// Records used by the auto-link toolbar action (e.g. conditions + damage types).
+  final CatalogAutoLinkLoader? loadAutoLinkTargets;
   final Duration searchDebounce;
   final FormFieldValidator<String>? validator;
   final ValueChanged<String>? onChanged;
@@ -78,6 +83,7 @@ class _MarkdownFormFieldState extends State<MarkdownFormField> {
   IncompleteWikiLink? _incomplete;
   Timer? _debounce;
   bool _ownsController = false;
+  bool _autoLinking = false;
 
   @override
   void initState() {
@@ -300,6 +306,68 @@ class _MarkdownFormFieldState extends State<MarkdownFormField> {
     _focusNode.requestFocus();
   }
 
+  void _insertTable() {
+    const table = '| Header | Header |\n'
+        '| --- | --- |\n'
+        '| Cell | Cell |\n'
+        '| Cell | Cell |';
+    final text = _controller.text;
+    final selection = _controller.selection;
+    final start = selection.start < 0 ? text.length : selection.start;
+    final end = selection.end < 0 ? start : selection.end;
+
+    final before = start > 0 && text[start - 1] != '\n' ? '\n' : '';
+    final after = end < text.length && text[end] != '\n' ? '\n' : '';
+    final inserted = '$before$table$after';
+    final newText = text.replaceRange(start, end, inserted);
+    // Select first "Header"
+    final headerOffset = start + before.length + 2;
+    _controller.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection(
+        baseOffset: headerOffset,
+        extentOffset: headerOffset + 'Header'.length,
+      ),
+    );
+    _focusNode.requestFocus();
+  }
+
+  Future<void> _autoLink() async {
+    final loader = widget.loadAutoLinkTargets;
+    if (loader == null || _autoLinking) return;
+
+    setState(() => _autoLinking = true);
+    try {
+      final targets = await loader();
+      if (!mounted) return;
+      final linked = autoLinkCatalogNames(
+        _controller.text,
+        targets: targets.map((t) => (kind: t.kind, name: t.name)),
+      );
+      if (linked == _controller.text) {
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          const SnackBar(content: Text('No new links found')),
+        );
+        return;
+      }
+      final cursor = _controller.selection.baseOffset;
+      _controller.value = TextEditingValue(
+        text: linked,
+        selection: TextSelection.collapsed(
+          offset: cursor.clamp(0, linked.length),
+        ),
+      );
+      _focusNode.requestFocus();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(content: Text('Could not auto-link records')),
+      );
+    } finally {
+      if (mounted) setState(() => _autoLinking = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return FormField<String>(
@@ -312,12 +380,16 @@ class _MarkdownFormFieldState extends State<MarkdownFormField> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _Toolbar(
+              autoLinkEnabled: widget.loadAutoLinkTargets != null,
+              autoLinking: _autoLinking,
               onBold: () => _wrapSelection(prefix: '**', suffix: '**'),
               onItalic: () => _wrapSelection(prefix: '*', suffix: '*'),
               onUnderline: () =>
                   _wrapSelection(prefix: '<u>', suffix: '</u>'),
               onBullet: () => _toggleLinePrefix(numbered: false),
               onNumbered: () => _toggleLinePrefix(numbered: true),
+              onTable: _insertTable,
+              onAutoLink: _autoLink,
             ),
             const SizedBox(height: 8),
             CompositedTransformTarget(
@@ -349,6 +421,10 @@ class _Toolbar extends StatelessWidget {
     required this.onUnderline,
     required this.onBullet,
     required this.onNumbered,
+    required this.onTable,
+    required this.onAutoLink,
+    required this.autoLinkEnabled,
+    required this.autoLinking,
   });
 
   final VoidCallback onBold;
@@ -356,6 +432,10 @@ class _Toolbar extends StatelessWidget {
   final VoidCallback onUnderline;
   final VoidCallback onBullet;
   final VoidCallback onNumbered;
+  final VoidCallback onTable;
+  final VoidCallback onAutoLink;
+  final bool autoLinkEnabled;
+  final bool autoLinking;
 
   @override
   Widget build(BuildContext context) {
@@ -388,6 +468,17 @@ class _Toolbar extends StatelessWidget {
           icon: Icons.format_list_numbered,
           onPressed: onNumbered,
         ),
+        _ToolButton(
+          tooltip: 'Table',
+          icon: Icons.table_chart_outlined,
+          onPressed: onTable,
+        ),
+        if (autoLinkEnabled)
+          _ToolButton(
+            tooltip: 'Auto-link conditions & damage types',
+            icon: Icons.link,
+            onPressed: autoLinking ? null : onAutoLink,
+          ),
       ],
     );
   }
@@ -402,7 +493,7 @@ class _ToolButton extends StatelessWidget {
 
   final String tooltip;
   final IconData icon;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {

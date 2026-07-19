@@ -13,6 +13,7 @@ Future<Spell?> showSpellFormSheet(
   required List<CatalogItem> casterClasses,
   required List<ResourceFile> resourceFiles,
   CatalogLinkSearch? searchLinks,
+  CatalogAutoLinkLoader? loadAutoLinkTargets,
 }) {
   final editing = initial != null;
   return showAdaptiveResourceForm<Spell>(
@@ -23,6 +24,7 @@ Future<Spell?> showSpellFormSheet(
       casterClasses: casterClasses,
       resourceFiles: resourceFiles,
       searchLinks: searchLinks,
+      loadAutoLinkTargets: loadAutoLinkTargets,
     ),
   );
 }
@@ -33,12 +35,14 @@ class _SpellForm extends StatefulWidget {
     required this.casterClasses,
     required this.resourceFiles,
     this.searchLinks,
+    this.loadAutoLinkTargets,
   });
 
   final Spell? initial;
   final List<CatalogItem> casterClasses;
   final List<ResourceFile> resourceFiles;
   final CatalogLinkSearch? searchLinks;
+  final CatalogAutoLinkLoader? loadAutoLinkTargets;
 
   @override
   State<_SpellForm> createState() => _SpellFormState();
@@ -578,6 +582,7 @@ class _SpellFormState extends State<_SpellForm> {
             minLines: 4,
             maxLines: 10,
             searchLinks: widget.searchLinks,
+            loadAutoLinkTargets: widget.loadAutoLinkTargets,
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
                 return 'Description is required';
@@ -592,6 +597,7 @@ class _SpellFormState extends State<_SpellForm> {
             minLines: 2,
             maxLines: 6,
             searchLinks: widget.searchLinks,
+            loadAutoLinkTargets: widget.loadAutoLinkTargets,
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
           Row(
