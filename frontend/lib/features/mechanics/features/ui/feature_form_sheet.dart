@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../auth/data/auth_api.dart';
+import '../../../auth/state/auth_controller.dart';
+import '../../../catalog/data/catalog_api.dart';
+import '../../../catalog/data/catalog_kind.dart';
 import '../../../dm_tools/resources/ui/resource_form_helpers.dart';
 import '../../../world/creatures/data/scaler_math.dart';
+import '../../../world/ui/world_form_helpers.dart';
+import '../data/feature_display.dart';
 import '../data/feature_ep.dart';
 import '../data/feature_model.dart';
 import '../data/feature_text.dart';
@@ -14,20 +20,123 @@ Future<MonsterFeature?> showFeatureFormSheet(
   ScalerRank? creatureRank,
   num? creatureThreat,
   int? scalerDmg,
-  int? creatureLevel,
+  int? scalerAtk,
+  int? scalerDc,
+  AuthController? auth,
 }) {
   final editing = initial != null;
-  return showAdaptiveResourceForm<MonsterFeature>(
-    context,
-    title: editing ? 'Edit feature' : 'New feature',
-    child: _FeatureForm(
-      initial: initial,
-      creatureRank: creatureRank,
-      creatureThreat: creatureThreat,
-      scalerDmg: scalerDmg,
-      creatureLevel: creatureLevel,
+  final title = editing ? 'Edit feature' : 'New feature';
+  final width = MediaQuery.sizeOf(context).width;
+  final form = _FeatureForm(
+    initial: initial,
+    creatureRank: creatureRank,
+    creatureThreat: creatureThreat,
+    scalerDmg: scalerDmg,
+    scalerAtk: scalerAtk,
+    scalerDc: scalerDc,
+    auth: auth,
+  );
+
+  if (width >= 1000) {
+    return showDialog<MonsterFeature>(
+      context: context,
+      builder: (context) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1100, maxHeight: 860),
+          child: _FeatureFormScaffold(
+            title: title,
+            compact: false,
+            child: form,
+          ),
+        ),
+      ),
+    );
+  }
+
+  if (width < 720) {
+    return showModalBottomSheet<MonsterFeature>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (context) => SizedBox(
+        height: MediaQuery.sizeOf(context).height * 0.92,
+        child: _FeatureFormScaffold(
+          title: title,
+          compact: true,
+          child: form,
+        ),
+      ),
+    );
+  }
+
+  return showDialog<MonsterFeature>(
+    context: context,
+    builder: (context) => Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 640, maxHeight: 760),
+        child: _FeatureFormScaffold(
+          title: title,
+          compact: false,
+          child: form,
+        ),
+      ),
     ),
   );
+}
+
+/// Title + expanded body (no outer scroll) so the form can show a side preview.
+class _FeatureFormScaffold extends StatelessWidget {
+  const _FeatureFormScaffold({
+    required this.title,
+    required this.compact,
+    required this.child,
+  });
+
+  final String title;
+  final bool compact;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 160),
+      curve: Curves.easeOut,
+      padding: EdgeInsets.only(bottom: bottomInset),
+      child: SafeArea(
+        top: !compact,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 8, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Close',
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(child: child),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _FeatureForm extends StatefulWidget {
@@ -36,14 +145,18 @@ class _FeatureForm extends StatefulWidget {
     this.creatureRank,
     this.creatureThreat,
     this.scalerDmg,
-    this.creatureLevel,
+    this.scalerAtk,
+    this.scalerDc,
+    this.auth,
   });
 
   final MonsterFeature? initial;
   final ScalerRank? creatureRank;
   final num? creatureThreat;
   final int? scalerDmg;
-  final int? creatureLevel;
+  final int? scalerAtk;
+  final int? scalerDc;
+  final AuthController? auth;
 
   @override
   State<_FeatureForm> createState() => _FeatureFormState();
@@ -61,23 +174,8 @@ class _FeatureFormState extends State<_FeatureForm> {
   late final _limitationTriggerController = TextEditingController(
     text: widget.initial?.limitation.recoveryTrigger ?? '',
   );
-  late final _rangeTemplateController = TextEditingController(
-    text: widget.initial?.range.template ?? '',
-  );
-  late final _rangeDistanceController = TextEditingController(
-    text: widget.initial?.range.distance ?? '',
-  );
-  late final _targetAllianceController = TextEditingController(
-    text: widget.initial?.targets.alliance ?? '',
-  );
-  late final _targetAlignmentController = TextEditingController(
-    text: widget.initial?.targets.alignment ?? '',
-  );
-  late final _targetCategoryController = TextEditingController(
-    text: widget.initial?.targets.creatureCategory ?? '',
-  );
-  late final _limitedCountController = TextEditingController(
-    text: widget.initial?.targets.limitedCount?.toString() ?? '',
+  late final _rangeFeetController = TextEditingController(
+    text: widget.initial?.range.feet?.toString() ?? '',
   );
   late final _deferralTurnsController = TextEditingController(
     text: widget.initial?.deferral.turns?.toString() ?? '',
@@ -89,16 +187,24 @@ class _FeatureFormState extends State<_FeatureForm> {
       widget.initial?.rarity ?? FeatureRarity.common;
   late FeatureActivation _activation =
       widget.initial?.activationTime ?? FeatureActivation.none;
+  late FeatureDelivery _delivery =
+      widget.initial?.delivery ?? FeatureDelivery.weapon;
   late bool _hasRequirement = widget.initial?.hasRequirement ?? false;
   late FeatureLimitationType _limitationType =
       widget.initial?.limitation.type ?? FeatureLimitationType.none;
-  late FeatureDefence? _defence = widget.initial?.defence;
-  late FeatureRangeCategory _rangeCategory =
-      widget.initial?.range.category ?? FeatureRangeCategory.self;
+  late FeatureDefence _defence =
+      widget.initial?.defence ?? FeatureDefence.ac;
+  late FeatureRangeMode _rangeMode =
+      widget.initial?.range.mode ?? FeatureRangeMode.melee;
   late FeatureTargetQuantity _targetQuantity =
-      widget.initial?.targets.quantity ?? FeatureTargetQuantity.none;
+      widget.initial?.targets.quantity ?? FeatureTargetQuantity.one;
   late FeatureTargetCategory _targetCategory =
       widget.initial?.targets.category ?? FeatureTargetCategory.target;
+  late FeatureTargetAlliance _targetAlliance =
+      widget.initial?.targets.alliance ?? FeatureTargetAlliance.any;
+  late List<int> _creatureTypeIds = [
+    ...?widget.initial?.targets.creatureTypeIds,
+  ];
   late FeatureDeferralType _deferralType =
       widget.initial?.deferral.type ?? FeatureDeferralType.none;
   late List<FeatureEffect> _effects = [
@@ -106,6 +212,10 @@ class _FeatureFormState extends State<_FeatureForm> {
   ];
   late bool _textOverride = widget.initial?.textOverride ?? false;
   late FeatureBudgetSlot? _budgetSlot = widget.initial?.budgetSlot;
+
+  Map<int, String> _creatureTypeNames = const {};
+  Map<int, String> _damageTypeNames = const {};
+  bool _loadingCreatureTypes = true;
 
   bool get _isAttackOrUtility =>
       _category == FeatureCategory.attack ||
@@ -122,17 +232,49 @@ class _FeatureFormState extends State<_FeatureForm> {
         turns: int.tryParse(_deferralTurnsController.text.trim()),
       );
 
-  MonsterFeature _buildFeature({bool forValidation = false}) {
-    final limitedCount = int.tryParse(_limitedCountController.text.trim());
-    final maxLimited = widget.creatureLevel == null
-        ? null
-        : limitedTargetMaxForLevel(widget.creatureLevel!);
+  @override
+  void initState() {
+    super.initState();
+    _loadCatalogLookups();
+  }
 
+  Future<void> _loadCatalogLookups() async {
+    final auth = widget.auth;
+    if (auth == null) {
+      if (mounted) setState(() => _loadingCreatureTypes = false);
+      return;
+    }
+    try {
+      final token = await auth.requireAccessToken();
+      if (token == null) {
+        if (mounted) setState(() => _loadingCreatureTypes = false);
+        return;
+      }
+      final api = CatalogApi();
+      final results = await Future.wait([
+        api.list(token, CatalogKind.creatureTypes),
+        api.list(token, CatalogKind.damageTypes),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _creatureTypeNames = {for (final i in results[0]) i.id: i.name};
+        _damageTypeNames = {for (final i in results[1]) i.id: i.name};
+        _loadingCreatureTypes = false;
+      });
+    } on AuthApiException {
+      if (mounted) setState(() => _loadingCreatureTypes = false);
+    } catch (_) {
+      if (mounted) setState(() => _loadingCreatureTypes = false);
+    }
+  }
+
+  MonsterFeature _buildFeature({bool forValidation = false}) {
     return MonsterFeature(
       id: widget.initial?.id ?? '',
       name: _nameController.text.trim(),
       category: _category,
       rarity: _rarity,
+      delivery: _delivery,
       activationTime: _activation,
       hasRequirement: _hasRequirement,
       limitation: FeatureLimitation(
@@ -146,25 +288,18 @@ class _FeatureFormState extends State<_FeatureForm> {
       ),
       defence: _isAttackOrUtility ? _defence : null,
       range: FeatureRange(
-        category: _rangeCategory,
-        template: _rangeTemplateController.text.trim(),
-        distance: _rangeDistanceController.text.trim(),
+        mode: _rangeMode,
+        feet: int.tryParse(_rangeFeetController.text.trim()),
       ),
       targets: FeatureTargets(
         quantity: _targetQuantity,
-        limitedCount: _targetQuantity == FeatureTargetQuantity.limited
-            ? (limitedCount ?? maxLimited ?? 2)
-            : null,
         category: _targetCategory,
-        alliance: _targetAllianceController.text.trim().isEmpty
-            ? null
-            : _targetAllianceController.text.trim(),
-        alignment: _targetAlignmentController.text.trim().isEmpty
-            ? null
-            : _targetAlignmentController.text.trim(),
-        creatureCategory: _targetCategoryController.text.trim().isEmpty
-            ? null
-            : _targetCategoryController.text.trim(),
+        alliance: _targetCategory == FeatureTargetCategory.creature
+            ? _targetAlliance
+            : FeatureTargetAlliance.any,
+        creatureTypeIds: _targetCategory == FeatureTargetCategory.creature
+            ? _creatureTypeIds
+            : const [],
       ),
       deferral: _deferral,
       effects: _isAttackOrUtility ? _effects : const [],
@@ -192,26 +327,25 @@ class _FeatureFormState extends State<_FeatureForm> {
     _textController.dispose();
     _limitationValueController.dispose();
     _limitationTriggerController.dispose();
-    _rangeTemplateController.dispose();
-    _rangeDistanceController.dispose();
-    _targetAllianceController.dispose();
-    _targetAlignmentController.dispose();
-    _targetCategoryController.dispose();
-    _limitedCountController.dispose();
+    _rangeFeetController.dispose();
     _deferralTurnsController.dispose();
     super.dispose();
   }
 
-  void _onCategoryChanged(FeatureCategory? value) {
+  void _onActivationChanged(FeatureActivation? value) {
     if (value == null) return;
     setState(() {
-      _category = value;
-      if (value == FeatureCategory.trait) {
-        _activation = FeatureActivation.none;
-        _defence = null;
+      _activation = value;
+      if (value == FeatureActivation.none) {
+        _category = FeatureCategory.trait;
+        _defence = FeatureDefence.ac;
         _effects = [];
-        _rangeCategory = FeatureRangeCategory.self;
+        _rangeMode = FeatureRangeMode.melee;
+        _rangeFeetController.clear();
         _targetQuantity = FeatureTargetQuantity.none;
+      } else if (_category == FeatureCategory.trait) {
+        _category = FeatureCategory.utility;
+        _defence = FeatureDefence.ac;
       }
     });
   }
@@ -247,7 +381,7 @@ class _FeatureFormState extends State<_FeatureForm> {
       _nameController.text = trait.name;
       _category = FeatureCategory.trait;
       _activation = FeatureActivation.none;
-      _defence = null;
+      _defence = FeatureDefence.ac;
       _effects = [];
       _textController.text = trait.text;
       _textOverride = true;
@@ -258,7 +392,11 @@ class _FeatureFormState extends State<_FeatureForm> {
   Future<void> _editEffect({FeatureEffect? initial, int? index}) async {
     final result = await showDialog<FeatureEffect>(
       context: context,
-      builder: (ctx) => _EffectEditDialog(initial: initial),
+      builder: (ctx) => _EffectEditDialog(
+        initial: initial,
+        damageTypeNames: _damageTypeNames,
+        targetQuantity: _targetQuantity,
+      ),
     );
     if (result == null || !mounted) return;
     setState(() {
@@ -305,28 +443,41 @@ class _FeatureFormState extends State<_FeatureForm> {
     );
   }
 
+  Widget _previewBox(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final display = FeatureDisplay.fromFeature(
+      _buildFeature(),
+      atk: widget.scalerAtk,
+      dc: widget.scalerDc,
+      creatureTypeNamesById: _creatureTypeNames,
+    );
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        child: Text.rich(
+          display.toSpan(style: Theme.of(context).textTheme.bodyMedium),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final validation = _validation;
     final availableEp = validation.available;
     final spentEp = validation.spent;
+    final wide = MediaQuery.sizeOf(context).width >= 1000;
+    final preview = _previewBox(context);
 
-    return PopScope(
-      canPop: validation.ok,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop || validation.ok) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(validation.message ?? 'Fix EP budget before closing'),
-          ),
-        );
-      },
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
+    final formFields = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+            _section('Identity'),
             TextFormField(
               controller: _nameController,
               decoration: ResourceFormStyles.inputDecoration(
@@ -334,89 +485,245 @@ class _FeatureFormState extends State<_FeatureForm> {
                 label: 'Name',
               ),
               textCapitalization: TextCapitalization.words,
+              onChanged: (_) => setState(() {}),
               validator: (v) =>
                   v == null || v.trim().isEmpty ? 'Name is required' : null,
             ),
             const SizedBox(height: ResourceFormStyles.fieldSpacing),
-            _section('Category'),
-            DropdownButtonFormField<FeatureCategory>(
-              initialValue: _category,
-              decoration: ResourceFormStyles.inputDecoration(
-                context,
-                label: 'Category',
-              ),
-              items: [
-                for (final c in FeatureCategory.values)
-                  DropdownMenuItem(value: c, child: Text(c.label)),
-              ],
-              onChanged: _onCategoryChanged,
-            ),
-            const SizedBox(height: ResourceFormStyles.fieldSpacing),
-            _section('Rarity & EP'),
-            DropdownButtonFormField<FeatureRarity>(
-              initialValue: _rarity,
-              decoration: ResourceFormStyles.inputDecoration(
-                context,
-                label: 'Rarity',
-              ),
-              items: [
-                for (final r in FeatureRarity.values)
-                  DropdownMenuItem(value: r, child: Text(r.label)),
-              ],
-              onChanged: (v) {
-                if (v == null) return;
-                setState(() => _rarity = v);
-              },
-            ),
-            const SizedBox(height: ResourceFormStyles.fieldSpacing),
-            Text(
-              'Available EP: $availableEp · Spent: $spentEp',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: validation.ok
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.error,
-                  ),
-            ),
-            if (!validation.ok && validation.message != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  validation.message!,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.error,
-                    fontSize: 12,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<FeatureActivation>(
+                    initialValue: _activation,
+                    decoration: ResourceFormStyles.inputDecoration(
+                      context,
+                      label: 'Activation',
+                    ),
+                    items: [
+                      for (final a in FeatureActivation.values)
+                        DropdownMenuItem(value: a, child: Text(a.label)),
+                    ],
+                    onChanged: _onActivationChanged,
                   ),
                 ),
+                const SizedBox(width: ResourceFormStyles.fieldSpacing),
+                Expanded(
+                  child: DropdownButtonFormField<FeatureRarity>(
+                    initialValue: _rarity,
+                    decoration: ResourceFormStyles.inputDecoration(
+                      context,
+                      label: 'Rarity',
+                    ),
+                    items: [
+                      for (final r in FeatureRarity.values)
+                        DropdownMenuItem(value: r, child: Text(r.label)),
+                    ],
+                    onChanged: (v) {
+                      if (v == null) return;
+                      setState(() => _rarity = v);
+                    },
+                  ),
+                ),
+              ],
+            ),
+            if (_isAttackOrUtility) ...[
+              const SizedBox(height: ResourceFormStyles.sectionSpacing),
+              _section('Attack'),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<FeatureRangeMode>(
+                      initialValue: _rangeMode,
+                      decoration: ResourceFormStyles.inputDecoration(
+                        context,
+                        label: 'Melee / Range',
+                      ),
+                      items: [
+                        for (final m in FeatureRangeMode.values)
+                          DropdownMenuItem(value: m, child: Text(m.label)),
+                      ],
+                      onChanged: (v) {
+                        if (v == null) return;
+                        setState(() => _rangeMode = v);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: ResourceFormStyles.fieldSpacing),
+                  Expanded(
+                    child: DropdownButtonFormField<FeatureDelivery>(
+                      initialValue: _delivery,
+                      decoration: ResourceFormStyles.inputDecoration(
+                        context,
+                        label: 'Weapon / Magic',
+                      ),
+                      items: [
+                        for (final d in FeatureDelivery.values)
+                          DropdownMenuItem(value: d, child: Text(d.label)),
+                      ],
+                      onChanged: (v) {
+                        if (v == null) return;
+                        setState(() => _delivery = v);
+                      },
+                    ),
+                  ),
+                ],
               ),
+              const SizedBox(height: ResourceFormStyles.fieldSpacing),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<FeatureDefence>(
+                      initialValue: _defence,
+                      decoration: ResourceFormStyles.inputDecoration(
+                        context,
+                        label: 'Save / attack vs',
+                      ),
+                      items: [
+                        for (final d in FeatureDefence.values)
+                          DropdownMenuItem(value: d, child: Text(d.label)),
+                      ],
+                      onChanged: (v) {
+                        if (v == null) return;
+                        setState(() => _defence = v);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: ResourceFormStyles.fieldSpacing),
+                  Expanded(
+                    child: TextFormField(
+                      key: ValueKey(_rangeMode),
+                      controller: _rangeFeetController,
+                      decoration: ResourceFormStyles.inputDecoration(
+                        context,
+                        label: _rangeMode.distanceLabel,
+                        hintText: 'ft.',
+                      ),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                      onChanged: (_) => setState(() {}),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: ResourceFormStyles.sectionSpacing),
+              _section('Targets'),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<FeatureTargetQuantity>(
+                      initialValue: _targetQuantity,
+                      decoration: ResourceFormStyles.inputDecoration(
+                        context,
+                        label: 'Quantity',
+                      ),
+                      items: [
+                        for (final q in FeatureTargetQuantity.values)
+                          DropdownMenuItem(value: q, child: Text(q.label)),
+                      ],
+                      onChanged: (v) {
+                        if (v == null) return;
+                        setState(() => _targetQuantity = v);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: ResourceFormStyles.fieldSpacing),
+                  Expanded(
+                    child: DropdownButtonFormField<FeatureTargetCategory>(
+                      initialValue: _targetCategory,
+                      decoration: ResourceFormStyles.inputDecoration(
+                        context,
+                        label: 'Target category',
+                      ),
+                      items: [
+                        for (final c in FeatureTargetCategory.values)
+                          DropdownMenuItem(value: c, child: Text(c.label)),
+                      ],
+                      onChanged: (v) {
+                        if (v == null) return;
+                        setState(() {
+                          _targetCategory = v;
+                          if (v != FeatureTargetCategory.creature) {
+                            _targetAlliance = FeatureTargetAlliance.any;
+                            _creatureTypeIds = [];
+                          }
+                        });
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              if (_targetCategory == FeatureTargetCategory.creature) ...[
+                const SizedBox(height: ResourceFormStyles.fieldSpacing),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<FeatureTargetAlliance>(
+                        initialValue: _targetAlliance,
+                        decoration: ResourceFormStyles.inputDecoration(
+                          context,
+                          label: 'Alliance',
+                        ),
+                        items: [
+                          for (final a in FeatureTargetAlliance.values)
+                            DropdownMenuItem(value: a, child: Text(a.label)),
+                        ],
+                        onChanged: (v) {
+                          if (v == null) return;
+                          setState(() => _targetAlliance = v);
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: ResourceFormStyles.fieldSpacing),
+                    Expanded(
+                      child: _loadingCreatureTypes
+                          ? const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                              child: Center(
+                                child: SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              ),
+                            )
+                          : catalogMultiPickTile(
+                              context: context,
+                              label: 'Creature types',
+                              labels: catalogSelectionLabels(
+                                selected: _creatureTypeIds.toSet(),
+                                namesById: _creatureTypeNames,
+                              ),
+                              onTap: () => pickCatalogIds(
+                                context: context,
+                                title: 'Creature types',
+                                options: catalogPicklistOptions(
+                                  _creatureTypeNames,
+                                ),
+                                selected: _creatureTypeIds.toSet(),
+                                onDone: (next) => setState(
+                                  () => _creatureTypeIds = next.toList(),
+                                ),
+                              ),
+                            ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Has requirement'),
               value: _hasRequirement,
               onChanged: (v) => setState(() => _hasRequirement = v),
-            ),
-            const SizedBox(height: ResourceFormStyles.fieldSpacing),
-            _section('Activation'),
-            DropdownButtonFormField<FeatureActivation>(
-              initialValue: _activation,
-              decoration: ResourceFormStyles.inputDecoration(
-                context,
-                label: 'Activation',
-              ),
-              items: [
-                for (final a in FeatureActivation.values)
-                  DropdownMenuItem(
-                    value: a,
-                    enabled: _category != FeatureCategory.trait ||
-                        a == FeatureActivation.none,
-                    child: Text(a.label),
-                  ),
-              ],
-              onChanged: _category == FeatureCategory.trait
-                  ? null
-                  : (v) {
-                      if (v == null) return;
-                      setState(() => _activation = v);
-                    },
             ),
             if (_showLimitation) ...[
               const SizedBox(height: ResourceFormStyles.sectionSpacing),
@@ -429,7 +736,7 @@ class _FeatureFormState extends State<_FeatureForm> {
                 ),
                 items: [
                   for (final t in FeatureLimitationType.values)
-                    DropdownMenuItem(value: t, child: Text(t.name)),
+                    DropdownMenuItem(value: t, child: Text(t.label)),
                 ],
                 onChanged: (v) {
                   if (v == null) return;
@@ -464,133 +771,6 @@ class _FeatureFormState extends State<_FeatureForm> {
                   ),
                 ),
             ],
-            if (_isAttackOrUtility) ...[
-              const SizedBox(height: ResourceFormStyles.sectionSpacing),
-              _section('Defence'),
-              DropdownButtonFormField<FeatureDefence?>(
-                initialValue: _defence,
-                decoration: ResourceFormStyles.inputDecoration(
-                  context,
-                  label: 'Save / attack vs',
-                ),
-                items: [
-                  const DropdownMenuItem<FeatureDefence?>(
-                    value: null,
-                    child: Text('None'),
-                  ),
-                  for (final d in FeatureDefence.values)
-                    DropdownMenuItem(value: d, child: Text(d.label)),
-                ],
-                onChanged: (v) => setState(() => _defence = v),
-              ),
-              const SizedBox(height: ResourceFormStyles.sectionSpacing),
-              _section('Range'),
-              DropdownButtonFormField<FeatureRangeCategory>(
-                initialValue: _rangeCategory,
-                decoration: ResourceFormStyles.inputDecoration(
-                  context,
-                  label: 'Range category',
-                ),
-                items: [
-                  for (final c in FeatureRangeCategory.values)
-                    DropdownMenuItem(value: c, child: Text(c.name)),
-                ],
-                onChanged: (v) {
-                  if (v == null) return;
-                  setState(() => _rangeCategory = v);
-                },
-              ),
-              const SizedBox(height: ResourceFormStyles.fieldSpacing),
-              TextFormField(
-                controller: _rangeTemplateController,
-                decoration: ResourceFormStyles.inputDecoration(
-                  context,
-                  label: 'Template',
-                  hintText: 'cone, line, circle…',
-                ),
-              ),
-              const SizedBox(height: ResourceFormStyles.fieldSpacing),
-              TextFormField(
-                controller: _rangeDistanceController,
-                decoration: ResourceFormStyles.inputDecoration(
-                  context,
-                  label: 'Distance',
-                  hintText: '60 ft., 15 ft. radius…',
-                ),
-              ),
-              const SizedBox(height: ResourceFormStyles.sectionSpacing),
-              _section('Targets'),
-              DropdownButtonFormField<FeatureTargetQuantity>(
-                initialValue: _targetQuantity,
-                decoration: ResourceFormStyles.inputDecoration(
-                  context,
-                  label: 'Quantity',
-                ),
-                items: [
-                  for (final q in FeatureTargetQuantity.values)
-                    DropdownMenuItem(value: q, child: Text(q.name)),
-                ],
-                onChanged: (v) {
-                  if (v == null) return;
-                  setState(() => _targetQuantity = v);
-                },
-              ),
-              if (_targetQuantity == FeatureTargetQuantity.limited) ...[
-                const SizedBox(height: ResourceFormStyles.fieldSpacing),
-                TextFormField(
-                  controller: _limitedCountController,
-                  decoration: ResourceFormStyles.inputDecoration(
-                    context,
-                    label: 'Limited count',
-                    helperText: widget.creatureLevel == null
-                        ? null
-                        : 'Max ${limitedTargetMaxForLevel(widget.creatureLevel!)} at level ${widget.creatureLevel}',
-                  ),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                ),
-              ],
-              const SizedBox(height: ResourceFormStyles.fieldSpacing),
-              DropdownButtonFormField<FeatureTargetCategory>(
-                initialValue: _targetCategory,
-                decoration: ResourceFormStyles.inputDecoration(
-                  context,
-                  label: 'Target category',
-                ),
-                items: [
-                  for (final c in FeatureTargetCategory.values)
-                    DropdownMenuItem(value: c, child: Text(c.name)),
-                ],
-                onChanged: (v) {
-                  if (v == null) return;
-                  setState(() => _targetCategory = v);
-                },
-              ),
-              const SizedBox(height: ResourceFormStyles.fieldSpacing),
-              TextFormField(
-                controller: _targetAllianceController,
-                decoration: ResourceFormStyles.inputDecoration(
-                  context,
-                  label: 'Alliance filter',
-                ),
-              ),
-              const SizedBox(height: ResourceFormStyles.fieldSpacing),
-              TextFormField(
-                controller: _targetAlignmentController,
-                decoration: ResourceFormStyles.inputDecoration(
-                  context,
-                  label: 'Alignment filter',
-                ),
-              ),
-              const SizedBox(height: ResourceFormStyles.fieldSpacing),
-              TextFormField(
-                controller: _targetCategoryController,
-                decoration: ResourceFormStyles.inputDecoration(
-                  context,
-                  label: 'Creature category filter',
-                ),
-              ),
-            ],
             if (_showDeferral) ...[
               const SizedBox(height: ResourceFormStyles.sectionSpacing),
               _section('Deferral'),
@@ -602,7 +782,7 @@ class _FeatureFormState extends State<_FeatureForm> {
                 ),
                 items: [
                   for (final t in FeatureDeferralType.values)
-                    DropdownMenuItem(value: t, child: Text(t.name)),
+                    DropdownMenuItem(value: t, child: Text(t.label)),
                 ],
                 onChanged: (v) {
                   if (v == null) return;
@@ -626,14 +806,23 @@ class _FeatureFormState extends State<_FeatureForm> {
             if (_isAttackOrUtility) ...[
               const SizedBox(height: ResourceFormStyles.sectionSpacing),
               _section('Effects (${_effects.length}/3)'),
+              Text(
+                'Add 1–3 effects. Available EP: $availableEp · Spent: $spentEp.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: validation.ok
+                          ? Theme.of(context).colorScheme.onSurfaceVariant
+                          : Theme.of(context).colorScheme.error,
+                    ),
+              ),
+              const SizedBox(height: ResourceFormStyles.fieldSpacing),
               for (var i = 0; i < _effects.length; i++)
                 Card(
                   margin: const EdgeInsets.only(bottom: 8),
                   child: ListTile(
-                    title: Text(_effects[i].type.name),
+                    title: Text(_effects[i].type.label),
                     subtitle: Text(
                       'Cost: ${computeEffectCost(_effects[i])} EP · '
-                      '${_effects[i].duration.name}',
+                      '${_effects[i].duration.label}',
                     ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -709,14 +898,76 @@ class _FeatureFormState extends State<_FeatureForm> {
                   child: Text('None'),
                 ),
                 for (final s in FeatureBudgetSlot.values)
-                  DropdownMenuItem(value: s, child: Text(s.name)),
+                  DropdownMenuItem(value: s, child: Text(s.label)),
               ],
               onChanged: (v) => setState(() => _budgetSlot = v),
             ),
-            const SizedBox(height: ResourceFormStyles.sectionSpacing),
-            FilledButton(
-              onPressed: validation.ok ? _submit : null,
-              child: Text(widget.initial == null ? 'Create' : 'Save'),
+      ],
+    );
+
+    final scrollableForm = SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+      child: wide
+          ? formFields
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                formFields,
+                const SizedBox(height: ResourceFormStyles.sectionSpacing),
+                ExpansionTile(
+                  title: const Text('Preview'),
+                  initiallyExpanded: true,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: preview,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+    );
+
+    final body = wide
+        ? Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(flex: 5, child: scrollableForm),
+              const VerticalDivider(width: 1),
+              Expanded(
+                flex: 4,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: preview,
+                ),
+              ),
+            ],
+          )
+        : scrollableForm;
+
+    return PopScope(
+      canPop: validation.ok,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop || validation.ok) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(validation.message ?? 'Fix EP budget before closing'),
+          ),
+        );
+      },
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(child: body),
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+              child: FilledButton(
+                onPressed: validation.ok ? _submit : null,
+                child: Text(widget.initial == null ? 'Create' : 'Save'),
+              ),
             ),
           ],
         ),
@@ -726,9 +977,15 @@ class _FeatureFormState extends State<_FeatureForm> {
 }
 
 class _EffectEditDialog extends StatefulWidget {
-  const _EffectEditDialog({this.initial});
+  const _EffectEditDialog({
+    this.initial,
+    this.damageTypeNames = const {},
+    this.targetQuantity = FeatureTargetQuantity.one,
+  });
 
   final FeatureEffect? initial;
+  final Map<int, String> damageTypeNames;
+  final FeatureTargetQuantity targetQuantity;
 
   @override
   State<_EffectEditDialog> createState() => _EffectEditDialogState();
@@ -739,16 +996,11 @@ class _EffectEditDialogState extends State<_EffectEditDialog> {
       widget.initial?.type ?? FeatureEffectType.damage;
   late FeatureEffectDuration _duration =
       widget.initial?.duration ?? FeatureEffectDuration.instant;
-  late final _damageEpController = TextEditingController(
-    text: '${widget.initial?.payload['damageEp'] ?? 1}',
-  );
-  late final _deliveryController = TextEditingController(
-    text: widget.initial?.payload['delivery'] as String? ?? 'area',
-  );
-  late final _damageTypesController = TextEditingController(
-    text: ((widget.initial?.payload['damageTypes'] as List?) ?? const [])
-        .join(', '),
-  );
+  late int _damageEp =
+      ((widget.initial?.payload['damageEp'] as num?)?.toInt() ?? 1).clamp(1, 5);
+  late int? _damageTypeId = _initialDamageTypeId();
+  late bool _damageOnMiss = widget.initial?.payload['damageOnMiss'] == true &&
+      widget.targetQuantity == FeatureTargetQuantity.all;
   late final _conditionController = TextEditingController(
     text: widget.initial?.payload['condition'] as String? ?? '',
   );
@@ -794,11 +1046,18 @@ class _EffectEditDialogState extends State<_EffectEditDialog> {
   late bool _multiTarget = widget.initial?.payload['multiTarget'] == true;
   late bool _extraSave = widget.initial?.payload['extraSave'] == true;
 
+  int? _initialDamageTypeId() {
+    final raw = (widget.initial?.payload['damageTypes'] as List?) ?? const [];
+    if (raw.isEmpty) return null;
+    final wanted = '${raw.first}'.trim().toLowerCase();
+    for (final entry in widget.damageTypeNames.entries) {
+      if (entry.value.toLowerCase() == wanted) return entry.key;
+    }
+    return null;
+  }
+
   @override
   void dispose() {
-    _damageEpController.dispose();
-    _deliveryController.dispose();
-    _damageTypesController.dispose();
     _conditionController.dispose();
     _extraConditionsController.dispose();
     _terrainModifierController.dispose();
@@ -815,15 +1074,13 @@ class _EffectEditDialogState extends State<_EffectEditDialog> {
   Map<String, dynamic> _payload() {
     return switch (_type) {
       FeatureEffectType.damage => {
-          'damageEp': int.tryParse(_damageEpController.text.trim()) ?? 1,
-          'delivery': _deliveryController.text.trim().isEmpty
-              ? 'area'
-              : _deliveryController.text.trim(),
-          'damageTypes': _damageTypesController.text
-              .split(',')
-              .map((s) => s.trim())
-              .where((s) => s.isNotEmpty)
-              .toList(),
+          'damageEp': _damageEp,
+          'delivery': damageDeliveryMode(widget.targetQuantity).name,
+          'damageOnMiss': widget.targetQuantity == FeatureTargetQuantity.all &&
+              _damageOnMiss,
+          'damageTypes': [
+            if (_damageTypeId != null) ?widget.damageTypeNames[_damageTypeId!],
+          ],
         },
       FeatureEffectType.condition => {
           'condition': _conditionController.text.trim(),
@@ -875,230 +1132,286 @@ class _EffectEditDialogState extends State<_EffectEditDialog> {
   @override
   Widget build(BuildContext context) {
     final preview = _buildEffect();
+    final gap = ResourceFormStyles.fieldSpacing;
+    InputDecoration deco(String label, {String? hintText}) =>
+        ResourceFormStyles.inputDecoration(
+          context,
+          label: label,
+          hintText: hintText,
+        );
+
     return AlertDialog(
       title: Text(widget.initial == null ? 'Add effect' : 'Edit effect'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            DropdownButtonFormField<FeatureEffectType>(
-              initialValue: _type,
-              decoration: const InputDecoration(labelText: 'Type'),
-              items: [
-                for (final t in FeatureEffectType.values)
-                  DropdownMenuItem(value: t, child: Text(t.name)),
-              ],
-              onChanged: (v) {
-                if (v == null) return;
-                setState(() => _type = v);
+      content: SizedBox(
+        width: 420,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              DropdownButtonFormField<FeatureEffectType>(
+                initialValue: _type,
+                decoration: deco('Type'),
+                items: [
+                  for (final t in FeatureEffectType.values)
+                    DropdownMenuItem(value: t, child: Text(t.label)),
+                ],
+                onChanged: (v) {
+                  if (v == null) return;
+                  setState(() => _type = v);
+                },
+              ),
+              SizedBox(height: gap),
+              DropdownButtonFormField<FeatureEffectDuration>(
+                initialValue: _duration,
+                decoration: deco('Duration'),
+                items: [
+                  for (final d in FeatureEffectDuration.values)
+                    DropdownMenuItem(value: d, child: Text(d.pickLabel)),
+                ],
+                onChanged: (v) {
+                  if (v == null) return;
+                  setState(() => _duration = v);
+                },
+              ),
+              SizedBox(height: gap),
+              ...switch (_type) {
+                FeatureEffectType.damage => [
+                    DropdownButtonFormField<int>(
+                      key: ValueKey(
+                        '${widget.targetQuantity.name}-$_damageOnMiss',
+                      ),
+                      initialValue: _damageEp,
+                      decoration: deco('Damage Amount'),
+                      items: [
+                        for (var ep = 1; ep <= 5; ep++)
+                          DropdownMenuItem(
+                            value: ep,
+                            child: Text(
+                              damageAmountLabel(
+                                ep,
+                                quantity: widget.targetQuantity,
+                                damageOnMiss: _damageOnMiss,
+                              ),
+                            ),
+                          ),
+                      ],
+                      onChanged: (v) {
+                        if (v == null) return;
+                        setState(() => _damageEp = v);
+                      },
+                    ),
+                    SizedBox(height: gap),
+                    DropdownButtonFormField<int?>(
+                      initialValue: _damageTypeId,
+                      decoration: deco('Damage type'),
+                      items: [
+                        const DropdownMenuItem<int?>(
+                          value: null,
+                          child: Text('None'),
+                        ),
+                        for (final entry
+                            in (widget.damageTypeNames.entries.toList()
+                              ..sort(
+                                (a, b) => a.value.toLowerCase().compareTo(
+                                      b.value.toLowerCase(),
+                                    ),
+                              )))
+                          DropdownMenuItem<int?>(
+                            value: entry.key,
+                            child: Text(entry.value),
+                          ),
+                      ],
+                      onChanged: (v) => setState(() => _damageTypeId = v),
+                    ),
+                    if (widget.targetQuantity == FeatureTargetQuantity.all)
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Damage on Miss (1EP)'),
+                        value: _damageOnMiss,
+                        onChanged: (v) => setState(() => _damageOnMiss = v),
+                      ),
+                  ],
+                FeatureEffectType.condition => [
+                    TextFormField(
+                      controller: _conditionController,
+                      decoration: deco('Condition'),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    SizedBox(height: gap),
+                    DropdownButtonFormField<FeatureRarity>(
+                      initialValue: _conditionRarity,
+                      decoration: deco('Rarity'),
+                      items: [
+                        for (final r in FeatureRarity.values)
+                          DropdownMenuItem(value: r, child: Text(r.label)),
+                      ],
+                      onChanged: (v) {
+                        if (v == null) return;
+                        setState(() => _conditionRarity = v);
+                      },
+                    ),
+                    SizedBox(height: gap),
+                    TextFormField(
+                      controller: _extraConditionsController,
+                      decoration: deco('Extra conditions'),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Multi-target'),
+                      value: _multiTarget,
+                      onChanged: (v) => setState(() => _multiTarget = v),
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Extra save (−1 EP)'),
+                      value: _extraSave,
+                      onChanged: (v) => setState(() => _extraSave = v),
+                    ),
+                  ],
+                FeatureEffectType.terrain => [
+                    TextFormField(
+                      controller: _terrainModifierController,
+                      decoration: deco('Modifier'),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    SizedBox(height: gap),
+                    DropdownButtonFormField<FeatureRarity>(
+                      initialValue: _terrainRarity,
+                      decoration: deco('Rarity'),
+                      items: [
+                        for (final r in FeatureRarity.values)
+                          DropdownMenuItem(value: r, child: Text(r.label)),
+                      ],
+                      onChanged: (v) {
+                        if (v == null) return;
+                        setState(() => _terrainRarity = v);
+                      },
+                    ),
+                    SizedBox(height: gap),
+                    TextFormField(
+                      controller: _extraModifiersController,
+                      decoration: deco('Extra modifiers'),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                      onChanged: (_) => setState(() {}),
+                    ),
+                  ],
+                FeatureEffectType.resource => [
+                    TextFormField(
+                      controller: _resourceController,
+                      decoration: deco('Resource'),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    SizedBox(height: gap),
+                    DropdownButtonFormField<FeatureRarity>(
+                      initialValue: _resourceRarity,
+                      decoration: deco('Rarity'),
+                      items: [
+                        for (final r in FeatureRarity.values)
+                          DropdownMenuItem(value: r, child: Text(r.label)),
+                      ],
+                      onChanged: (v) {
+                        if (v == null) return;
+                        setState(() => _resourceRarity = v);
+                      },
+                    ),
+                    SizedBox(height: gap),
+                    TextFormField(
+                      controller: _extraResourcesController,
+                      decoration: deco('Extra resources'),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Multi-target'),
+                      value: _multiTarget,
+                      onChanged: (v) => setState(() => _multiTarget = v),
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Extra save (−1 EP)'),
+                      value: _extraSave,
+                      onChanged: (v) => setState(() => _extraSave = v),
+                    ),
+                  ],
+                FeatureEffectType.movement => [
+                    TextFormField(
+                      controller: _movementEpController,
+                      decoration: deco('Movement EP'),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    SizedBox(height: gap),
+                    TextFormField(
+                      controller: _movementKindController,
+                      decoration: deco(
+                        'Movement kind',
+                        hintText: 'push, pull, slide…',
+                      ),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                  ],
+                FeatureEffectType.empower => [
+                    TextFormField(
+                      controller: _boonController,
+                      decoration: deco('Boon'),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    SizedBox(height: gap),
+                    DropdownButtonFormField<FeatureRarity>(
+                      initialValue: _boonRarity,
+                      decoration: deco('Rarity'),
+                      items: [
+                        for (final r in FeatureRarity.values)
+                          DropdownMenuItem(value: r, child: Text(r.label)),
+                      ],
+                      onChanged: (v) {
+                        if (v == null) return;
+                        setState(() => _boonRarity = v);
+                      },
+                    ),
+                    SizedBox(height: gap),
+                    TextFormField(
+                      controller: _extraBoonsController,
+                      decoration: deco('Extra boons'),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Multi-target'),
+                      value: _multiTarget,
+                      onChanged: (v) => setState(() => _multiTarget = v),
+                    ),
+                  ],
               },
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<FeatureEffectDuration>(
-              initialValue: _duration,
-              decoration: const InputDecoration(labelText: 'Duration'),
-              items: [
-                for (final d in FeatureEffectDuration.values)
-                  DropdownMenuItem(value: d, child: Text(d.name)),
-              ],
-              onChanged: (v) {
-                if (v == null) return;
-                setState(() => _duration = v);
-              },
-            ),
-            const SizedBox(height: 12),
-            ...switch (_type) {
-              FeatureEffectType.damage => [
-                  TextField(
-                    controller: _damageEpController,
-                    decoration: const InputDecoration(labelText: 'Damage EP'),
-                    keyboardType: TextInputType.number,
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _deliveryController,
-                    decoration: const InputDecoration(
-                      labelText: 'Delivery',
-                      hintText: 'area, aimedSingle, aimedMulti',
+              SizedBox(height: gap),
+              Text(
+                'Computed cost: ${preview.cost} EP',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _damageTypesController,
-                    decoration: const InputDecoration(
-                      labelText: 'Damage types',
-                      hintText: 'fire, poison…',
-                    ),
-                    onChanged: (_) => setState(() {}),
-                  ),
-                ],
-              FeatureEffectType.condition => [
-                  TextField(
-                    controller: _conditionController,
-                    decoration: const InputDecoration(labelText: 'Condition'),
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<FeatureRarity>(
-                    initialValue: _conditionRarity,
-                    decoration: const InputDecoration(labelText: 'Rarity'),
-                    items: [
-                      for (final r in FeatureRarity.values)
-                        DropdownMenuItem(value: r, child: Text(r.label)),
-                    ],
-                    onChanged: (v) {
-                      if (v == null) return;
-                      setState(() => _conditionRarity = v);
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _extraConditionsController,
-                    decoration: const InputDecoration(
-                      labelText: 'Extra conditions',
-                    ),
-                    keyboardType: TextInputType.number,
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Multi-target'),
-                    value: _multiTarget,
-                    onChanged: (v) => setState(() => _multiTarget = v),
-                  ),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Extra save (−1 EP)'),
-                    value: _extraSave,
-                    onChanged: (v) => setState(() => _extraSave = v),
-                  ),
-                ],
-              FeatureEffectType.terrain => [
-                  TextField(
-                    controller: _terrainModifierController,
-                    decoration: const InputDecoration(labelText: 'Modifier'),
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<FeatureRarity>(
-                    initialValue: _terrainRarity,
-                    decoration: const InputDecoration(labelText: 'Rarity'),
-                    items: [
-                      for (final r in FeatureRarity.values)
-                        DropdownMenuItem(value: r, child: Text(r.label)),
-                    ],
-                    onChanged: (v) {
-                      if (v == null) return;
-                      setState(() => _terrainRarity = v);
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _extraModifiersController,
-                    decoration: const InputDecoration(
-                      labelText: 'Extra modifiers',
-                    ),
-                    keyboardType: TextInputType.number,
-                    onChanged: (_) => setState(() {}),
-                  ),
-                ],
-              FeatureEffectType.resource => [
-                  TextField(
-                    controller: _resourceController,
-                    decoration: const InputDecoration(labelText: 'Resource'),
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<FeatureRarity>(
-                    initialValue: _resourceRarity,
-                    decoration: const InputDecoration(labelText: 'Rarity'),
-                    items: [
-                      for (final r in FeatureRarity.values)
-                        DropdownMenuItem(value: r, child: Text(r.label)),
-                    ],
-                    onChanged: (v) {
-                      if (v == null) return;
-                      setState(() => _resourceRarity = v);
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _extraResourcesController,
-                    decoration: const InputDecoration(
-                      labelText: 'Extra resources',
-                    ),
-                    keyboardType: TextInputType.number,
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Multi-target'),
-                    value: _multiTarget,
-                    onChanged: (v) => setState(() => _multiTarget = v),
-                  ),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Extra save (−1 EP)'),
-                    value: _extraSave,
-                    onChanged: (v) => setState(() => _extraSave = v),
-                  ),
-                ],
-              FeatureEffectType.movement => [
-                  TextField(
-                    controller: _movementEpController,
-                    decoration: const InputDecoration(labelText: 'Movement EP'),
-                    keyboardType: TextInputType.number,
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _movementKindController,
-                    decoration: const InputDecoration(
-                      labelText: 'Movement kind',
-                      hintText: 'push, pull, slide…',
-                    ),
-                    onChanged: (_) => setState(() {}),
-                  ),
-                ],
-              FeatureEffectType.empower => [
-                  TextField(
-                    controller: _boonController,
-                    decoration: const InputDecoration(labelText: 'Boon'),
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<FeatureRarity>(
-                    initialValue: _boonRarity,
-                    decoration: const InputDecoration(labelText: 'Rarity'),
-                    items: [
-                      for (final r in FeatureRarity.values)
-                        DropdownMenuItem(value: r, child: Text(r.label)),
-                    ],
-                    onChanged: (v) {
-                      if (v == null) return;
-                      setState(() => _boonRarity = v);
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _extraBoonsController,
-                    decoration: const InputDecoration(labelText: 'Extra boons'),
-                    keyboardType: TextInputType.number,
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Multi-target'),
-                    value: _multiTarget,
-                    onChanged: (v) => setState(() => _multiTarget = v),
-                  ),
-                ],
-            },
-            const SizedBox(height: 12),
-            Text('Computed cost: ${preview.cost} EP'),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
       actions: [

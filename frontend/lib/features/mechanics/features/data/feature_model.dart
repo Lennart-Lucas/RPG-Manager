@@ -7,11 +7,9 @@ enum FeatureRarity { common, uncommon, rare }
 
 enum FeatureActivation {
   none,
-  free,
   bonus,
   action,
   reaction,
-  time,
 }
 
 enum FeatureLimitationType {
@@ -24,11 +22,15 @@ enum FeatureLimitationType {
 
 enum FeatureDefence { ac, str, dex, con, int_, wis, cha }
 
-enum FeatureRangeCategory { self, aimed, area }
+enum FeatureDelivery { weapon, magic }
+
+enum FeatureRangeMode { melee, ranged }
 
 enum FeatureTargetQuantity { none, one, limited, all }
 
 enum FeatureTargetCategory { target, object, creature, self }
+
+enum FeatureTargetAlliance { any, friendly, hostile }
 
 enum FeatureDeferralType { none, delayed, dooming }
 
@@ -43,11 +45,8 @@ enum FeatureEffectType {
 
 enum FeatureEffectDuration {
   instant,
-  endOfYourNextTurn,
-  endOfTargetNextTurn,
   concentration,
   ongoing,
-  saveEnds,
 }
 
 enum FeatureBudgetSlot { ancestral, role, misc }
@@ -82,19 +81,166 @@ extension FeatureCategoryApi on FeatureCategory {
 
 extension FeatureActivationApi on FeatureActivation {
   String get label => switch (this) {
-        FeatureActivation.none => 'None (passive)',
-        FeatureActivation.free => 'Free',
+        FeatureActivation.none => 'Trait',
         FeatureActivation.bonus => 'Bonus Action',
         FeatureActivation.action => 'Action',
         FeatureActivation.reaction => 'Reaction',
-        FeatureActivation.time => 'Time',
       };
   String toJson() => name;
-  static FeatureActivation fromJson(String? v) =>
-      FeatureActivation.values.firstWhere(
+  static FeatureActivation fromJson(String? v) {
+    if (v == 'free') return FeatureActivation.bonus;
+    if (v == 'time') return FeatureActivation.action;
+    return FeatureActivation.values.firstWhere(
+      (e) => e.name == v,
+      orElse: () => FeatureActivation.none,
+    );
+  }
+}
+
+extension FeatureDeliveryApi on FeatureDelivery {
+  String get label => switch (this) {
+        FeatureDelivery.weapon => 'Weapon',
+        FeatureDelivery.magic => 'Magic',
+      };
+  String toJson() => name;
+  static FeatureDelivery fromJson(String? v) =>
+      FeatureDelivery.values.firstWhere(
         (e) => e.name == v,
-        orElse: () => FeatureActivation.none,
+        orElse: () => FeatureDelivery.weapon,
       );
+}
+
+extension FeatureRangeModeApi on FeatureRangeMode {
+  String get label => switch (this) {
+        FeatureRangeMode.melee => 'Melee',
+        FeatureRangeMode.ranged => 'Range',
+      };
+  String get distanceLabel => switch (this) {
+        FeatureRangeMode.melee => 'Reach',
+        FeatureRangeMode.ranged => 'Range',
+      };
+  String toJson() => name;
+  static FeatureRangeMode fromJson(String? v) =>
+      FeatureRangeMode.values.firstWhere(
+        (e) => e.name == v || (v == 'range' && e == FeatureRangeMode.ranged),
+        orElse: () => FeatureRangeMode.melee,
+      );
+}
+
+extension FeatureTargetAllianceApi on FeatureTargetAlliance {
+  String get label => switch (this) {
+        FeatureTargetAlliance.any => 'Any',
+        FeatureTargetAlliance.friendly => 'Friendly',
+        FeatureTargetAlliance.hostile => 'Hostile',
+      };
+
+  /// Lowercase word for rules text; null when alliance is unrestricted.
+  String? get displayWord => switch (this) {
+        FeatureTargetAlliance.any => null,
+        FeatureTargetAlliance.friendly => 'friendly',
+        FeatureTargetAlliance.hostile => 'hostile',
+      };
+
+  String toJson() => name;
+  static FeatureTargetAlliance fromJson(String? v) {
+    if (v == null || v.isEmpty) return FeatureTargetAlliance.any;
+    final n = v.toLowerCase();
+    return FeatureTargetAlliance.values.firstWhere(
+      (e) => e.name == n,
+      orElse: () => FeatureTargetAlliance.any,
+    );
+  }
+}
+
+extension FeatureTargetQuantityApi on FeatureTargetQuantity {
+  String get label => switch (this) {
+        FeatureTargetQuantity.none => 'None',
+        FeatureTargetQuantity.one => 'One',
+        FeatureTargetQuantity.limited => 'Limited',
+        FeatureTargetQuantity.all => 'All',
+      };
+}
+
+extension FeatureTargetCategoryApi on FeatureTargetCategory {
+  String get label => switch (this) {
+        FeatureTargetCategory.target => 'Target',
+        FeatureTargetCategory.object => 'Object',
+        FeatureTargetCategory.creature => 'Creature',
+        FeatureTargetCategory.self => 'Self',
+      };
+}
+
+extension FeatureLimitationTypeApi on FeatureLimitationType {
+  String get label => switch (this) {
+        FeatureLimitationType.none => 'None',
+        FeatureLimitationType.charges => 'Charges',
+        FeatureLimitationType.recharge => 'Recharge',
+        FeatureLimitationType.cooldown => 'Cooldown',
+        FeatureLimitationType.recoveryEvent => 'Recovery Event',
+      };
+}
+
+extension FeatureDeferralTypeApi on FeatureDeferralType {
+  String get label => switch (this) {
+        FeatureDeferralType.none => 'None',
+        FeatureDeferralType.delayed => 'Delayed',
+        FeatureDeferralType.dooming => 'Dooming',
+      };
+}
+
+extension FeatureBudgetSlotApi on FeatureBudgetSlot {
+  String get label => switch (this) {
+        FeatureBudgetSlot.ancestral => 'Ancestral',
+        FeatureBudgetSlot.role => 'Role',
+        FeatureBudgetSlot.misc => 'Misc',
+      };
+}
+
+extension FeatureEffectTypeApi on FeatureEffectType {
+  String get label => switch (this) {
+        FeatureEffectType.damage => 'Damage',
+        FeatureEffectType.condition => 'Condition',
+        FeatureEffectType.terrain => 'Terrain',
+        FeatureEffectType.resource => 'Resource',
+        FeatureEffectType.movement => 'Movement',
+        FeatureEffectType.empower => 'Empower',
+      };
+}
+
+extension FeatureEffectDurationApi on FeatureEffectDuration {
+  String get label => switch (this) {
+        FeatureEffectDuration.instant => 'Instant',
+        FeatureEffectDuration.concentration => 'Concentration',
+        FeatureEffectDuration.ongoing => 'Ongoing',
+      };
+
+  int get extraEpCost => switch (this) {
+        FeatureEffectDuration.instant => 0,
+        FeatureEffectDuration.concentration ||
+        FeatureEffectDuration.ongoing =>
+          1,
+      };
+
+  String get pickLabel => switch (this) {
+        FeatureEffectDuration.instant => label,
+        FeatureEffectDuration.concentration ||
+        FeatureEffectDuration.ongoing =>
+          '$label (${extraEpCost}EP)',
+      };
+
+  String toJson() => name;
+
+  static FeatureEffectDuration fromJson(String? v) {
+    if (v == 'endOfYourNextTurn' ||
+        v == 'endOfTargetNextTurn' ||
+        v == 'saveEnds') {
+      return FeatureEffectDuration.concentration;
+    }
+    return FeatureEffectDuration.values.firstWhere(
+      (e) => e.name == v,
+      orElse: () => FeatureEffectDuration.instant,
+    );
+  }
 }
 
 extension FeatureDefenceApi on FeatureDefence {
@@ -161,31 +307,36 @@ class FeatureLimitation {
 
 class FeatureRange {
   const FeatureRange({
-    this.category = FeatureRangeCategory.self,
-    this.template = '',
-    this.distance = '',
+    this.mode = FeatureRangeMode.melee,
+    this.feet,
   });
 
-  final FeatureRangeCategory category;
-  final String template;
-  final String distance;
+  final FeatureRangeMode mode;
+  final int? feet;
 
   factory FeatureRange.fromJson(Map<String, dynamic>? json) {
     if (json == null) return const FeatureRange();
+    if (json.containsKey('mode') || json.containsKey('feet')) {
+      return FeatureRange(
+        mode: FeatureRangeModeApi.fromJson(json['mode'] as String?),
+        feet: (json['feet'] as num?)?.toInt(),
+      );
+    }
+    // Legacy self/aimed/area + template/distance
+    final category = json['category'] as String? ?? 'self';
+    final distance = json['distance'] as String? ?? '';
+    final match = RegExp(r'\d+').firstMatch(distance);
     return FeatureRange(
-      category: FeatureRangeCategory.values.firstWhere(
-        (e) => e.name == (json['category'] as String? ?? 'self'),
-        orElse: () => FeatureRangeCategory.self,
-      ),
-      template: json['template'] as String? ?? '',
-      distance: json['distance'] as String? ?? '',
+      mode: category == 'self'
+          ? FeatureRangeMode.melee
+          : FeatureRangeMode.ranged,
+      feet: match == null ? null : int.tryParse(match.group(0)!),
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'category': category.name,
-        'template': template,
-        'distance': distance,
+        'mode': mode.toJson(),
+        'feet': feet,
       };
 }
 
@@ -194,20 +345,26 @@ class FeatureTargets {
     this.quantity = FeatureTargetQuantity.none,
     this.limitedCount,
     this.category = FeatureTargetCategory.target,
-    this.alliance,
-    this.alignment,
-    this.creatureCategory,
+    this.alliance = FeatureTargetAlliance.any,
+    this.creatureTypeIds = const [],
   });
 
   final FeatureTargetQuantity quantity;
   final int? limitedCount;
   final FeatureTargetCategory category;
-  final String? alliance;
-  final String? alignment;
-  final String? creatureCategory;
+  final FeatureTargetAlliance alliance;
+  final List<int> creatureTypeIds;
 
   factory FeatureTargets.fromJson(Map<String, dynamic>? json) {
     if (json == null) return const FeatureTargets();
+    final rawIds = json['creatureTypeIds'];
+    final ids = <int>[
+      if (rawIds is List)
+        for (final e in rawIds)
+          if (e is num)
+            e.toInt()
+          else if (e is String) ?int.tryParse(e.trim()),
+    ];
     return FeatureTargets(
       quantity: FeatureTargetQuantity.values.firstWhere(
         (e) => e.name == (json['quantity'] as String? ?? 'none'),
@@ -218,9 +375,8 @@ class FeatureTargets {
         (e) => e.name == (json['category'] as String? ?? 'target'),
         orElse: () => FeatureTargetCategory.target,
       ),
-      alliance: json['alliance'] as String?,
-      alignment: json['alignment'] as String?,
-      creatureCategory: json['creatureCategory'] as String?,
+      alliance: FeatureTargetAllianceApi.fromJson(json['alliance'] as String?),
+      creatureTypeIds: ids,
     );
   }
 
@@ -228,9 +384,8 @@ class FeatureTargets {
         'quantity': quantity.name,
         'limitedCount': limitedCount,
         'category': category.name,
-        'alliance': alliance,
-        'alignment': alignment,
-        'creatureCategory': creatureCategory,
+        'alliance': alliance.toJson(),
+        'creatureTypeIds': creatureTypeIds,
       };
 }
 
@@ -282,9 +437,8 @@ class FeatureEffect {
         orElse: () => FeatureEffectType.damage,
       ),
       cost: (json['cost'] as num?)?.toInt() ?? 0,
-      duration: FeatureEffectDuration.values.firstWhere(
-        (e) => e.name == (json['duration'] as String? ?? 'instant'),
-        orElse: () => FeatureEffectDuration.instant,
+      duration: FeatureEffectDurationApi.fromJson(
+        json['duration'] as String?,
       ),
       payload: json['payload'] is Map<String, dynamic>
           ? Map<String, dynamic>.from(json['payload'] as Map)
@@ -320,6 +474,7 @@ class MonsterFeature {
     required this.name,
     this.category = FeatureCategory.trait,
     this.rarity = FeatureRarity.common,
+    this.delivery = FeatureDelivery.weapon,
     this.effectPoints = 1,
     this.activationTime = FeatureActivation.none,
     this.hasRequirement = false,
@@ -340,6 +495,7 @@ class MonsterFeature {
   final String name;
   final FeatureCategory category;
   final FeatureRarity rarity;
+  final FeatureDelivery delivery;
   final int effectPoints;
   final FeatureActivation activationTime;
   final bool hasRequirement;
@@ -379,6 +535,7 @@ class MonsterFeature {
       name: json['name'] as String? ?? '',
       category: FeatureCategoryApi.fromJson(json['category'] as String?),
       rarity: FeatureRarityApi.fromJson(json['rarity'] as String?),
+      delivery: FeatureDeliveryApi.fromJson(json['delivery'] as String?),
       effectPoints: (json['effectPoints'] as num?)?.toInt() ?? 1,
       activationTime:
           FeatureActivationApi.fromJson(json['activationTime'] as String?),
@@ -412,7 +569,7 @@ class MonsterFeature {
   static MonsterFeature _fromLegacy(Map<String, dynamic> json) {
     final type = json['type'] as String? ?? 'trait';
     final activation = switch (type) {
-      'free' => FeatureActivation.free,
+      'free' => FeatureActivation.bonus,
       'bonus' => FeatureActivation.bonus,
       'action' => FeatureActivation.action,
       'reaction' => FeatureActivation.reaction,
@@ -437,6 +594,7 @@ class MonsterFeature {
         'name': name,
         'category': category.toJson(),
         'rarity': rarity.toJson(),
+        'delivery': delivery.toJson(),
         'effectPoints': effectPoints,
         'activationTime': activationTime.toJson(),
         'hasRequirement': hasRequirement,
@@ -458,6 +616,7 @@ class MonsterFeature {
     String? name,
     FeatureCategory? category,
     FeatureRarity? rarity,
+    FeatureDelivery? delivery,
     int? effectPoints,
     FeatureActivation? activationTime,
     bool? hasRequirement,
@@ -479,6 +638,7 @@ class MonsterFeature {
       name: name ?? this.name,
       category: category ?? this.category,
       rarity: rarity ?? this.rarity,
+      delivery: delivery ?? this.delivery,
       effectPoints: effectPoints ?? this.effectPoints,
       activationTime: activationTime ?? this.activationTime,
       hasRequirement: hasRequirement ?? this.hasRequirement,

@@ -46,15 +46,15 @@ void main() {
       final condition = const FeatureEffect(
         type: FeatureEffectType.condition,
         cost: 1,
-        duration: FeatureEffectDuration.saveEnds,
+        duration: FeatureEffectDuration.concentration,
         payload: {
           'condition': 'Poisoned',
           'conditionRarity': 'common',
         },
       );
       expect(computeEffectCost(damage), 1);
-      expect(computeEffectCost(condition), 2); // 1 + save ends
-      // Rebalance example: 1 EP damage area + 1 EP common condition + 1 EP save ends
+      expect(computeEffectCost(condition), 2); // 1 + concentration
+      // Rebalance example: 1 EP damage area + 1 EP common condition + 1 EP concentration
       // = damage 1 + condition(1+1) = 3
       expect(computeEffectCost(damage) + computeEffectCost(condition), 3);
 
@@ -65,9 +65,8 @@ void main() {
         activationTime: FeatureActivation.action,
         defence: FeatureDefence.con,
         range: const FeatureRange(
-          category: FeatureRangeCategory.area,
-          template: 'circle',
-          distance: '15 ft. radius within 60 ft.',
+          mode: FeatureRangeMode.ranged,
+          feet: 60,
         ),
         targets: const FeatureTargets(
           quantity: FeatureTargetQuantity.all,
@@ -108,9 +107,11 @@ void main() {
         rarity: FeatureRarity.uncommon,
         defence: FeatureDefence.con,
         range: const FeatureRange(
-          category: FeatureRangeCategory.area,
-          template: 'circle',
-          distance: '15 ft.',
+          mode: FeatureRangeMode.ranged,
+          feet: 15,
+        ),
+        targets: const FeatureTargets(
+          quantity: FeatureTargetQuantity.all,
         ),
         effects: [
           FeatureEffect(
@@ -118,7 +119,6 @@ void main() {
             cost: 1,
             payload: {
               'damageEp': 1,
-              'delivery': 'area',
               'damageTypes': ['poison'],
             },
           ),

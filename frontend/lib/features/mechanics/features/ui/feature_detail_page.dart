@@ -50,6 +50,7 @@ class _FeatureDetailPageState extends State<FeatureDetailPage> {
       final updated = await showFeatureFormSheet(
         context,
         initial: _feature,
+        auth: widget.auth,
       );
       if (updated == null || !mounted) return;
       final token = await _token();
@@ -169,6 +170,7 @@ class _FeatureDetailPageState extends State<FeatureDetailPage> {
           const SizedBox(height: 16),
           _DetailRow(label: 'Category', value: f.category.label),
           _DetailRow(label: 'Rarity', value: f.rarity.label),
+          _DetailRow(label: 'Delivery', value: f.delivery.label),
           _DetailRow(label: 'Effect points', value: '${f.effectPoints}'),
           _DetailRow(label: 'Activation', value: f.activationTime.label),
           if (f.hasRequirement)
@@ -189,12 +191,11 @@ class _FeatureDetailPageState extends State<FeatureDetailPage> {
             _DetailRow(label: 'Defence', value: f.defence!.label),
           if (f.category != FeatureCategory.trait) ...[
             _DetailRow(
-              label: 'Range',
+              label: f.range.mode.distanceLabel,
               value: [
-                f.range.category.name,
-                if (f.range.template.isNotEmpty) f.range.template,
-                if (f.range.distance.isNotEmpty) f.range.distance,
-              ].where((s) => s.isNotEmpty).join(' · '),
+                f.range.mode.label,
+                if (f.range.feet != null) '${f.range.feet} ft.',
+              ].join(' · '),
             ),
             _DetailRow(
               label: 'Targets',

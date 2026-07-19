@@ -13,36 +13,62 @@ int availableEffectPoints({
   var ep = baseEpForRarity(rarity);
   if (hasRequirement) ep += 1;
   if (deferral.isActive) ep += 1;
-  if (activation == FeatureActivation.free ||
-      activation == FeatureActivation.bonus) {
+  if (activation == FeatureActivation.bonus) {
     ep -= 1;
   }
   if (activation == FeatureActivation.reaction) ep -= 1;
   return ep;
 }
 
-int durationEpCost(FeatureEffectDuration duration) => switch (duration) {
-      FeatureEffectDuration.concentration ||
-      FeatureEffectDuration.ongoing ||
-      FeatureEffectDuration.saveEnds =>
-        1,
-      _ => 0,
-    };
+int durationEpCost(FeatureEffectDuration duration) => duration.extraEpCost;
 
 ({int hitPercent, int missPercent}) damagePercents({
   required int ep,
-  required DamageDeliveryMode mode,
+  required FeatureTargetQuantity quantity,
+  bool damageOnMiss = false,
 }) {
   final e = ep.clamp(1, 5);
-  return switch (mode) {
-    DamageDeliveryMode.aimedSingle || DamageDeliveryMode.aimedMulti => (
+  return switch (quantity) {
+    FeatureTargetQuantity.one || FeatureTargetQuantity.none => (
         hitPercent: 75 + e * 25,
         missPercent: 0,
       ),
-    DamageDeliveryMode.area => (
-        hitPercent: 50 + e * 25,
-        missPercent: 25 + e * 25,
+    FeatureTargetQuantity.limited => (
+        hitPercent: 75 + e * 25,
+        missPercent: 0,
       ),
+    FeatureTargetQuantity.all => (
+        hitPercent: 50 + e * 25,
+        missPercent: damageOnMiss ? 25 + e * 25 : 0,
+      ),
+  };
+}
+
+DamageDeliveryMode damageDeliveryMode(FeatureTargetQuantity quantity) =>
+    switch (quantity) {
+      FeatureTargetQuantity.one || FeatureTargetQuantity.none =>
+        DamageDeliveryMode.aimedSingle,
+      FeatureTargetQuantity.limited => DamageDeliveryMode.aimedMulti,
+      FeatureTargetQuantity.all => DamageDeliveryMode.area,
+    };
+
+/// Picklist label for damage EP tiers, keyed to the target-quantity column.
+String damageAmountLabel(
+  int ep, {
+  required FeatureTargetQuantity quantity,
+  bool damageOnMiss = false,
+}) {
+  final e = ep.clamp(1, 5);
+  final pct = damagePercents(
+    ep: e,
+    quantity: quantity,
+    damageOnMiss: damageOnMiss,
+  );
+  return switch (quantity) {
+    FeatureTargetQuantity.limited => '${pct.hitPercent}% / target (${e}EP)',
+    FeatureTargetQuantity.all when damageOnMiss =>
+      '${pct.hitPercent}% hit, ${pct.missPercent}% miss (${e}EP)',
+    _ => '${pct.hitPercent}% (${e}EP)',
   };
 }
 
@@ -90,7 +116,9 @@ int computeEffectCost(FeatureEffect effect) {
   switch (effect.type) {
     case FeatureEffectType.damage:
       final ep = (p['damageEp'] as num?)?.toInt() ?? 1;
-      return ep.clamp(1, 5) + durationExtra;
+      var cost = ep.clamp(1, 5) + durationExtra;
+      if (p['damageOnMiss'] == true) cost += 1;
+      return cost;
     case FeatureEffectType.condition:
       final rarity = FeatureRarityApi.fromJson(p['conditionRarity'] as String?);
       var cost = conditionRarityCost(rarity);

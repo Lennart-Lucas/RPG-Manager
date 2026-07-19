@@ -516,7 +516,9 @@ class _CreatureFormState extends State<_CreatureForm> {
       creatureRank: _rank,
       creatureThreat: _threat,
       scalerDmg: _formula.dmg,
-      creatureLevel: _level,
+      scalerAtk: _formula.atk,
+      scalerDc: _formula.dc,
+      auth: widget.auth,
     );
     if (result == null || !mounted) return;
     setState(
@@ -530,7 +532,9 @@ class _CreatureFormState extends State<_CreatureForm> {
       creatureRank: _rank,
       creatureThreat: _threat,
       scalerDmg: _formula.dmg,
-      creatureLevel: _level,
+      scalerAtk: _formula.atk,
+      scalerDc: _formula.dc,
+      auth: widget.auth,
     );
     if (result == null || !mounted) return;
     setState(

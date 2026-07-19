@@ -75,7 +75,7 @@ class _FeaturesBodyState extends State<FeaturesBody> {
   Future<void> _create() async {
     try {
       if (!mounted) return;
-      final feature = await showFeatureFormSheet(context);
+      final feature = await showFeatureFormSheet(context, auth: widget.auth);
       if (feature == null || !mounted) return;
       final token = await _token();
       if (token == null) return;
@@ -103,7 +103,11 @@ class _FeaturesBodyState extends State<FeaturesBody> {
     try {
       if (!mounted) return;
       final existing = _featureFromItem(item);
-      final feature = await showFeatureFormSheet(context, initial: existing);
+      final feature = await showFeatureFormSheet(
+        context,
+        initial: existing,
+        auth: widget.auth,
+      );
       if (feature == null || !mounted) return;
       final token = await _token();
       if (token == null) return;

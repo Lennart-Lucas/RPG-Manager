@@ -3,12 +3,8 @@ import 'feature_model.dart';
 
 String durationLabel(FeatureEffectDuration d) => switch (d) {
       FeatureEffectDuration.instant => 'Instant',
-      FeatureEffectDuration.endOfYourNextTurn => 'until the end of your next turn',
-      FeatureEffectDuration.endOfTargetNextTurn =>
-        "until the end of the target's next turn",
       FeatureEffectDuration.concentration => 'Concentration (up to 1 minute)',
       FeatureEffectDuration.ongoing => 'Ongoing',
-      FeatureEffectDuration.saveEnds => 'Save Ends',
     };
 
 /// Deterministic rules text from structured feature fields.
@@ -50,18 +46,18 @@ String generateFeatureText(
       parts.add('Save/Attack vs ${def.label}');
     }
     final range = feature.range;
-    if (range.category != FeatureRangeCategory.self) {
-      final dist = [
-        if (range.template.isNotEmpty) range.template,
-        if (range.distance.isNotEmpty) range.distance,
-      ].join(' ');
-      parts.add(dist.isEmpty ? range.category.name : dist);
+    if (range.feet != null) {
+      parts.add(
+        '${range.mode.distanceLabel.toLowerCase()} ${range.feet} ft.',
+      );
+    } else {
+      parts.add(range.mode.label);
     }
     final t = feature.targets;
     if (t.quantity != FeatureTargetQuantity.none) {
       final qty = switch (t.quantity) {
         FeatureTargetQuantity.one => 'one',
-        FeatureTargetQuantity.limited => '${t.limitedCount ?? 2}',
+        FeatureTargetQuantity.limited => '<limited>',
         FeatureTargetQuantity.all => 'all',
         FeatureTargetQuantity.none => '',
       };
@@ -77,7 +73,13 @@ String generateFeatureText(
 
   final effectBits = <String>[];
   for (final effect in feature.effects) {
-    effectBits.add(_effectText(effect, scalerDmg: scalerDmg));
+    effectBits.add(
+      _effectText(
+        effect,
+        scalerDmg: scalerDmg,
+        targetQuantity: feature.targets.quantity,
+      ),
+    );
   }
 
   final header = parts.isEmpty ? null : parts.join('; ');
@@ -88,7 +90,11 @@ String generateFeatureText(
   return feature.text;
 }
 
-String _effectText(FeatureEffect effect, {int? scalerDmg}) {
+String _effectText(
+  FeatureEffect effect, {
+  int? scalerDmg,
+  FeatureTargetQuantity targetQuantity = FeatureTargetQuantity.one,
+}) {
   final dur = effect.duration == FeatureEffectDuration.instant
       ? ''
       : ' (${durationLabel(effect.duration)})';
@@ -96,26 +102,30 @@ String _effectText(FeatureEffect effect, {int? scalerDmg}) {
   switch (effect.type) {
     case FeatureEffectType.damage:
       final ep = (p['damageEp'] as num?)?.toInt() ?? 1;
-      final modeName = p['delivery'] as String? ?? 'area';
-      final mode = switch (modeName) {
-        'aimedSingle' => DamageDeliveryMode.aimedSingle,
-        'aimedMulti' => DamageDeliveryMode.aimedMulti,
-        _ => DamageDeliveryMode.area,
-      };
-      final pct = damagePercents(ep: ep, mode: mode);
+      final damageOnMiss = p['damageOnMiss'] == true &&
+          targetQuantity == FeatureTargetQuantity.all;
+      final pct = damagePercents(
+        ep: ep,
+        quantity: targetQuantity,
+        damageOnMiss: damageOnMiss,
+      );
       final types = (p['damageTypes'] as List?)?.join(', ') ?? 'damage';
+      final perTarget = targetQuantity == FeatureTargetQuantity.limited
+          ? ' / target'
+          : '';
       if (scalerDmg != null) {
         final hit = ((scalerDmg * pct.hitPercent) / 100).round();
-        if (mode == DamageDeliveryMode.area) {
+        if (damageOnMiss) {
           final miss = ((scalerDmg * pct.missPercent) / 100).round();
           return 'Hit: $hit $types damage; Miss: $miss$dur.';
         }
-        return 'Hit: $hit $types damage$dur.';
+        return 'Hit: $hit$perTarget $types damage$dur.';
       }
-      if (mode == DamageDeliveryMode.area) {
-        return 'Hit: ${pct.hitPercent}% $types damage; Miss: ${pct.missPercent}%$dur.';
+      if (damageOnMiss) {
+        return 'Hit: ${pct.hitPercent}% $types damage; '
+            'Miss: ${pct.missPercent}%$dur.';
       }
-      return 'Hit: ${pct.hitPercent}% $types damage$dur.';
+      return 'Hit: ${pct.hitPercent}%$perTarget $types damage$dur.';
     case FeatureEffectType.condition:
       final name = p['condition'] as String? ?? 'a condition';
       return 'The target is $name$dur.';
