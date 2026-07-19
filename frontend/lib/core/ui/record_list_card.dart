@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:rpg_manager/core/ui/overflow_chip_row.dart';
+
 /// Shared shell for catalog list rows: constrained width, Material 3 card,
 /// ink well, optional selection highlight.
 class RecordListCard extends StatelessWidget {
@@ -206,11 +208,6 @@ class RecordListCardChipGroup extends StatelessWidget {
   final TextTheme textTheme;
   final ColorScheme colors;
 
-  static const double _chipSpacing = 6;
-  static const double _labelPadH = 7;
-  /// Approximate Chip chrome beyond the label text width.
-  static const double _chipChrome = 20;
-
   @override
   Widget build(BuildContext context) {
     final isEmpty = labels.isEmpty;
@@ -237,131 +234,13 @@ class RecordListCardChipGroup extends StatelessWidget {
         if (displayNames.isEmpty)
           const SizedBox.shrink()
         else
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final fit = _fitLabels(
-                displayNames,
-                constraints.maxWidth,
-                labelStyle,
-                allowOverflowChip: !isEmpty,
-              );
-              return Row(
-                children: [
-                  for (var i = 0; i < fit.visible.length; i++) ...[
-                    if (i > 0) const SizedBox(width: _chipSpacing),
-                    if (i == fit.visible.length - 1 && fit.hiddenCount == 0)
-                      Flexible(
-                        child: _chip(
-                          label: fit.visible[i],
-                          isEmptyPlaceholder: isEmpty,
-                          labelStyle: labelStyle,
-                        ),
-                      )
-                    else
-                      _chip(
-                        label: fit.visible[i],
-                        isEmptyPlaceholder: isEmpty,
-                        labelStyle: labelStyle,
-                      ),
-                  ],
-                  if (fit.hiddenCount > 0) ...[
-                    const SizedBox(width: _chipSpacing),
-                    _chip(
-                      label: '+${fit.hiddenCount}',
-                      isEmptyPlaceholder: false,
-                      labelStyle: labelStyle,
-                      muted: true,
-                    ),
-                  ],
-                ],
-              );
-            },
+          OverflowChipRow(
+            labels: displayNames,
+            accentColor: accentColor,
+            labelStyle: labelStyle,
+            isEmptyPlaceholder: isEmpty,
           ),
       ],
-    );
-  }
-
-  double _measureChip(String text, TextStyle style) {
-    final painter = TextPainter(
-      text: TextSpan(text: text, style: style),
-      maxLines: 1,
-      textDirection: TextDirection.ltr,
-    )..layout();
-    return painter.width + _labelPadH * 2 + _chipChrome;
-  }
-
-  ({List<String> visible, int hiddenCount}) _fitLabels(
-    List<String> names,
-    double maxWidth,
-    TextStyle labelStyle, {
-    required bool allowOverflowChip,
-  }) {
-    if (!maxWidth.isFinite || maxWidth <= 0) {
-      return (visible: names, hiddenCount: 0);
-    }
-    if (names.length == 1 || !allowOverflowChip) {
-      return (visible: names, hiddenCount: 0);
-    }
-
-    final overflowW = _measureChip('+${names.length}', labelStyle);
-    final fitted = <String>[];
-    var used = 0.0;
-
-    for (var i = 0; i < names.length; i++) {
-      final chipW = _measureChip(names[i], labelStyle);
-      final spacing = fitted.isEmpty ? 0.0 : _chipSpacing;
-      final restAfterThis = names.length - i - 1;
-      final reserveOverflow =
-          restAfterThis > 0 ? overflowW + _chipSpacing : 0.0;
-      if (used + spacing + chipW + reserveOverflow <= maxWidth + 0.5) {
-        fitted.add(names[i]);
-        used += spacing + chipW;
-        continue;
-      }
-      break;
-    }
-
-    if (fitted.isEmpty) {
-      return (visible: [names.first], hiddenCount: names.length - 1);
-    }
-    final hidden = names.length - fitted.length;
-    return (visible: fitted, hiddenCount: hidden);
-  }
-
-  Widget _chip({
-    required String label,
-    required bool isEmptyPlaceholder,
-    required TextStyle labelStyle,
-    bool muted = false,
-  }) {
-    final sideColor = isEmptyPlaceholder
-        ? colors.outlineVariant.withValues(alpha: 0.45)
-        : accentColor.withValues(alpha: muted ? 0.28 : 0.38);
-    final bg = isEmptyPlaceholder
-        ? colors.surfaceContainerHigh.withValues(alpha: 0.68)
-        : muted
-            ? colors.surfaceContainerHighest.withValues(alpha: 0.9)
-            : accentColor == colors.primary
-                ? colors.primaryContainer.withValues(alpha: 0.42)
-                : colors.tertiaryContainer.withValues(alpha: 0.42);
-    final fg = isEmptyPlaceholder
-        ? colors.onSurfaceVariant
-        : muted
-            ? colors.onSurfaceVariant
-            : accentColor;
-
-    return Chip(
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      visualDensity: const VisualDensity(
-        horizontal: -2,
-        vertical: -2,
-      ),
-      padding: EdgeInsets.zero,
-      labelPadding: const EdgeInsets.symmetric(horizontal: _labelPadH),
-      side: BorderSide(color: sideColor, width: 0.8),
-      backgroundColor: bg,
-      labelStyle: labelStyle.copyWith(color: fg),
-      label: Text(label, overflow: TextOverflow.ellipsis, maxLines: 1),
     );
   }
 }

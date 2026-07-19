@@ -27,6 +27,8 @@ Future<Creature?> showCreatureFormSheet(
   final editing = initial != null;
   final title = editing ? 'Edit creature' : 'New creature';
   final width = MediaQuery.sizeOf(context).width;
+  final form = _CreatureForm(initial: initial, auth: auth);
+
   if (width >= 1000) {
     return showDialog<Creature>(
       context: context,
@@ -34,28 +36,59 @@ Future<Creature?> showCreatureFormSheet(
         insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1400, maxHeight: 900),
-          child: _WideCreatureFormScaffold(
+          child: _CreatureFormScaffold(
             title: title,
-            child: _CreatureForm(initial: initial, auth: auth),
+            compact: false,
+            child: form,
           ),
         ),
       ),
     );
   }
-  return showAdaptiveResourceForm<Creature>(
-    context,
-    title: title,
-    child: _CreatureForm(initial: initial, auth: auth),
+
+  if (width < 720) {
+    return showModalBottomSheet<Creature>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (context) => SizedBox(
+        height: MediaQuery.sizeOf(context).height * 0.92,
+        child: _CreatureFormScaffold(
+          title: title,
+          compact: true,
+          child: form,
+        ),
+      ),
+    );
+  }
+
+  return showDialog<Creature>(
+    context: context,
+    builder: (context) => Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 640, maxHeight: 760),
+        child: _CreatureFormScaffold(
+          title: title,
+          compact: false,
+          child: form,
+        ),
+      ),
+    ),
   );
 }
 
-class _WideCreatureFormScaffold extends StatelessWidget {
-  const _WideCreatureFormScaffold({
+/// Title + expanded body (no outer scroll) so the form can pin a footer.
+class _CreatureFormScaffold extends StatelessWidget {
+  const _CreatureFormScaffold({
     required this.title,
+    required this.compact,
     required this.child,
   });
 
   final String title;
+  final bool compact;
   final Widget child;
 
   @override
@@ -66,6 +99,7 @@ class _WideCreatureFormScaffold extends StatelessWidget {
       curve: Curves.easeOut,
       padding: EdgeInsets.only(bottom: bottomInset),
       child: SafeArea(
+        top: !compact,
         child: Column(
           children: [
             Padding(
@@ -118,6 +152,8 @@ class _CreatureForm extends StatefulWidget {
 
 class _CreatureFormState extends State<_CreatureForm> {
   final _formKey = GlobalKey<FormState>();
+  /// 0 = identity/combat/extras, 1 = features.
+  int _page = 0;
 
   late final _nameController =
       TextEditingController(text: widget.initial?.name ?? '');
@@ -677,6 +713,16 @@ class _CreatureFormState extends State<_CreatureForm> {
     }).length;
   }
 
+  void _goToFeatures() {
+    final form = _formKey.currentState;
+    if (form == null || !form.validate()) return;
+    setState(() => _page = 1);
+  }
+
+  void _goToMain() {
+    setState(() => _page = 0);
+  }
+
   void _submit() {
     final form = _formKey.currentState;
     if (form == null || !form.validate()) return;
@@ -715,52 +761,91 @@ class _CreatureFormState extends State<_CreatureForm> {
       skillAttributes: _skillAttributes,
       conditionNames: _conditionNames,
     );
-    final form = SingleChildScrollView(
-      padding: EdgeInsets.all(wide ? 20 : 0),
-      child: _buildFormFields(f),
-    );
-    final preview = SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: previewSheet,
+    final pageBody = _page == 0 ? _buildMainPage(f) : _buildFeaturesPage(f);
+    final scrollPadding = EdgeInsets.fromLTRB(
+      wide ? 20 : 20,
+      wide ? 20 : 20,
+      wide ? 20 : 20,
+      20,
     );
 
-    if (wide) {
-      return Form(
-        key: _formKey,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(flex: 5, child: form),
-            const VerticalDivider(width: 1),
-            Expanded(flex: 4, child: preview),
-          ],
-        ),
-      );
-    }
+    final scrollableForm = SingleChildScrollView(
+      padding: scrollPadding,
+      child: wide
+          ? pageBody
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                pageBody,
+                if (_page == 0)
+                  ExpansionTile(
+                    title: const Text('Preview'),
+                    children: [previewSheet],
+                  ),
+              ],
+            ),
+    );
 
-    // Parent `showAdaptiveResourceForm` already provides a scroll view.
+    final body = wide
+        ? Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(flex: 5, child: scrollableForm),
+              const VerticalDivider(width: 1),
+              Expanded(
+                flex: 4,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: previewSheet,
+                ),
+              ),
+            ],
+          )
+        : scrollableForm;
+
     return Form(
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildFormFields(f),
-          ExpansionTile(
-            title: const Text('Preview'),
-            children: [previewSheet],
-          ),
+          Expanded(child: body),
+          const Divider(height: 1),
+          _buildFooter(),
         ],
       ),
     );
   }
 
-  Widget _buildFormFields(ScalerComputedStats f) {
+  Widget _buildFooter() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+      child: _page == 0
+          ? FilledButton(
+              onPressed: _goToFeatures,
+              child: const Text('Next'),
+            )
+          : Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _goToMain,
+                    child: const Text('Back'),
+                  ),
+                ),
+                const SizedBox(width: ResourceFormStyles.fieldSpacing),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: _submit,
+                    child: Text(widget.initial == null ? 'Create' : 'Save'),
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildMainPage(ScalerComputedStats f) {
     final abilityWarning = _abilityAssignmentWarning();
-    final userFeatureCount =
-        _features.where((feat) => !feat.isAuto).length;
-    final ancestral = _budgetSlotCount(FeatureBudgetSlot.ancestral);
-    final roleCount = _budgetSlotCount(FeatureBudgetSlot.role);
-    final misc = _budgetSlotCount(FeatureBudgetSlot.misc);
     final walk = walkSpeedFromMovement(_movementLabeled) ?? 30;
     final effectiveWalk = walk + f.speedWalkDelta;
     final slotModifiers = slotModifiersForFormula(f);
@@ -1074,7 +1159,7 @@ class _CreatureFormState extends State<_CreatureForm> {
                 child: catalogMultiPickTile(
                   context: context,
                   label: 'Skills',
-                  summary: summarizeCatalogSelection(
+                  labels: catalogSelectionLabels(
                     selected: _skillIds.toSet(),
                     namesById: _skillNames,
                     customStrings: _customSkills,
@@ -1104,7 +1189,7 @@ class _CreatureFormState extends State<_CreatureForm> {
                 child: catalogMultiPickTile(
                   context: context,
                   label: 'Languages',
-                  summary: summarizeCatalogSelection(
+                  labels: catalogSelectionLabels(
                     selected: _languageIds.toSet(),
                     namesById: _languageNames,
                     customStrings: _customLanguages,
@@ -1132,7 +1217,7 @@ class _CreatureFormState extends State<_CreatureForm> {
                 child: catalogMultiPickTile(
                   context: context,
                   label: 'Damage Vulnerabilities',
-                  summary: summarizeCatalogSelection(
+                  labels: catalogSelectionLabels(
                     selected: _vulnerabilityIds.toSet(),
                     namesById: _damageTypeNames,
                     customStrings: _customVulnerabilities,
@@ -1155,7 +1240,7 @@ class _CreatureFormState extends State<_CreatureForm> {
                 child: catalogMultiPickTile(
                   context: context,
                   label: 'Damage Resistances',
-                  summary: summarizeCatalogSelection(
+                  labels: catalogSelectionLabels(
                     selected: _resistanceIds.toSet(),
                     namesById: _damageTypeNames,
                     customStrings: _customResistances,
@@ -1183,7 +1268,7 @@ class _CreatureFormState extends State<_CreatureForm> {
                 child: catalogMultiPickTile(
                   context: context,
                   label: 'Damage Immunities',
-                  summary: summarizeCatalogSelection(
+                  labels: catalogSelectionLabels(
                     selected: _immunityIds.toSet(),
                     namesById: _damageTypeNames,
                     customStrings: _customImmunities,
@@ -1206,7 +1291,7 @@ class _CreatureFormState extends State<_CreatureForm> {
                 child: catalogMultiPickTile(
                   context: context,
                   label: 'Condition Immunities',
-                  summary: summarizeCatalogSelection(
+                  labels: catalogSelectionLabels(
                     selected: _conditionIds.toSet(),
                     namesById: _conditionNames,
                   ),
@@ -1222,87 +1307,94 @@ class _CreatureFormState extends State<_CreatureForm> {
               ),
             ],
           ),
-          _section('Features'),
-          Text(
-            'Budget: $userFeatureCount custom features '
-            '(recommended ${f.featureBudgetMin}–${f.featureBudgetMax})',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          Text(
-            'Slots — ancestral: $ancestral · role: $roleCount · misc: $misc',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-          ),
-          const SizedBox(height: 8),
-          for (var i = 0; i < _features.length; i++)
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Chip(
-                label: Text(
-                  _featureBadge(_features[i]),
-                  style: const TextStyle(fontSize: 11),
-                ),
-                visualDensity: VisualDensity.compact,
-              ),
-              title: Text(_features[i].displayName),
-              subtitle: Text(_featureSubtitle(_features[i])),
-              trailing: _features[i].isAuto
-                  ? IconButton(
-                      icon: const Icon(Icons.visibility_outlined),
-                      onPressed: () => _viewAutoFeature(i),
-                    )
-                  : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (_features[i].source ==
-                            CreatureFeatureSource.catalog)
-                          IconButton(
-                            tooltip: 'Detach from catalog',
-                            icon: const Icon(Icons.link_off_outlined),
-                            onPressed: () => _detachCatalogFeature(i),
-                          )
-                        else
-                          IconButton(
-                            icon: const Icon(Icons.edit_outlined),
-                            onPressed: () => _editFeature(i),
-                          ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline),
-                          onPressed: () {
-                            setState(() => _features.removeAt(i));
-                          },
-                        ),
-                      ],
-                    ),
-              onTap: _features[i].isAuto
-                  ? () => _viewAutoFeature(i)
-                  : _features[i].source == CreatureFeatureSource.catalog
-                      ? null
-                      : () => _editFeature(i),
-            ),
-          Wrap(
-            spacing: 8,
-            children: [
-              TextButton.icon(
-                onPressed: _addLocalFeature,
-                icon: const Icon(Icons.add),
-                label: const Text('Add local'),
-              ),
-              if (widget.auth != null)
-                TextButton.icon(
-                  onPressed: _addCatalogFeature,
-                  icon: const Icon(Icons.library_books_outlined),
-                  label: const Text('From catalog'),
-                ),
-            ],
-          ),
-          const SizedBox(height: ResourceFormStyles.sectionSpacing),
-          FilledButton(
-            onPressed: _submit,
-            child: Text(widget.initial == null ? 'Create' : 'Save'),
-          ),
         ],
+    );
+  }
+
+  Widget _buildFeaturesPage(ScalerComputedStats f) {
+    final userFeatureCount = _features.where((feat) => !feat.isAuto).length;
+    final ancestral = _budgetSlotCount(FeatureBudgetSlot.ancestral);
+    final roleCount = _budgetSlotCount(FeatureBudgetSlot.role);
+    final misc = _budgetSlotCount(FeatureBudgetSlot.misc);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _section('Features'),
+        Text(
+          'Budget: $userFeatureCount custom features '
+          '(recommended ${f.featureBudgetMin}–${f.featureBudgetMax})',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        Text(
+          'Slots — ancestral: $ancestral · role: $roleCount · misc: $misc',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+        ),
+        const SizedBox(height: 8),
+        for (var i = 0; i < _features.length; i++)
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Chip(
+              label: Text(
+                _featureBadge(_features[i]),
+                style: const TextStyle(fontSize: 11),
+              ),
+              visualDensity: VisualDensity.compact,
+            ),
+            title: Text(_features[i].displayName),
+            subtitle: Text(_featureSubtitle(_features[i])),
+            trailing: _features[i].isAuto
+                ? IconButton(
+                    icon: const Icon(Icons.visibility_outlined),
+                    onPressed: () => _viewAutoFeature(i),
+                  )
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_features[i].source == CreatureFeatureSource.catalog)
+                        IconButton(
+                          tooltip: 'Detach from catalog',
+                          icon: const Icon(Icons.link_off_outlined),
+                          onPressed: () => _detachCatalogFeature(i),
+                        )
+                      else
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined),
+                          onPressed: () => _editFeature(i),
+                        ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () {
+                          setState(() => _features.removeAt(i));
+                        },
+                      ),
+                    ],
+                  ),
+            onTap: _features[i].isAuto
+                ? () => _viewAutoFeature(i)
+                : _features[i].source == CreatureFeatureSource.catalog
+                    ? null
+                    : () => _editFeature(i),
+          ),
+        Wrap(
+          spacing: 8,
+          children: [
+            TextButton.icon(
+              onPressed: _addLocalFeature,
+              icon: const Icon(Icons.add),
+              label: const Text('Add local'),
+            ),
+            if (widget.auth != null)
+              TextButton.icon(
+                onPressed: _addCatalogFeature,
+                icon: const Icon(Icons.library_books_outlined),
+                label: const Text('From catalog'),
+              ),
+          ],
+        ),
+      ],
     );
   }
 }

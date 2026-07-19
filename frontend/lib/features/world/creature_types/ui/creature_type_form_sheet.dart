@@ -351,7 +351,7 @@ class _CreatureTypeFormState extends State<_CreatureTypeForm> {
             catalogMultiPickTile(
               context: context,
               label: 'Skills',
-              summary: summarizeCatalogSelection(
+              labels: catalogSelectionLabels(
                 selected: _skillIds.toSet(),
                 namesById: _skillNames,
               ),
@@ -366,7 +366,7 @@ class _CreatureTypeFormState extends State<_CreatureTypeForm> {
             catalogMultiPickTile(
               context: context,
               label: 'Languages',
-              summary: summarizeCatalogSelection(
+              labels: catalogSelectionLabels(
                 selected: _languageIds.toSet(),
                 namesById: _languageNames,
                 customStrings: _customLanguages,
@@ -388,7 +388,7 @@ class _CreatureTypeFormState extends State<_CreatureTypeForm> {
           catalogMultiPickTile(
             context: context,
             label: 'Damage vulnerabilities',
-            summary: summarizeCatalogSelection(
+            labels: catalogSelectionLabels(
               selected: _vulnerabilityIds.toSet(),
               namesById: _damageTypeNames,
               customStrings: _customVulnerabilities,
@@ -409,7 +409,7 @@ class _CreatureTypeFormState extends State<_CreatureTypeForm> {
           catalogMultiPickTile(
             context: context,
             label: 'Damage resistances',
-            summary: summarizeCatalogSelection(
+            labels: catalogSelectionLabels(
               selected: _resistanceIds.toSet(),
               namesById: _damageTypeNames,
               customStrings: _customResistances,
@@ -430,7 +430,7 @@ class _CreatureTypeFormState extends State<_CreatureTypeForm> {
           catalogMultiPickTile(
             context: context,
             label: 'Damage immunities',
-            summary: summarizeCatalogSelection(
+            labels: catalogSelectionLabels(
               selected: _immunityIds.toSet(),
               namesById: _damageTypeNames,
               customStrings: _customImmunities,
@@ -451,7 +451,7 @@ class _CreatureTypeFormState extends State<_CreatureTypeForm> {
           catalogMultiPickTile(
             context: context,
             label: 'Condition immunities',
-            summary: summarizeCatalogSelection(
+            labels: catalogSelectionLabels(
               selected: _conditionIds.toSet(),
               namesById: _conditionNames,
             ),

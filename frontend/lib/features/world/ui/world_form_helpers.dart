@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:rpg_manager/core/ui/multi_picklist_sheet.dart';
+import 'package:rpg_manager/core/ui/overflow_chip_row.dart';
+import 'package:rpg_manager/features/dm_tools/resources/ui/resource_form_helpers.dart';
 import 'package:rpg_manager/features/world/data/labeled_amount.dart';
 
 const movementPresets = ['Normal', 'Burrow', 'Climb', 'Fly', 'Swim'];
@@ -18,6 +20,14 @@ String summarizeLabeledAmounts(
 }) {
   final display = labeledAmountsDisplay(items);
   return display.isEmpty ? empty : display;
+}
+
+List<String> labeledAmountChipLabels(List<LabeledAmount> items) {
+  return [
+    for (final e in items)
+      if (e.label.trim().isNotEmpty)
+        '${e.label} ${_amountText(e.amount)} ft.',
+  ];
 }
 
 Future<void> pickLabeledAmounts({
@@ -416,7 +426,7 @@ class _LabeledAmountPickSheetState extends State<_LabeledAmountPickSheet> {
   }
 }
 
-/// Tap-to-open labeled amount picker (same tile pattern as skills/languages).
+/// Tap-to-open labeled amount picker (same field chrome as catalog picks).
 class LabeledAmountEditor extends StatelessWidget {
   const LabeledAmountEditor({
     super.key,
@@ -433,10 +443,9 @@ class LabeledAmountEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return catalogMultiPickTile(
-      context: context,
+    return OutlinedChipPickField(
       label: title,
-      summary: summarizeLabeledAmounts(items),
+      labels: labeledAmountChipLabels(items),
       onTap: () => pickLabeledAmounts(
         context: context,
         title: title,
@@ -540,35 +549,125 @@ String summarizeCatalogSelection({
   List<String> expertiseCustoms = const [],
   String empty = 'None',
 }) {
+  final labels = catalogSelectionLabels(
+    selected: selected,
+    namesById: namesById,
+    customStrings: customStrings,
+    expertiseIds: expertiseIds,
+    expertiseCustoms: expertiseCustoms,
+  );
+  if (labels.isEmpty) return empty;
+  return labels.join(', ');
+}
+
+List<String> catalogSelectionLabels({
+  required Set<int> selected,
+  required Map<int, String> namesById,
+  List<String> customStrings = const [],
+  Set<int> expertiseIds = const {},
+  List<String> expertiseCustoms = const [],
+}) {
   final expertiseCustomKeys = {
     for (final s in expertiseCustoms) s.trim().toLowerCase(),
   };
   final labels = [
     for (final id in selected)
       expertiseIds.contains(id)
-          ? '${namesById[id] ?? '$id'} (Expertise)'
+          ? '${namesById[id] ?? '$id'} (E)'
           : (namesById[id] ?? '$id'),
     for (final s in customStrings.where((s) => s.trim().isNotEmpty))
       expertiseCustomKeys.contains(s.trim().toLowerCase())
-          ? '$s (Expertise)'
+          ? '$s (E)'
           : s,
   ];
-  if (labels.isEmpty) return empty;
   labels.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-  return labels.join(', ');
+  return labels;
+}
+
+/// Outlined multi-select field matching [ResourceFormStyles] floating labels,
+/// with selected values as a single-line chip row (+N overflow).
+class OutlinedChipPickField extends StatelessWidget {
+  const OutlinedChipPickField({
+    super.key,
+    required this.label,
+    required this.labels,
+    required this.onTap,
+  });
+
+  final String label;
+  final List<String> labels;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final isEmpty = labels.isEmpty;
+    final chipStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: scheme.primary,
+          fontWeight: FontWeight.w700,
+        ) ??
+        const TextStyle(fontSize: 12, fontWeight: FontWeight.w700);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(4),
+      child: InputDecorator(
+        isEmpty: isEmpty,
+        decoration: ResourceFormStyles.inputDecoration(
+          context,
+          label: label,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Stack(
+                alignment: Alignment.centerLeft,
+                children: [
+                  // Invisible chip keeps empty height equal to a selected row.
+                  IgnorePointer(
+                    child: Opacity(
+                      opacity: 0,
+                      child: OverflowChip(
+                        label: 'Hg',
+                        accentColor: scheme.primary,
+                        labelStyle: chipStyle,
+                      ),
+                    ),
+                  ),
+                  if (!isEmpty)
+                    OverflowChipRow(
+                      labels: labels,
+                      accentColor: scheme.primary,
+                      labelStyle: chipStyle,
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.chevron_right,
+              color: scheme.onSurfaceVariant,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 Widget catalogMultiPickTile({
   required BuildContext context,
   required String label,
-  required String summary,
   required VoidCallback onTap,
+  String? summary,
+  List<String>? labels,
 }) {
-  return ListTile(
-    contentPadding: EdgeInsets.zero,
-    title: Text(label),
-    subtitle: Text(summary),
-    trailing: const Icon(Icons.chevron_right),
+  final chipLabels = labels ??
+      (summary == null || summary == 'None' || summary.trim().isEmpty
+          ? const <String>[]
+          : summary.split(', ').where((s) => s.trim().isNotEmpty).toList());
+  return OutlinedChipPickField(
+    label: label,
+    labels: chipLabels,
     onTap: onTap,
   );
 }
