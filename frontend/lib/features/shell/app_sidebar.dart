@@ -104,6 +104,7 @@ class _AppSidebarState extends State<AppSidebar> {
     final playerOptionSelected = switch (widget.currentPage) {
       AppPage.classes ||
       AppPage.feats ||
+      AppPage.items ||
       AppPage.languages ||
       AppPage.races ||
       AppPage.skills ||
@@ -221,6 +222,12 @@ class _AppSidebarState extends State<AppSidebar> {
                           icon: featsPageIcon,
                           label: 'Feats',
                           page: AppPage.feats,
+                        ),
+                        _navTile(
+                          context,
+                          icon: itemsPageIcon,
+                          label: 'Items',
+                          page: AppPage.items,
                         ),
                         _navTile(
                           context,

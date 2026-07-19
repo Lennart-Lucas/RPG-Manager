@@ -14,6 +14,7 @@ from app.models.catalog_link import CatalogLink
 LINKABLE_FIELDS: dict[str, tuple[str, ...]] = {
     "spells": ("description", "higherLevels.description"),
     "spell_tags": ("description",),
+    "items": ("description",),
 }
 
 WIKI_LINK_RE = re.compile(

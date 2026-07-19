@@ -9,6 +9,7 @@ import '../dm_tools/resources/ui/resources_body.dart';
 import '../mechanics/mechanics_icons.dart';
 import '../mechanics/spell_tags/ui/spell_tags_body.dart';
 import '../player_options/classes/ui/classes_body.dart';
+import '../player_options/items/ui/items_body.dart';
 import '../player_options/player_options_icons.dart';
 import '../player_options/spells/ui/spells_body.dart';
 import '../settings/preferences_page.dart';
@@ -41,6 +42,7 @@ class _AppShellState extends State<AppShell> {
         AppPage.resources => 'Resources',
         AppPage.classes => 'Classes',
         AppPage.feats => 'Feats',
+        AppPage.items => 'Items',
         AppPage.languages => 'Languages',
         AppPage.races => 'Races',
         AppPage.skills => 'Skills',
@@ -105,6 +107,7 @@ class _AppShellState extends State<AppShell> {
         AppPage.resources => ResourcesBody(auth: widget.auth),
         AppPage.classes => ClassesBody(auth: widget.auth),
         AppPage.feats => _catalog(CatalogKind.feats, featsPageIcon),
+        AppPage.items => ItemsBody(auth: widget.auth),
         AppPage.languages =>
           _catalog(CatalogKind.languages, languagesPageIcon),
         AppPage.races => _catalog(CatalogKind.races, racesPageIcon),

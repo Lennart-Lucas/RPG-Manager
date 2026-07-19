@@ -20,6 +20,7 @@ class CatalogKind(StrEnum):
     races = "races"
     skills = "skills"
     spells = "spells"
+    items = "items"
     conditions = "conditions"
     damage_types = "damage_types"
     item_properties = "item_properties"

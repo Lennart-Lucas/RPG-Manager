@@ -4,6 +4,7 @@ enum AppPage {
   resources,
   classes,
   feats,
+  items,
   languages,
   races,
   skills,
