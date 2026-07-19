@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../auth/state/auth_controller.dart';
 import '../dm_tools/resources/resources_icons.dart';
+import '../mechanics/mechanics_icons.dart';
+import '../player_options/player_options_icons.dart';
 import 'app_page.dart';
 
 class AppSidebar extends StatefulWidget {
@@ -9,14 +11,12 @@ class AppSidebar extends StatefulWidget {
     super.key,
     required this.auth,
     required this.currentPage,
-    required this.onOpenPreferences,
-    required this.onOpenResources,
+    required this.onOpenPage,
   });
 
   final AuthController auth;
   final AppPage currentPage;
-  final VoidCallback onOpenPreferences;
-  final VoidCallback onOpenResources;
+  final ValueChanged<AppPage> onOpenPage;
 
   @override
   State<AppSidebar> createState() => _AppSidebarState();
@@ -31,30 +31,52 @@ class _AppSidebarState extends State<AppSidebar> {
 
   final _settingsController = ExpansibleController();
   final _dmToolsController = ExpansibleController();
+  final _playerOptionsController = ExpansibleController();
+  final _mechanicsController = ExpansibleController();
 
   void _close(BuildContext context) {
     Navigator.of(context).pop();
   }
 
-  void _openPreferences(BuildContext context) {
-    widget.onOpenPreferences();
+  void _openPage(BuildContext context, AppPage page) {
+    widget.onOpenPage(page);
     _close(context);
   }
 
-  void _openResources(BuildContext context) {
-    widget.onOpenResources();
-    _close(context);
+  void _collapseOthers(ExpansibleController keep) {
+    for (final controller in [
+      _settingsController,
+      _dmToolsController,
+      _playerOptionsController,
+      _mechanicsController,
+    ]) {
+      if (!identical(controller, keep) && controller.isExpanded) {
+        controller.collapse();
+      }
+    }
   }
 
   void _onSettingsExpansionChanged(bool expanded) {
-    if (expanded && _dmToolsController.isExpanded) {
-      _dmToolsController.collapse();
+    if (expanded) {
+      _collapseOthers(_settingsController);
     }
   }
 
   void _onDmToolsExpansionChanged(bool expanded) {
-    if (expanded && _settingsController.isExpanded) {
-      _settingsController.collapse();
+    if (expanded) {
+      _collapseOthers(_dmToolsController);
+    }
+  }
+
+  void _onPlayerOptionsExpansionChanged(bool expanded) {
+    if (expanded) {
+      _collapseOthers(_playerOptionsController);
+    }
+  }
+
+  void _onMechanicsExpansionChanged(bool expanded) {
+    if (expanded) {
+      _collapseOthers(_mechanicsController);
     }
   }
 
@@ -79,6 +101,20 @@ class _AppSidebarState extends State<AppSidebar> {
     final scheme = theme.colorScheme;
     final preferencesSelected = widget.currentPage == AppPage.preferences;
     final resourcesSelected = widget.currentPage == AppPage.resources;
+    final playerOptionSelected = switch (widget.currentPage) {
+      AppPage.classes ||
+      AppPage.feats ||
+      AppPage.languages ||
+      AppPage.races ||
+      AppPage.skills ||
+      AppPage.spells =>
+        true,
+      _ => false,
+    };
+    final mechanicsSelected = switch (widget.currentPage) {
+      AppPage.conditions || AppPage.itemProperties || AppPage.rules => true,
+      _ => false,
+    };
 
     return Drawer(
       width: 300,
@@ -151,6 +187,94 @@ class _AppSidebarState extends State<AppSidebar> {
                 child: ListView(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   children: [
+                    _navTile(
+                      context,
+                      icon: Icons.home_outlined,
+                      label: 'Home',
+                      page: AppPage.home,
+                    ),
+                    ExpansionTile(
+                      controller: _playerOptionsController,
+                      leading: Icon(
+                        playerOptionsMenuIcon,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                      title: const Text('Player options'),
+                      initiallyExpanded: playerOptionSelected,
+                      onExpansionChanged: _onPlayerOptionsExpansionChanged,
+                      expansionAnimationStyle: _expansionStyle,
+                      childrenPadding: const EdgeInsets.only(left: 8),
+                      children: [
+                        _navTile(
+                          context,
+                          icon: classesPageIcon,
+                          label: 'Classes',
+                          page: AppPage.classes,
+                        ),
+                        _navTile(
+                          context,
+                          icon: featsPageIcon,
+                          label: 'Feats',
+                          page: AppPage.feats,
+                        ),
+                        _navTile(
+                          context,
+                          icon: languagesPageIcon,
+                          label: 'Languages',
+                          page: AppPage.languages,
+                        ),
+                        _navTile(
+                          context,
+                          icon: racesPageIcon,
+                          label: 'Races',
+                          page: AppPage.races,
+                        ),
+                        _navTile(
+                          context,
+                          icon: skillsPageIcon,
+                          label: 'Skills',
+                          page: AppPage.skills,
+                        ),
+                        _navTile(
+                          context,
+                          icon: spellsPageIcon,
+                          label: 'Spells',
+                          page: AppPage.spells,
+                        ),
+                      ],
+                    ),
+                    ExpansionTile(
+                      controller: _mechanicsController,
+                      leading: Icon(
+                        mechanicsMenuIcon,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                      title: const Text('Mechanics'),
+                      initiallyExpanded: mechanicsSelected,
+                      onExpansionChanged: _onMechanicsExpansionChanged,
+                      expansionAnimationStyle: _expansionStyle,
+                      childrenPadding: const EdgeInsets.only(left: 8),
+                      children: [
+                        _navTile(
+                          context,
+                          icon: conditionsPageIcon,
+                          label: 'Conditions',
+                          page: AppPage.conditions,
+                        ),
+                        _navTile(
+                          context,
+                          icon: itemPropertiesPageIcon,
+                          label: 'Item Properties',
+                          page: AppPage.itemProperties,
+                        ),
+                        _navTile(
+                          context,
+                          icon: rulesPageIcon,
+                          label: 'Rules',
+                          page: AppPage.rules,
+                        ),
+                      ],
+                    ),
                     if (isDm)
                       ExpansionTile(
                         controller: _dmToolsController,
@@ -164,14 +288,11 @@ class _AppSidebarState extends State<AppSidebar> {
                         expansionAnimationStyle: _expansionStyle,
                         childrenPadding: const EdgeInsets.only(left: 8),
                         children: [
-                          ListTile(
-                            leading: const Icon(resourcesMenuIcon),
-                            title: const Text('Resources'),
-                            selected: resourcesSelected,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            onTap: () => _openResources(context),
+                          _navTile(
+                            context,
+                            icon: resourcesMenuIcon,
+                            label: 'Resources',
+                            page: AppPage.resources,
                           ),
                         ],
                       ),
@@ -187,14 +308,11 @@ class _AppSidebarState extends State<AppSidebar> {
                       expansionAnimationStyle: _expansionStyle,
                       childrenPadding: const EdgeInsets.only(left: 8),
                       children: [
-                        ListTile(
-                          leading: const Icon(Icons.tune_outlined),
-                          title: const Text('Preferences'),
-                          selected: preferencesSelected,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          onTap: () => _openPreferences(context),
+                        _navTile(
+                          context,
+                          icon: Icons.tune_outlined,
+                          label: 'Preferences',
+                          page: AppPage.preferences,
                         ),
                       ],
                     ),
@@ -238,6 +356,23 @@ class _AppSidebarState extends State<AppSidebar> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _navTile(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required AppPage page,
+  }) {
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(label),
+      selected: widget.currentPage == page,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      onTap: () => _openPage(context, page),
     );
   }
 }

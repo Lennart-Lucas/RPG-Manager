@@ -1,0 +1,7 @@
+import 'package:flutter/material.dart';
+
+const mechanicsMenuIcon = Icons.account_tree_outlined;
+
+const conditionsPageIcon = Icons.monitor_heart_outlined;
+const itemPropertiesPageIcon = Icons.category_outlined;
+const rulesPageIcon = Icons.gavel_outlined;

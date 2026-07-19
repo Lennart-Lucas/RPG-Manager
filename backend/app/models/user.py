@@ -10,6 +10,7 @@ from app.models.base import Base
 
 if TYPE_CHECKING:
     from app.models.author import Author
+    from app.models.catalog_item import CatalogItem
     from app.models.file import ResourceFile
     from app.models.refresh_token import RefreshToken
 
@@ -37,3 +38,6 @@ class User(Base):
     )
     authors: Mapped[list[Author]] = relationship(back_populates="user")
     files: Mapped[list[ResourceFile]] = relationship(back_populates="user")
+    catalog_items: Mapped[list[CatalogItem]] = relationship(
+        back_populates="user"
+    )

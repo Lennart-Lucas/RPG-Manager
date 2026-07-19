@@ -3,7 +3,11 @@ import 'package:flutter/material.dart';
 import '../../core/theme/theme_controller.dart';
 import '../auth/state/auth_controller.dart';
 import '../auth/ui/home_screen.dart';
+import '../catalog/data/catalog_kind.dart';
+import '../catalog/ui/catalog_body.dart';
 import '../dm_tools/resources/ui/resources_body.dart';
+import '../mechanics/mechanics_icons.dart';
+import '../player_options/player_options_icons.dart';
 import '../settings/preferences_page.dart';
 import 'app_page.dart';
 import 'app_sidebar.dart';
@@ -29,10 +33,27 @@ class _AppShellState extends State<AppShell> {
         AppPage.home => 'RPG Manager',
         AppPage.preferences => 'Settings',
         AppPage.resources => 'Resources',
+        AppPage.classes => 'Classes',
+        AppPage.feats => 'Feats',
+        AppPage.languages => 'Languages',
+        AppPage.races => 'Races',
+        AppPage.skills => 'Skills',
+        AppPage.spells => 'Spells',
+        AppPage.conditions => 'Conditions',
+        AppPage.itemProperties => 'Item Properties',
+        AppPage.rules => 'Rules',
       };
 
   void _openPage(AppPage page) {
     setState(() => _page = page);
+  }
+
+  Widget _catalog(CatalogKind kind, IconData icon) {
+    return CatalogBody(
+      auth: widget.auth,
+      kind: kind,
+      icon: icon,
+    );
   }
 
   @override
@@ -44,8 +65,7 @@ class _AppShellState extends State<AppShell> {
       drawer: AppSidebar(
         auth: widget.auth,
         currentPage: _page,
-        onOpenPreferences: () => _openPage(AppPage.preferences),
-        onOpenResources: () => _openPage(AppPage.resources),
+        onOpenPage: _openPage,
       ),
       body: switch (_page) {
         AppPage.home => HomeBody(auth: widget.auth),
@@ -53,6 +73,18 @@ class _AppShellState extends State<AppShell> {
             themeController: widget.themeController,
           ),
         AppPage.resources => ResourcesBody(auth: widget.auth),
+        AppPage.classes => _catalog(CatalogKind.classes, classesPageIcon),
+        AppPage.feats => _catalog(CatalogKind.feats, featsPageIcon),
+        AppPage.languages =>
+          _catalog(CatalogKind.languages, languagesPageIcon),
+        AppPage.races => _catalog(CatalogKind.races, racesPageIcon),
+        AppPage.skills => _catalog(CatalogKind.skills, skillsPageIcon),
+        AppPage.spells => _catalog(CatalogKind.spells, spellsPageIcon),
+        AppPage.conditions =>
+          _catalog(CatalogKind.conditions, conditionsPageIcon),
+        AppPage.itemProperties =>
+          _catalog(CatalogKind.itemProperties, itemPropertiesPageIcon),
+        AppPage.rules => _catalog(CatalogKind.rules, rulesPageIcon),
       },
     );
   }
