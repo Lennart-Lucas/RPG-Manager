@@ -306,32 +306,20 @@ class _SpellDetailPageState extends State<SpellDetailPage> {
       appBar: AppBar(
         title: Text(_spell.name.trim().isEmpty ? 'Spell' : _spell.name),
         actions: [
-          PopupMenuButton<_DetailAction>(
-            onSelected: (action) {
-              switch (action) {
-                case _DetailAction.edit:
-                  _edit();
-                case _DetailAction.exportPng:
-                  _exportCardPng();
-                case _DetailAction.delete:
-                  _delete();
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: _DetailAction.edit,
-                child: Text('Edit'),
-              ),
-              PopupMenuItem(
-                value: _DetailAction.exportPng,
-                enabled: !_exportingPng,
-                child: const Text('Save as PNG'),
-              ),
-              const PopupMenuItem(
-                value: _DetailAction.delete,
-                child: Text('Delete'),
-              ),
-            ],
+          IconButton(
+            tooltip: 'Edit',
+            icon: const Icon(Icons.edit_outlined),
+            onPressed: _edit,
+          ),
+          IconButton(
+            tooltip: 'Save as PNG',
+            icon: const Icon(Icons.image_outlined),
+            onPressed: _exportingPng ? null : _exportCardPng,
+          ),
+          IconButton(
+            tooltip: 'Delete',
+            icon: const Icon(Icons.delete_outline),
+            onPressed: _delete,
           ),
         ],
       ),
@@ -410,8 +398,6 @@ class _SpellDetailPageState extends State<SpellDetailPage> {
     );
   }
 }
-
-enum _DetailAction { edit, exportPng, delete }
 
 class _CardPagesWrap extends StatelessWidget {
   final List<Widget> cards;
