@@ -112,7 +112,11 @@ class _AppSidebarState extends State<AppSidebar> {
       _ => false,
     };
     final mechanicsSelected = switch (widget.currentPage) {
-      AppPage.conditions || AppPage.itemProperties || AppPage.rules => true,
+      AppPage.conditions ||
+      AppPage.damageTypes ||
+      AppPage.itemProperties ||
+      AppPage.rules =>
+        true,
       _ => false,
     };
 
@@ -260,6 +264,12 @@ class _AppSidebarState extends State<AppSidebar> {
                           icon: conditionsPageIcon,
                           label: 'Conditions',
                           page: AppPage.conditions,
+                        ),
+                        _navTile(
+                          context,
+                          icon: damageTypesPageIcon,
+                          label: 'Damage Types',
+                          page: AppPage.damageTypes,
                         ),
                         _navTile(
                           context,

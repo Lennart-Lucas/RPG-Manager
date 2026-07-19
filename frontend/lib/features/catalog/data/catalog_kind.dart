@@ -6,6 +6,7 @@ enum CatalogKind {
   skills,
   spells,
   conditions,
+  damageTypes,
   itemProperties,
   rules,
 }
@@ -19,6 +20,7 @@ extension CatalogKindApi on CatalogKind {
         CatalogKind.skills => 'skills',
         CatalogKind.spells => 'spells',
         CatalogKind.conditions => 'conditions',
+        CatalogKind.damageTypes => 'damage_types',
         CatalogKind.itemProperties => 'item_properties',
         CatalogKind.rules => 'rules',
       };
@@ -31,6 +33,7 @@ extension CatalogKindApi on CatalogKind {
         CatalogKind.skills => 'skill',
         CatalogKind.spells => 'spell',
         CatalogKind.conditions => 'condition',
+        CatalogKind.damageTypes => 'damage type',
         CatalogKind.itemProperties => 'item property',
         CatalogKind.rules => 'rule',
       };
@@ -43,6 +46,7 @@ extension CatalogKindApi on CatalogKind {
         CatalogKind.skills => 'skills',
         CatalogKind.spells => 'spells',
         CatalogKind.conditions => 'conditions',
+        CatalogKind.damageTypes => 'damage types',
         CatalogKind.itemProperties => 'item properties',
         CatalogKind.rules => 'rules',
       };

@@ -42,6 +42,7 @@ class _AppShellState extends State<AppShell> {
         AppPage.skills => 'Skills',
         AppPage.spells => 'Spells',
         AppPage.conditions => 'Conditions',
+        AppPage.damageTypes => 'Damage Types',
         AppPage.itemProperties => 'Item Properties',
         AppPage.rules => 'Rules',
       };
@@ -84,6 +85,8 @@ class _AppShellState extends State<AppShell> {
         AppPage.spells => SpellsBody(auth: widget.auth),
         AppPage.conditions =>
           _catalog(CatalogKind.conditions, conditionsPageIcon),
+        AppPage.damageTypes =>
+          _catalog(CatalogKind.damageTypes, damageTypesPageIcon),
         AppPage.itemProperties =>
           _catalog(CatalogKind.itemProperties, itemPropertiesPageIcon),
         AppPage.rules => _catalog(CatalogKind.rules, rulesPageIcon),

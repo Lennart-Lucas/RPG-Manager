@@ -9,6 +9,7 @@ enum AppPage {
   skills,
   spells,
   conditions,
+  damageTypes,
   itemProperties,
   rules,
 }
