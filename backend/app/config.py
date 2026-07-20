@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000,http://localhost:8011"
     cors_allow_origin_regex: str | None = None
 
+    # Default Claude model for extract jobs (API key is per-request from client).
+    anthropic_model: str = "claude-sonnet-4-20250514"
+
     @computed_field
     @property
     def cors_origin_list(self) -> list[str]:

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../auth/data/auth_api.dart';
 import '../../../auth/state/auth_controller.dart';
+import '../../pdf_extract/ui/start_spell_extraction.dart';
 import '../data/local_file_path_store.dart';
 import '../data/local_resource_file_copy.dart';
 import '../data/resource_models.dart';
@@ -148,6 +149,22 @@ class _FileDetailPageState extends State<FileDetailPage> {
     }
   }
 
+  Future<void> _extractSpells() async {
+    final path = _localPath;
+    if (path == null || path.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No local PDF on this device')),
+      );
+      return;
+    }
+    await startSpellExtraction(
+      context: context,
+      auth: widget.auth,
+      file: _file,
+      localPath: path,
+    );
+  }
+
   Future<void> _deleteFile() async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -192,11 +209,21 @@ class _FileDetailPageState extends State<FileDetailPage> {
     final hasSource = source != null && source.isNotEmpty;
     final hasLocal = _localPath != null && _localPath!.isNotEmpty;
     final busy = _deleting || _saving;
+    final aiEnabled = widget.auth.user?.aiIntegration ?? false;
+    final canExtract = hasLocal && aiEnabled && !busy;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(_file.name),
         actions: [
+          if (hasLocal)
+            IconButton(
+              tooltip: aiEnabled
+                  ? 'Extract spells'
+                  : 'Enable AI integration to extract spells',
+              onPressed: canExtract ? _extractSpells : null,
+              icon: const Icon(Icons.auto_fix_high_outlined),
+            ),
           IconButton(
             tooltip: 'Edit file',
             onPressed: busy ? null : _editFile,
@@ -289,6 +316,13 @@ class _FileDetailPageState extends State<FileDetailPage> {
                 const SizedBox(height: 16),
                 if (hasLocal)
                   FilledButton.icon(
+                    onPressed: canExtract ? _extractSpells : null,
+                    icon: const Icon(Icons.auto_fix_high_outlined),
+                    label: const Text('Extract spells'),
+                  ),
+                if (hasLocal) const SizedBox(height: 8),
+                if (hasLocal)
+                  FilledButton.tonalIcon(
                     onPressed: _openLocal,
                     icon: const Icon(Icons.open_in_new),
                     label: const Text('Open local file'),

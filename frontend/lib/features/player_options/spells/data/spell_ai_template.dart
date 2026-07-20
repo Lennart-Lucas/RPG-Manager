@@ -183,6 +183,7 @@ SpellAiTemplateData parseSpellAiTemplate({
   required String clipboardText,
   required List<CatalogItem> casterClasses,
   required List<CatalogItem> spellTags,
+  bool allowUnknownNames = false,
 }) {
   final jsonText = extractSpellAiTemplateJson(clipboardText);
   late final Map<String, dynamic> map;
@@ -279,11 +280,13 @@ SpellAiTemplateData parseSpellAiTemplate({
     names: classNames,
     items: casterClasses,
     label: 'class',
+    allowUnknown: allowUnknownNames,
   );
   final tagIds = _resolveNamesToIds(
     names: tagNames,
     items: spellTags,
     label: 'tag',
+    allowUnknown: allowUnknownNames,
   );
 
   final description = (map['description'] as String?) ?? '';
@@ -319,6 +322,7 @@ List<int> _resolveNamesToIds({
   required List<String> names,
   required List<CatalogItem> items,
   required String label,
+  bool allowUnknown = false,
 }) {
   final byName = <String, CatalogItem>{
     for (final item in items) item.name.trim().toLowerCase(): item,
@@ -335,7 +339,7 @@ List<int> _resolveNamesToIds({
       ids.add(item.id);
     }
   }
-  if (missing.isNotEmpty) {
+  if (missing.isNotEmpty && !allowUnknown) {
     throw SpellAiTemplateException(
       'Unknown $label${missing.length == 1 ? '' : 's'}: ${missing.join(', ')}',
     );
