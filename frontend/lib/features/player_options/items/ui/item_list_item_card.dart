@@ -105,14 +105,14 @@ class ItemListItemCard extends StatelessWidget {
           ),
         ),
         if (descText != null) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Text(
             descText,
-            maxLines: 2,
+            maxLines: 4,
             overflow: TextOverflow.ellipsis,
-            style: textTheme.bodySmall?.copyWith(
+            style: textTheme.bodyMedium?.copyWith(
               color: colors.onSurfaceVariant,
-              height: 1.25,
+              height: 1.35,
             ),
           ),
         ],
