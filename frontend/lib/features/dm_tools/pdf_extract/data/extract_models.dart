@@ -86,14 +86,47 @@ class ExtractDraft {
     if (needsReview.contains('schema_validation_failed')) score += 100;
     if (needsReview.contains('boundary_unverified')) score += 80;
     if (needsReview.contains('claude_error')) score += 90;
+    if (needsReview.contains('extraction_failed')) score += 85;
+    if (needsReview.contains('not_a_spell')) score += 75;
     if (boundaryConfidence == 'unverified') score += 70;
     if (duplicateNameInLibrary) score += 40;
     if (duplicateNameInBatch) score += 30;
-    if (unknownFields != null && unknownFields!.isNotEmpty) score += 20;
-    if (notes != null && notes!.trim().isNotEmpty) score += 10;
-    score += needsReview.length * 5;
+
+    // Soft Option-B flags only matter when core fields are incomplete.
+    final softWeight = hasCompleteCoreFields ? 2 : 20;
+    if (unknownFields != null && unknownFields!.isNotEmpty) {
+      score += softWeight;
+    }
+    if (notes != null && notes!.trim().isNotEmpty) {
+      score += hasCompleteCoreFields ? 1 : 10;
+    }
+    for (final reason in needsReview) {
+      if (reason == 'unknown_fields' || reason == 'notes_present') {
+        score += hasCompleteCoreFields ? 1 : 5;
+      }
+    }
     return score;
   }
+
+  bool get hasCompleteCoreFields {
+    final name = payload['name'];
+    final hasName = name is String && name.trim().isNotEmpty;
+    final description = payload['description'];
+    final hasDescription =
+        description is String && description.trim().isNotEmpty;
+    return hasName &&
+        payload['level'] != null &&
+        payload['school'] != null &&
+        hasDescription;
+  }
+
+  bool get isHardReviewIssue =>
+      needsReview.contains('schema_validation_failed') ||
+      needsReview.contains('boundary_unverified') ||
+      needsReview.contains('claude_error') ||
+      needsReview.contains('extraction_failed') ||
+      needsReview.contains('not_a_spell') ||
+      !hasCompleteCoreFields;
 
   String get displayName {
     final name = payload['name'];

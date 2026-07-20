@@ -106,9 +106,15 @@ EXTRACT_SYSTEM = (
     "Extract only what is explicitly present in the text. "
     "Use null for any field that is missing or unclear. "
     "Never invent, infer, or fill gaps. "
-    "If the text contains information that does not map to the schema, "
-    "put a short summary in notes and/or key-value pairs in unknown_fields. "
-    "Class and tag names should be plain strings as written in the source."
+    "If the chunk is not a spell entry (cover, art credit, TOC, filler), "
+    "leave name/level/school/description null and briefly say so in notes. "
+    "Put area/emanation/flare/special range details into description or "
+    "range-related fields when possible; use unknown_fields only for "
+    "mechanical data that truly does not fit the schema. "
+    "Do not put illustration credits, product titles, or page decoration "
+    "into unknown_fields. "
+    "Class and tag names should be plain strings as written in the source; "
+    "leave tags empty unless the source explicitly lists tags."
 )
 
 

@@ -142,6 +142,24 @@ async def _extract_entry_with_retry(
     return None, needs, None, {"_validation_error": last_err}
 
 
+def _mark_not_a_spell_if_needed(
+    payload: dict[str, Any],
+    needs: list[str],
+) -> None:
+    name = payload.get("name")
+    has_name = isinstance(name, str) and bool(name.strip())
+    description = payload.get("description")
+    has_description = isinstance(description, str) and bool(description.strip())
+    if (
+        not has_name
+        and payload.get("level") is None
+        and payload.get("school") is None
+        and not has_description
+    ):
+        if "not_a_spell" not in needs:
+            needs.append("not_a_spell")
+
+
 async def _process_healthy_entries(
     *,
     api_key: str,
@@ -160,6 +178,30 @@ async def _process_healthy_entries(
             # Keep Claude error details visible in review UI
             if notes is None and unknown and unknown.get("_claude_error"):
                 notes = f"claude_error: {unknown.get('_claude_error')}"
+        else:
+            _mark_not_a_spell_if_needed(payload, needs)
+        # Drop decorative metadata from unknown_fields (not schema gaps).
+        if unknown:
+            unknown = {
+                k: v
+                for k, v in unknown.items()
+                if k.lower()
+                not in {
+                    "artist",
+                    "arttype",
+                    "artcredit",
+                    "artwork",
+                    "illustrationartist",
+                    "illustrationtitle",
+                    "producttitle",
+                    "set",
+                    "setname",
+                    "setnumber",
+                    "sourceversion",
+                    "version",
+                    "sourceset",
+                }
+            } or None
         drafts.append(
             ExtractDraft(
                 payload=payload,

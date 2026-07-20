@@ -419,12 +419,12 @@ class _SpellExtractReviewPageState extends State<SpellExtractReviewPage> {
                                   leading: Icon(
                                     item.rejected
                                         ? Icons.block
-                                        : item.riskScore >= 40
+                                        : item.isHardReviewIssue
                                             ? Icons.warning_amber_outlined
                                             : Icons.check_circle_outline,
                                     color: item.rejected
                                         ? scheme.outline
-                                        : item.riskScore >= 40
+                                        : item.isHardReviewIssue
                                             ? scheme.error
                                             : scheme.primary,
                                   ),
