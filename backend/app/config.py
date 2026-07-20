@@ -35,7 +35,8 @@ class Settings(BaseSettings):
     cors_allow_origin_regex: str | None = None
 
     # Default Claude model for extract jobs (API key is per-request from client).
-    anthropic_model: str = "claude-sonnet-4-20250514"
+    # claude-sonnet-4-20250514 retired 2026-06-15; use recommended replacement.
+    anthropic_model: str = "claude-sonnet-4-6"
 
     @computed_field
     @property
