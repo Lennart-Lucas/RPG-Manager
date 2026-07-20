@@ -108,3 +108,42 @@ def test_looks_like_spell_chunk_accepts_school_level():
 def test_looks_like_spell_chunk_rejects_cover():
     text = "RIGHTEOUS SPELLS\nWrath & Ruin\nConcept Art\nby Jun Kim"
     assert not looks_like_spell_chunk(text)
+
+
+def test_tier1_splits_digit_leading_spell_name():
+    sample = """
+Spells
+
+Fire Bolt
+Evocation cantrip
+Casting Time: 1 action
+Range: 120 feet
+Components: V, S
+Duration: Instantaneous
+You hurl a mote of fire.
+
+10.000 Stings
+3rd level Conjuration
+Casting Time: 1 action
+Range: 30ft.
+Components: S, V, M (a drop of honey)
+Duration: Concentration, up to 1 minute
+You point your finger toward a creature.
+
+Shield
+1st-level abjuration
+Casting Time: 1 reaction
+Range: Self
+Components: V, S
+Duration: 1 round
+An invisible barrier.
+"""
+    result = split_document(sample)
+    section = result.sections[0]
+    names = [e.name_hint for e in section.entries]
+    assert any(n and "10.000 Stings" in n for n in names), names
+    assert any(n and "Fire Bolt" in n for n in names)
+    assert any(n and "Shield" in n for n in names)
+    stings = next(e for e in section.entries if e.name_hint and "Stings" in e.name_hint)
+    assert "Fire Bolt" not in stings.text
+    assert "Casting Time: 1 action" in stings.text

@@ -17,9 +17,9 @@ SECTION_HEADER_RE = re.compile(
     r")\s*$"
 )
 
-# Entry start: Title Case / ALL CAPS name on its own line, optionally with level tag
+# Entry start: Title Case / ALL CAPS / digit-leading names (e.g. "10.000 Stings")
 ENTRY_START_RE = re.compile(
-    r"(?m)^(?P<name>[A-Z][A-Za-z0-9'’\-\s]{1,60}?)(?:\s*\([^)]*\))?\s*$"
+    r"(?m)^(?P<name>[A-Z0-9][A-Za-z0-9'’.\-\s]{1,60}?)(?:\s*\([^)]*\))?\s*$"
 )
 
 # Lines that look like spell meta (Casting Time / Range / Components / Duration)
@@ -177,9 +177,11 @@ def _looks_like_entry_start(line: str, next_lines: list[str]) -> bool:
                                 "starts_with_digit": bool(re.match(r"^\d", stripped)),
                                 "has_dot": "." in stripped,
                                 "follow_ok": follow_ok,
-                                "will_accept": False if not entry_re_ok else None,
+                                "will_accept": bool(entry_re_ok and follow_ok),
+                                "runId": "post-fix",
                             },
                             "timestamp": int(time.time() * 1000),
+                            "runId": "post-fix",
                         }
                     )
                     + "\n"
