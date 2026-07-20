@@ -17,9 +17,9 @@ SECTION_HEADER_RE = re.compile(
     r")\s*$"
 )
 
-# Entry start: Title Case / ALL CAPS / digit-leading names (e.g. "10.000 Stings")
+# Entry start: Title Case / ALL CAPS name on its own line, optionally with level tag
 ENTRY_START_RE = re.compile(
-    r"(?m)^(?P<name>[A-Z0-9][A-Za-z0-9'’.\-\s]{1,60}?)(?:\s*\([^)]*\))?\s*$"
+    r"(?m)^(?P<name>[A-Z][A-Za-z0-9'’\-\s]{1,60}?)(?:\s*\([^)]*\))?\s*$"
 )
 
 # Lines that look like spell meta (Casting Time / Range / Components / Duration)
@@ -131,68 +131,20 @@ def _looks_like_entry_start(line: str, next_lines: list[str]) -> bool:
         return False
     if re.search(r"(?i)\d+(?:st|nd|rd|th)[\-\s]?level\b", stripped):
         return False
-    entry_re_ok = bool(ENTRY_START_RE.match(stripped))
+    if not ENTRY_START_RE.match(stripped):
+        return False
     # Prefer starts followed by meta lines or school/level lines
-    follow_ok = False
     for peek in next_lines[:4]:
         if not peek.strip():
             continue
         if META_LINE_RE.match(peek):
-            follow_ok = True
-            break
+            return True
         peek_s = peek.strip()
         if re.search(r"(?i)\bcantrip\b", peek_s):
-            follow_ok = True
-            break
+            return True
         if re.search(r"(?i)\d+(?:st|nd|rd|th)[\-\s]?level\b", peek_s):
-            follow_ok = True
-            break
+            return True
         break
-    # #region agent log
-    if follow_ok and (
-        not entry_re_ok
-        or re.match(r"^\d", stripped)
-        or "." in stripped
-        or "sting" in stripped.lower()
-    ):
-        try:
-            import json
-            import time
-
-            with open(
-                "/Users/lennart.lucas/Documents/Github/RPG-Manager/.cursor/debug-5823b4.log",
-                "a",
-                encoding="utf-8",
-            ) as _f:
-                _f.write(
-                    json.dumps(
-                        {
-                            "sessionId": "5823b4",
-                            "hypothesisId": "A",
-                            "location": "tier1_split.py:_looks_like_entry_start",
-                            "message": "candidate title with follow-up meta/school",
-                            "data": {
-                                "stripped": stripped[:80],
-                                "entry_re_ok": entry_re_ok,
-                                "starts_with_digit": bool(re.match(r"^\d", stripped)),
-                                "has_dot": "." in stripped,
-                                "follow_ok": follow_ok,
-                                "will_accept": bool(entry_re_ok and follow_ok),
-                                "runId": "post-fix",
-                            },
-                            "timestamp": int(time.time() * 1000),
-                            "runId": "post-fix",
-                        }
-                    )
-                    + "\n"
-                )
-        except Exception:
-            pass
-    # #endregion
-    if not entry_re_ok:
-        return False
-    if follow_ok:
-        return True
     # ALL CAPS short titles are common spell names
     letters = re.sub(r"[^A-Za-z]", "", stripped)
     if letters and letters.isupper() and 2 <= len(letters) <= 40:
@@ -243,40 +195,6 @@ def _split_section_entries(section_text: str, full_text: str, base_offset: int) 
         if not chunk:
             continue
         name_hint = lines[start].strip()
-        # #region agent log
-        if "sting" in chunk.lower() or "10.000" in chunk:
-            try:
-                import json
-                import time
-
-                with open(
-                    "/Users/lennart.lucas/Documents/Github/RPG-Manager/.cursor/debug-5823b4.log",
-                    "a",
-                    encoding="utf-8",
-                ) as _f:
-                    _f.write(
-                        json.dumps(
-                            {
-                                "sessionId": "5823b4",
-                                "hypothesisId": "C",
-                                "location": "tier1_split.py:_split_section_entries",
-                                "message": "chunk may contain digit-named spell",
-                                "data": {
-                                    "name_hint": name_hint[:80],
-                                    "start_line_idx": start,
-                                    "end_line_idx": end,
-                                    "chunk_has_stings": "Stings" in chunk
-                                    or "10.000" in chunk,
-                                    "chunk_preview": chunk[:200],
-                                },
-                                "timestamp": int(time.time() * 1000),
-                            }
-                        )
-                        + "\n"
-                    )
-            except Exception:
-                pass
-        # #endregion
         # Approximate offset for page lookup
         prefix = "\n".join(lines[:start])
         offset = base_offset + len(prefix)
