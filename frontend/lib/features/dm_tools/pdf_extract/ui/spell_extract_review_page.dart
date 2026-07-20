@@ -30,6 +30,8 @@ class SpellExtractReviewPage extends StatefulWidget {
   State<SpellExtractReviewPage> createState() => _SpellExtractReviewPageState();
 }
 
+enum _ReviewFilter { all, hard, soft, complete, junk }
+
 class _SpellExtractReviewPageState extends State<SpellExtractReviewPage> {
   final _catalogApi = CatalogApi();
   final _resourcesApi = ResourcesApi();
@@ -38,6 +40,9 @@ class _SpellExtractReviewPageState extends State<SpellExtractReviewPage> {
   late List<ExtractDraft> _sorted;
   int _index = 0;
   bool _busy = false;
+  bool _hideJunk = false;
+  _ReviewFilter _filter = _ReviewFilter.all;
+  String? _sectionFilter;
   List<CatalogItem> _casters = const [];
   List<CatalogItem> _spellTags = const [];
   List<ResourceFile> _files = const [];
@@ -52,6 +57,9 @@ class _SpellExtractReviewPageState extends State<SpellExtractReviewPage> {
   List<ExtractDraft> get _pending =>
       _drafts.where((d) => !d.rejected).toList(growable: false);
 
+  int get _junkPendingCount =>
+      _drafts.where((d) => !d.rejected && d.isNotASpell).length;
+
   @override
   void initState() {
     super.initState();
@@ -60,8 +68,28 @@ class _SpellExtractReviewPageState extends State<SpellExtractReviewPage> {
     _loadCatalog();
   }
 
+  bool _matchesFilters(ExtractDraft d) {
+    if (_hideJunk && d.isNotASpell) return false;
+    if (_sectionFilter != null) {
+      final section = d.source.section ?? '';
+      if (section != _sectionFilter) return false;
+    }
+    switch (_filter) {
+      case _ReviewFilter.all:
+        return true;
+      case _ReviewFilter.hard:
+        return d.isHardReviewIssue && !d.rejected;
+      case _ReviewFilter.soft:
+        return d.isSoftReviewOnly && !d.rejected;
+      case _ReviewFilter.complete:
+        return d.isCompleteClean && !d.rejected;
+      case _ReviewFilter.junk:
+        return d.isNotASpell;
+    }
+  }
+
   void _resort() {
-    _sorted = List<ExtractDraft>.from(_drafts)
+    _sorted = _drafts.where(_matchesFilters).toList()
       ..sort((a, b) {
         if (a.rejected != b.rejected) return a.rejected ? 1 : -1;
         final risk = b.riskScore.compareTo(a.riskScore);
@@ -71,6 +99,39 @@ class _SpellExtractReviewPageState extends State<SpellExtractReviewPage> {
     if (_index >= _sorted.length) {
       _index = _sorted.isEmpty ? 0 : _sorted.length - 1;
     }
+  }
+
+  Future<void> _rejectAllJunk() async {
+    final count = _junkPendingCount;
+    if (count == 0) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reject all non-spells?'),
+        content: Text(
+          'Mark $count draft${count == 1 ? '' : 's'} flagged '
+          'not_a_spell as rejected. You can still find them via the Junk filter.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Reject all'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    setState(() {
+      for (final d in _drafts) {
+        if (d.isNotASpell) d.rejected = true;
+      }
+      _resort();
+      _advanceAfterAction();
+    });
   }
 
   Future<String?> _token() => widget.auth.requireAccessToken();
@@ -333,18 +394,28 @@ class _SpellExtractReviewPageState extends State<SpellExtractReviewPage> {
     final scheme = Theme.of(context).colorScheme;
     final draft = _current;
     final pendingCount = _pending.length;
+    final junkCount = _junkPendingCount;
+    final emptyMessage = _drafts.isEmpty
+        ? 'No drafts left to review.'
+        : 'No drafts match the current filters.';
 
     return Scaffold(
       appBar: AppBar(
         title: Text('Review spells (${widget.sourceFile.name})'),
         actions: [
+          if (junkCount > 0)
+            TextButton(
+              onPressed: _busy ? null : _rejectAllJunk,
+              child: Text('Reject junk ($junkCount)'),
+            ),
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: Center(
               child: Text(
                 pendingCount == 0
                     ? 'Done'
-                    : '${_index + 1} / ${_sorted.length} · $pendingCount left',
+                    : '${_sorted.isEmpty ? 0 : _index + 1} / ${_sorted.length}'
+                        ' · $pendingCount left',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
@@ -353,140 +424,214 @@ class _SpellExtractReviewPageState extends State<SpellExtractReviewPage> {
       ),
       body: _loadError != null
           ? Center(child: Text(_loadError!))
-          : draft == null
-              ? const Center(child: Text('No drafts left to review.'))
-              : Column(
-                  children: [
-                    if (widget.sectionSummaries.isNotEmpty)
-                      Material(
-                        color: scheme.surfaceContainerHighest.withValues(
-                          alpha: 0.4,
-                        ),
-                        child: SizedBox(
-                          height: 40,
+          : Column(
+              children: [
+                Material(
+                  color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SizedBox(
+                          height: 36,
                           child: ListView(
                             scrollDirection: Axis.horizontal,
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
                             children: [
-                              for (final section in widget.sectionSummaries)
+                              for (final entry in const [
+                                (_ReviewFilter.all, 'All'),
+                                (_ReviewFilter.hard, 'Hard'),
+                                (_ReviewFilter.soft, 'Soft'),
+                                (_ReviewFilter.complete, 'Complete'),
+                                (_ReviewFilter.junk, 'Junk'),
+                              ])
                                 Padding(
-                                  padding: const EdgeInsets.only(
-                                    right: 8,
-                                    top: 6,
-                                    bottom: 6,
-                                  ),
-                                  child: Chip(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: FilterChip(
                                     visualDensity: VisualDensity.compact,
-                                    label: Text(
-                                      '${section.title ?? "Section"}: '
-                                      '${section.entryCount} '
-                                      '${section.healthOk ? "ok" : "tier ${section.tier}"}',
-                                    ),
+                                    label: Text(entry.$2),
+                                    selected: _filter == entry.$1,
+                                    onSelected: (_) => setState(() {
+                                      _filter = entry.$1;
+                                      _index = 0;
+                                      _resort();
+                                    }),
                                   ),
                                 ),
+                              const SizedBox(width: 8),
+                              FilterChip(
+                                visualDensity: VisualDensity.compact,
+                                label: const Text('Hide junk'),
+                                selected: _hideJunk,
+                                onSelected: (v) => setState(() {
+                                  _hideJunk = v;
+                                  if (v && _filter == _ReviewFilter.junk) {
+                                    _filter = _ReviewFilter.all;
+                                  }
+                                  _index = 0;
+                                  _resort();
+                                }),
+                              ),
                             ],
                           ),
                         ),
-                      ),
-                    Expanded(
-                      child: Row(
-                        children: [
+                        if (widget.sectionSummaries.isNotEmpty) ...[
+                          const SizedBox(height: 4),
                           SizedBox(
-                            width: 260,
-                            child: ListView.builder(
-                              itemCount: _sorted.length,
-                              itemBuilder: (context, i) {
-                                final item = _sorted[i];
-                                final selected = i == _index;
-                                return ListTile(
-                                  selected: selected,
-                                  dense: true,
-                                  title: Text(
-                                    item.displayName,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      decoration: item.rejected
-                                          ? TextDecoration.lineThrough
-                                          : null,
+                            height: 36,
+                            child: ListView(
+                              scrollDirection: Axis.horizontal,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: FilterChip(
+                                    visualDensity: VisualDensity.compact,
+                                    label: const Text('All sections'),
+                                    selected: _sectionFilter == null,
+                                    onSelected: (_) => setState(() {
+                                      _sectionFilter = null;
+                                      _index = 0;
+                                      _resort();
+                                    }),
+                                  ),
+                                ),
+                                for (final section in widget.sectionSummaries)
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 8),
+                                    child: FilterChip(
+                                      visualDensity: VisualDensity.compact,
+                                      selected: _sectionFilter ==
+                                          (section.title ?? ''),
+                                      label: Text(
+                                        '${section.title ?? "Section"}: '
+                                        '${section.entryCount} '
+                                        '${section.healthOk ? "ok" : "tier ${section.tier}"}',
+                                      ),
+                                      onSelected: (_) => setState(() {
+                                        final key = section.title ?? '';
+                                        _sectionFilter =
+                                            _sectionFilter == key ? null : key;
+                                        _index = 0;
+                                        _resort();
+                                      }),
                                     ),
                                   ),
-                                  subtitle: Text(
-                                    _draftSubtitle(item),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  leading: Icon(
-                                    item.rejected
-                                        ? Icons.block
-                                        : item.isHardReviewIssue
-                                            ? Icons.warning_amber_outlined
-                                            : Icons.check_circle_outline,
-                                    color: item.rejected
-                                        ? scheme.outline
-                                        : item.isHardReviewIssue
-                                            ? scheme.error
-                                            : scheme.primary,
-                                  ),
-                                  onTap: () => setState(() => _index = i),
-                                );
-                              },
+                              ],
                             ),
                           ),
-                          const VerticalDivider(width: 1),
-                          Expanded(
-                            child: _DraftDetailPane(
-                              draft: draft,
-                              libraryMatchLabel: draft.libraryMatchName ??
-                                  draft.libraryMatchId?.toString(),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: draft == null
+                      ? Center(child: Text(emptyMessage))
+                      : Row(
+                          children: [
+                            SizedBox(
+                              width: 260,
+                              child: ListView.builder(
+                                itemCount: _sorted.length,
+                                itemBuilder: (context, i) {
+                                  final item = _sorted[i];
+                                  final selected = i == _index;
+                                  return ListTile(
+                                    selected: selected,
+                                    dense: true,
+                                    title: Text(
+                                      item.displayName,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        decoration: item.rejected
+                                            ? TextDecoration.lineThrough
+                                            : null,
+                                      ),
+                                    ),
+                                    subtitle: Text(
+                                      _draftSubtitle(item),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    leading: Icon(
+                                      item.rejected
+                                          ? Icons.block
+                                          : item.isNotASpell
+                                              ? Icons.not_interested
+                                              : item.isHardReviewIssue
+                                                  ? Icons.warning_amber_outlined
+                                                  : Icons.check_circle_outline,
+                                      color: item.rejected
+                                          ? scheme.outline
+                                          : item.isHardReviewIssue
+                                              ? scheme.error
+                                              : scheme.primary,
+                                    ),
+                                    onTap: () => setState(() => _index = i),
+                                  );
+                                },
+                              ),
                             ),
+                            const VerticalDivider(width: 1),
+                            Expanded(
+                              child: _DraftDetailPane(
+                                draft: draft,
+                                libraryMatchLabel: draft.libraryMatchName ??
+                                    draft.libraryMatchId?.toString(),
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+                if (draft != null) ...[
+                  const Divider(height: 1),
+                  SafeArea(
+                    top: false,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: _busy || draft.rejected
+                                ? null
+                                : _rejectCurrent,
+                            icon: const Icon(Icons.close),
+                            label: const Text('Reject'),
+                          ),
+                          const SizedBox(width: 8),
+                          OutlinedButton.icon(
+                            onPressed:
+                                _busy || draft.rejected ? null : _editCurrent,
+                            icon: const Icon(Icons.edit_outlined),
+                            label: const Text('Edit'),
+                          ),
+                          const Spacer(),
+                          FilledButton.icon(
+                            onPressed: _busy || draft.rejected
+                                ? null
+                                : _approveCurrent,
+                            icon: _busy
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.check),
+                            label: const Text('Approve'),
                           ),
                         ],
                       ),
                     ),
-                    const Divider(height: 1),
-                    SafeArea(
-                      top: false,
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Row(
-                          children: [
-                            OutlinedButton.icon(
-                              onPressed: _busy || draft.rejected
-                                  ? null
-                                  : _rejectCurrent,
-                              icon: const Icon(Icons.close),
-                              label: const Text('Reject'),
-                            ),
-                            const SizedBox(width: 8),
-                            OutlinedButton.icon(
-                              onPressed:
-                                  _busy || draft.rejected ? null : _editCurrent,
-                              icon: const Icon(Icons.edit_outlined),
-                              label: const Text('Edit'),
-                            ),
-                            const Spacer(),
-                            FilledButton.icon(
-                              onPressed: _busy || draft.rejected
-                                  ? null
-                                  : _approveCurrent,
-                              icon: _busy
-                                  ? const SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Icon(Icons.check),
-                              label: const Text('Approve'),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
+              ],
+            ),
     );
   }
 

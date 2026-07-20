@@ -1,4 +1,8 @@
-from app.services.extract.tier1_split import health_check_section, split_document
+from app.services.extract.tier1_split import (
+    health_check_section,
+    looks_like_spell_chunk,
+    split_document,
+)
 from app.services.extract.tier2_anchors import verify_anchor_pair
 
 
@@ -89,3 +93,18 @@ def test_verify_anchor_pair_failure():
     source = "Alpha Spell\nLine two"
     span = verify_anchor_pair(source, "Alpha Spell", "Not present")
     assert not span.verified
+
+
+def test_looks_like_spell_chunk_accepts_meta():
+    text = "Fire Bolt\nCasting Time: 1 action\nRange: 120 feet"
+    assert looks_like_spell_chunk(text)
+
+
+def test_looks_like_spell_chunk_accepts_school_level():
+    text = "Magic Missile\n1st-level evocation\nYou create darts."
+    assert looks_like_spell_chunk(text)
+
+
+def test_looks_like_spell_chunk_rejects_cover():
+    text = "RIGHTEOUS SPELLS\nWrath & Ruin\nConcept Art\nby Jun Kim"
+    assert not looks_like_spell_chunk(text)

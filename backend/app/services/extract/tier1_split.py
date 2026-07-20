@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from typing import Any
 
 
 PAGE_MARKER_RE = re.compile(r"(?m)^---\s*page\s+(\d+)\s*---\s*$")
@@ -25,6 +26,53 @@ ENTRY_START_RE = re.compile(
 META_LINE_RE = re.compile(
     r"(?im)^\s*(casting\s*time|range|components?|duration)\s*:",
 )
+
+SCHOOL_LEVEL_RE = re.compile(
+    r"(?i)\b(?:cantrip|\d+(?:st|nd|rd|th)[\-\s]?level)\b"
+)
+
+# Decorative / non-mechanical unknown_fields keys to drop after extraction.
+DECORATIVE_UNKNOWN_KEYS = frozenset(
+    {
+        "artist",
+        "arttype",
+        "artcredit",
+        "artwork",
+        "illustrationartist",
+        "illustrationtitle",
+        "producttitle",
+        "set",
+        "setname",
+        "setnumber",
+        "sourceversion",
+        "version",
+        "sourceset",
+    }
+)
+
+
+def looks_like_spell_chunk(text: str) -> bool:
+    """True when chunk has spell-shaped signals worth sending to Claude."""
+    if not text or not text.strip():
+        return False
+    if META_LINE_RE.search(text):
+        return True
+    if SCHOOL_LEVEL_RE.search(text):
+        return True
+    return False
+
+
+def filter_decorative_unknown_fields(
+    unknown: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not unknown:
+        return None
+    cleaned = {
+        k: v
+        for k, v in unknown.items()
+        if k.lower() not in DECORATIVE_UNKNOWN_KEYS
+    }
+    return cleaned or None
 
 
 @dataclass

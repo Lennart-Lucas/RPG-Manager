@@ -16,7 +16,12 @@ from app.schemas.extract import (
     ExtractSourceMeta,
 )
 from app.services.extract import claude_client
-from app.services.extract.tier1_split import SplitSection, split_document
+from app.services.extract.tier1_split import (
+    SplitSection,
+    filter_decorative_unknown_fields,
+    looks_like_spell_chunk,
+    split_document,
+)
 from app.services.extract.tier2_anchors import (
     parse_anchor_response,
     try_parse_spell_payload,
@@ -160,6 +165,74 @@ def _mark_not_a_spell_if_needed(
             needs.append("not_a_spell")
 
 
+def _not_a_spell_draft(
+    *,
+    name_hint: str | None,
+    source_text: str,
+    document_title: str | None,
+    section: str | None,
+    page: int | None,
+    tier: int,
+    boundary: BoundaryConfidence,
+    extra_needs: list[str] | None = None,
+) -> ExtractDraft:
+    needs = ["not_a_spell", *(extra_needs or [])]
+    return ExtractDraft(
+        payload={"name": name_hint},
+        source_text=source_text,
+        boundary_confidence=boundary,
+        source=ExtractSourceMeta(
+            document_title=document_title,
+            section=section,
+            page=page,
+        ),
+        notes="Skipped Claude: chunk lacks spell-shaped signals "
+        "(casting time / range / components / level-school line).",
+        unknown_fields=None,
+        needs_review=needs,
+        tier=tier,
+    )
+
+
+def _finalize_extracted_draft(
+    *,
+    payload: dict[str, Any] | None,
+    needs: list[str],
+    notes: str | None,
+    unknown: dict[str, Any] | None,
+    name_hint: str | None,
+    source_text: str,
+    document_title: str | None,
+    section: str | None,
+    page: int | None,
+    tier: int,
+    boundary: BoundaryConfidence,
+) -> ExtractDraft:
+    if payload is None:
+        payload = {"name": name_hint}
+        if "schema_validation_failed" not in needs and "claude_error" not in needs:
+            needs.append("extraction_failed")
+        if notes is None and unknown and unknown.get("_claude_error"):
+            notes = f"claude_error: {unknown.get('_claude_error')}"
+    else:
+        _mark_not_a_spell_if_needed(payload, needs)
+    unknown = filter_decorative_unknown_fields(unknown)
+    return ExtractDraft(
+        payload=payload,
+        source_text=source_text,
+        boundary_confidence=boundary,
+        source=ExtractSourceMeta(
+            document_title=document_title,
+            section=section,
+            page=page,
+        ),
+        notes=notes,
+        unknown_fields=unknown,
+        needs_review=needs,
+        tier=tier,
+    )
+
+
 async def _process_healthy_entries(
     *,
     api_key: str,
@@ -168,54 +241,37 @@ async def _process_healthy_entries(
     drafts: list[ExtractDraft],
 ) -> None:
     for entry in section.entries:
-        payload, needs, notes, unknown = await _extract_entry_with_retry(
-            api_key=api_key, entry_text=entry.text
-        )
-        if payload is None:
-            payload = {"name": entry.name_hint}
-            if "schema_validation_failed" not in needs and "claude_error" not in needs:
-                needs.append("extraction_failed")
-            # Keep Claude error details visible in review UI
-            if notes is None and unknown and unknown.get("_claude_error"):
-                notes = f"claude_error: {unknown.get('_claude_error')}"
-        else:
-            _mark_not_a_spell_if_needed(payload, needs)
-        # Drop decorative metadata from unknown_fields (not schema gaps).
-        if unknown:
-            unknown = {
-                k: v
-                for k, v in unknown.items()
-                if k.lower()
-                not in {
-                    "artist",
-                    "arttype",
-                    "artcredit",
-                    "artwork",
-                    "illustrationartist",
-                    "illustrationtitle",
-                    "producttitle",
-                    "set",
-                    "setname",
-                    "setnumber",
-                    "sourceversion",
-                    "version",
-                    "sourceset",
-                }
-            } or None
-        drafts.append(
-            ExtractDraft(
-                payload=payload,
-                source_text=entry.text,
-                boundary_confidence=BoundaryConfidence.deterministic,
-                source=ExtractSourceMeta(
+        if not looks_like_spell_chunk(entry.text):
+            drafts.append(
+                _not_a_spell_draft(
+                    name_hint=entry.name_hint,
+                    source_text=entry.text,
                     document_title=document_title,
                     section=section.title,
                     page=entry.page,
-                ),
+                    tier=1,
+                    boundary=BoundaryConfidence.deterministic,
+                    extra_needs=["prefiltered"],
+                )
+            )
+            continue
+
+        payload, needs, notes, unknown = await _extract_entry_with_retry(
+            api_key=api_key, entry_text=entry.text
+        )
+        drafts.append(
+            _finalize_extracted_draft(
+                payload=payload,
+                needs=needs,
                 notes=notes,
-                unknown_fields=unknown,
-                needs_review=needs,
+                unknown=unknown,
+                name_hint=entry.name_hint,
+                source_text=entry.text,
+                document_title=document_title,
+                section=section.title,
+                page=entry.page,
                 tier=1,
+                boundary=BoundaryConfidence.deterministic,
             )
         )
 
@@ -303,26 +359,37 @@ async def _process_tier2_section(
             )
             continue
 
+        if not looks_like_spell_chunk(span.entry_text):
+            drafts.append(
+                _not_a_spell_draft(
+                    name_hint=span.name_hint,
+                    source_text=span.entry_text,
+                    document_title=document_title,
+                    section=section.title,
+                    page=None,
+                    tier=2,
+                    boundary=BoundaryConfidence.verified_anchor,
+                    extra_needs=["prefiltered"],
+                )
+            )
+            continue
+
         payload, needs, notes, unknown = await _extract_entry_with_retry(
             api_key=api_key, entry_text=span.entry_text
         )
-        if payload is None:
-            payload = {"name": span.name_hint}
-            if "schema_validation_failed" not in needs and "claude_error" not in needs:
-                needs.append("extraction_failed")
         drafts.append(
-            ExtractDraft(
+            _finalize_extracted_draft(
                 payload=payload,
-                source_text=span.entry_text,
-                boundary_confidence=BoundaryConfidence.verified_anchor,
-                source=ExtractSourceMeta(
-                    document_title=document_title,
-                    section=section.title,
-                ),
+                needs=needs,
                 notes=notes,
-                unknown_fields=unknown,
-                needs_review=needs,
+                unknown=unknown,
+                name_hint=span.name_hint,
+                source_text=span.entry_text,
+                document_title=document_title,
+                section=section.title,
+                page=None,
                 tier=2,
+                boundary=BoundaryConfidence.verified_anchor,
             )
         )
 

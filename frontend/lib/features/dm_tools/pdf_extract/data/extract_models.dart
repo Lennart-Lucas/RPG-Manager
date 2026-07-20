@@ -128,6 +128,21 @@ class ExtractDraft {
       needsReview.contains('not_a_spell') ||
       !hasCompleteCoreFields;
 
+  bool get isNotASpell => needsReview.contains('not_a_spell');
+
+  bool get isSoftReviewOnly =>
+      !isHardReviewIssue &&
+      needsReview.any(
+        (r) =>
+            r == 'unknown_fields' ||
+            r == 'notes_present' ||
+            r == 'duplicate_in_batch' ||
+            r == 'duplicate_in_library',
+      );
+
+  bool get isCompleteClean =>
+      hasCompleteCoreFields && !isHardReviewIssue && needsReview.isEmpty;
+
   String get displayName {
     final name = payload['name'];
     if (name is String && name.trim().isNotEmpty) return name.trim();
