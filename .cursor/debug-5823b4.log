@@ -1,0 +1,1 @@
+{"sessionId": "5823b4", "runId": "pre-user", "hypothesisId": "A", "location": "repro_script", "message": "confirmed future-annotations causes query body; fix removes it", "data": {"before": {"body_params": [], "query_params": ["body"]}, "after_binding": {"body": ["body"], "query": []}, "extract_py_has_future_annotations": false}, "timestamp": 1784554399267}

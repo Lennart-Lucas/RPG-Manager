@@ -23,6 +23,41 @@ class ExtractApi {
     int? sourceFileId,
     String? sectionHint,
   }) async {
+    final encoded = jsonEncode({
+      'kind': 'spells',
+      'document_title': ?documentTitle,
+      'source_file_id': ?sourceFileId,
+      'text': text,
+      'section_hint': ?sectionHint,
+    });
+    // #region agent log
+    http
+        .post(
+          Uri.parse(
+            'http://127.0.0.1:7407/ingest/3ebe5f69-cb83-47c4-be24-ce1801f79526',
+          ),
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Debug-Session-Id': '5823b4',
+          },
+          body: jsonEncode({
+            'sessionId': '5823b4',
+            'runId': 'post-fix',
+            'hypothesisId': 'A',
+            'location': 'extract_api.dart:createJob',
+            'message': 'sending extract job request',
+            'data': {
+              'uri': _jobsUri.toString(),
+              'bodyBytes': encoded.length,
+              'textLen': text.length,
+              'hasAuth': accessToken.isNotEmpty,
+              'hasAnthropicKey': anthropicApiKey.trim().isNotEmpty,
+            },
+            'timestamp': DateTime.now().millisecondsSinceEpoch,
+          }),
+        )
+        .catchError((_) => http.Response('', 500));
+    // #endregion
     final response = await _client.post(
       _jobsUri,
       headers: {
@@ -30,14 +65,35 @@ class ExtractApi {
         'Authorization': 'Bearer $accessToken',
         'X-Anthropic-Api-Key': anthropicApiKey,
       },
-      body: jsonEncode({
-        'kind': 'spells',
-        'document_title': ?documentTitle,
-        'source_file_id': ?sourceFileId,
-        'text': text,
-        'section_hint': ?sectionHint,
-      }),
+      body: encoded,
     );
+    // #region agent log
+    http
+        .post(
+          Uri.parse(
+            'http://127.0.0.1:7407/ingest/3ebe5f69-cb83-47c4-be24-ce1801f79526',
+          ),
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Debug-Session-Id': '5823b4',
+          },
+          body: jsonEncode({
+            'sessionId': '5823b4',
+            'runId': 'post-fix',
+            'hypothesisId': 'A',
+            'location': 'extract_api.dart:createJob:response',
+            'message': 'extract job response',
+            'data': {
+              'status': response.statusCode,
+              'detailPreview': response.body.length > 300
+                  ? response.body.substring(0, 300)
+                  : response.body,
+            },
+            'timestamp': DateTime.now().millisecondsSinceEpoch,
+          }),
+        )
+        .catchError((_) => http.Response('', 500));
+    // #endregion
     if (response.statusCode != 200) {
       throw AuthApiException(
         _errorMessage(response),
