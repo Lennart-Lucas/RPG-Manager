@@ -72,6 +72,7 @@ class ResourceFile {
     required this.authorId,
     required this.name,
     required this.source,
+    required this.processed,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -81,6 +82,7 @@ class ResourceFile {
   final int authorId;
   final String name;
   final String? source;
+  final bool processed;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -91,8 +93,31 @@ class ResourceFile {
       authorId: json['author_id'] as int,
       name: json['name'] as String,
       source: json['source'] as String?,
+      processed: json['processed'] == true,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
+    );
+  }
+
+  ResourceFile copyWith({
+    int? id,
+    int? userId,
+    int? authorId,
+    String? name,
+    String? source,
+    bool? processed,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return ResourceFile(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      authorId: authorId ?? this.authorId,
+      name: name ?? this.name,
+      source: source ?? this.source,
+      processed: processed ?? this.processed,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 }

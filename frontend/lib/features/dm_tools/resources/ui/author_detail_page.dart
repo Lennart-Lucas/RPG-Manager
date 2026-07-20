@@ -276,6 +276,14 @@ class _AuthorDetailPageState extends State<AuthorDetailPage> {
                                   ],
                                 ),
                               ),
+                              if (file.processed) ...[
+                                Icon(
+                                  Icons.check_circle,
+                                  color: scheme.primary,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 4),
+                              ],
                               Icon(
                                 Icons.chevron_right,
                                 color: scheme.onSurfaceVariant,

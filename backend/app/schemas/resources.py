@@ -48,12 +48,14 @@ class FileCreate(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     author_id: int
     source: str | None = Field(default=None, max_length=2048)
+    processed: bool = False
 
 
 class FileUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=255)
     author_id: int | None = None
     source: str | None = Field(default=None, max_length=2048)
+    processed: bool | None = None
 
 
 class FileResponse(BaseModel):
@@ -64,5 +66,6 @@ class FileResponse(BaseModel):
     author_id: int
     name: str
     source: str | None = None
+    processed: bool = False
     created_at: datetime
     updated_at: datetime

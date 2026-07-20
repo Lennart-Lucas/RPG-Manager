@@ -47,6 +47,7 @@ async def create_file(
         author_id=data.author_id,
         name=validate_name(data.name),
         source=validate_url(data.source),
+        processed=data.processed,
     )
     session.add(resource)
     await session.flush()
@@ -66,6 +67,8 @@ async def update_file(
     if data.source is not None:
         # Allow clearing source with empty string
         resource.source = validate_url(data.source or None)
+    if data.processed is not None:
+        resource.processed = data.processed
     await session.flush()
     await session.refresh(resource)
     return resource

@@ -47,6 +47,7 @@ class _FileDetailPageState extends State<FileDetailPage> {
   late String? _localPath = widget.localPath;
   bool _deleting = false;
   bool _saving = false;
+  bool _togglingProcessed = false;
 
   bool _spellsLoading = true;
   String? _spellsError;
@@ -168,6 +169,34 @@ class _FileDetailPageState extends State<FileDetailPage> {
         _spellsLoading = false;
         _spellsError = 'Could not load imported spells';
       });
+    }
+  }
+
+  Future<void> _setProcessed(bool value) async {
+    if (_togglingProcessed || _deleting || _saving) return;
+    setState(() => _togglingProcessed = true);
+    try {
+      final token = await _token();
+      if (token == null) {
+        if (mounted) setState(() => _togglingProcessed = false);
+        return;
+      }
+      final updated = await _api.setFileProcessed(
+        accessToken: token,
+        fileId: _file.id,
+        processed: value,
+      );
+      if (!mounted) return;
+      setState(() {
+        _file = updated;
+        _togglingProcessed = false;
+      });
+    } on AuthApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _togglingProcessed = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
     }
   }
 
@@ -359,7 +388,7 @@ class _FileDetailPageState extends State<FileDetailPage> {
     final source = _file.source?.trim();
     final hasSource = source != null && source.isNotEmpty;
     final hasLocal = _localPath != null && _localPath!.isNotEmpty;
-    final busy = _deleting || _saving;
+    final busy = _deleting || _saving || _togglingProcessed;
     final aiEnabled = widget.auth.user?.aiIntegration ?? false;
     final canExtract = hasLocal && aiEnabled && !busy;
     final importedCount = _linkedSpells.length;
@@ -449,6 +478,24 @@ class _FileDetailPageState extends State<FileDetailPage> {
                         padding: const EdgeInsets.fromLTRB(4, 8, 4, 8),
                         child: Column(
                           children: [
+                            SwitchListTile(
+                              secondary: Icon(
+                                _file.processed
+                                    ? Icons.check_circle
+                                    : Icons.radio_button_unchecked,
+                                color: _file.processed
+                                    ? scheme.primary
+                                    : scheme.onSurfaceVariant,
+                              ),
+                              title: const Text('Processed'),
+                              subtitle: Text(
+                                _file.processed
+                                    ? 'Marked as done'
+                                    : 'Not done yet',
+                              ),
+                              value: _file.processed,
+                              onChanged: busy ? null : _setProcessed,
+                            ),
                             ListTile(
                               leading: Icon(
                                 Icons.person_outline,

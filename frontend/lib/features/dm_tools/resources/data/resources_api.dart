@@ -103,6 +103,7 @@ class ResourcesApi {
     required String name,
     required int authorId,
     String? source,
+    bool? processed,
   }) async {
     final response = await _client.patch(
       _uri('/files/$fileId'),
@@ -111,7 +112,21 @@ class ResourcesApi {
         'name': name,
         'author_id': authorId,
         'source': source ?? '',
+        'processed': ?processed,
       }),
+    );
+    return _parseOne(response, ResourceFile.fromJson);
+  }
+
+  Future<ResourceFile> setFileProcessed({
+    required String accessToken,
+    required int fileId,
+    required bool processed,
+  }) async {
+    final response = await _client.patch(
+      _uri('/files/$fileId'),
+      headers: _headers(accessToken),
+      body: jsonEncode({'processed': processed}),
     );
     return _parseOne(response, ResourceFile.fromJson);
   }
