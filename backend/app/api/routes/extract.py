@@ -34,35 +34,6 @@ async def create_extract_job(
     user: User = Depends(get_current_active_user),
     api_key: str = Depends(_require_anthropic_key),
 ) -> ExtractJobResponse:
-    # #region agent log
-    try:
-        import json
-        import time
-        from pathlib import Path
-
-        Path("/Users/lennart.lucas/Documents/Github/RPG-Manager/.cursor/debug-5823b4.log").open(
-            "a"
-        ).write(
-            json.dumps(
-                {
-                    "sessionId": "5823b4",
-                    "runId": "post-fix",
-                    "hypothesisId": "A",
-                    "location": "extract.py:create_extract_job",
-                    "message": "extract handler entered with body model",
-                    "data": {
-                        "kind": getattr(body, "kind", None),
-                        "text_len": len(getattr(body, "text", "") or ""),
-                        "has_title": bool(getattr(body, "document_title", None)),
-                    },
-                    "timestamp": int(time.time() * 1000),
-                }
-            )
-            + "\n"
-        )
-    except Exception:
-        pass
-    # #endregion
     if not user.ai_integration:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

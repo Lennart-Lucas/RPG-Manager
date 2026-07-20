@@ -106,37 +106,6 @@ async def _extract_entry_with_retry(
             )
         except claude_client.ClaudeError as exc:
             last_err = str(exc)
-            # #region agent log
-            try:
-                import json
-                import time
-                from pathlib import Path
-
-                Path(
-                    "/Users/lennart.lucas/Documents/Github/RPG-Manager/.cursor/debug-5823b4.log"
-                ).open("a").write(
-                    json.dumps(
-                        {
-                            "sessionId": "5823b4",
-                            "runId": "claude-debug",
-                            "hypothesisId": "C1",
-                            "location": "pipeline.py:_extract_entry_with_retry",
-                            "message": "claude_error",
-                            "data": {
-                                "attempt": attempt,
-                                "status_code": exc.status_code,
-                                "error": last_err[:300],
-                                "entry_len": len(entry_text),
-                                "entry_preview": entry_text[:80],
-                            },
-                            "timestamp": int(time.time() * 1000),
-                        }
-                    )
-                    + "\n"
-                )
-            except Exception:
-                pass
-            # #endregion
             if attempt == 0:
                 continue
             needs.append("claude_error")
@@ -155,35 +124,6 @@ async def _extract_entry_with_retry(
             return dumped, needs, notes, unknown
 
         last_err = err
-        # #region agent log
-        try:
-            import json
-            import time
-            from pathlib import Path
-
-            Path(
-                "/Users/lennart.lucas/Documents/Github/RPG-Manager/.cursor/debug-5823b4.log"
-            ).open("a").write(
-                json.dumps(
-                    {
-                        "sessionId": "5823b4",
-                        "runId": "claude-debug",
-                        "hypothesisId": "C2",
-                        "location": "pipeline.py:_extract_entry_with_retry",
-                        "message": "schema_validation_failed",
-                        "data": {
-                            "attempt": attempt,
-                            "error": (last_err or "")[:300],
-                            "keys": list(data.keys()) if isinstance(data, dict) else None,
-                        },
-                        "timestamp": int(time.time() * 1000),
-                    }
-                )
-                + "\n"
-            )
-        except Exception:
-            pass
-        # #endregion
         if attempt == 0:
             continue
         needs.append("schema_validation_failed")

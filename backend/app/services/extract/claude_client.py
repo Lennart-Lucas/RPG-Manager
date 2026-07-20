@@ -66,48 +66,16 @@ async def _messages_create(
         # Do not forward Anthropic body verbatim if it might echo headers;
         # use a short detail only.
         detail = "Anthropic API request failed"
-        err_type = None
         try:
             data = response.json()
             err = data.get("error") if isinstance(data, dict) else None
-            if isinstance(err, dict):
-                err_type = err.get("type") if isinstance(err.get("type"), str) else None
-                if isinstance(err.get("message"), str):
-                    msg = err["message"]
-                    # Strip anything that looks like a key
-                    if "sk-ant" not in msg and "api-key" not in msg.lower():
-                        detail = msg[:300]
+            if isinstance(err, dict) and isinstance(err.get("message"), str):
+                msg = err["message"]
+                # Strip anything that looks like a key
+                if "sk-ant" not in msg and "api-key" not in msg.lower():
+                    detail = msg[:300]
         except Exception:
             pass
-        # #region agent log
-        try:
-            import time
-            from pathlib import Path
-
-            Path(
-                "/Users/lennart.lucas/Documents/Github/RPG-Manager/.cursor/debug-5823b4.log"
-            ).open("a").write(
-                json.dumps(
-                    {
-                        "sessionId": "5823b4",
-                        "runId": "claude-debug",
-                        "hypothesisId": "C1",
-                        "location": "claude_client.py:_messages_create",
-                        "message": "anthropic_http_error",
-                        "data": {
-                            "status_code": response.status_code,
-                            "error_type": err_type,
-                            "detail": detail[:300],
-                            "model": settings.anthropic_model,
-                        },
-                        "timestamp": int(time.time() * 1000),
-                    }
-                )
-                + "\n"
-            )
-        except Exception:
-            pass
-        # #endregion
         raise ClaudeError(detail, status_code=response.status_code)
 
     return response.json()
