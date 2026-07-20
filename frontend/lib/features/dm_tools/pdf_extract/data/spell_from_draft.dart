@@ -12,7 +12,19 @@ Spell spellFromExtractDraft({
   required List<CatalogItem> spellTags,
   int? sourceFileId,
 }) {
-  final normalized = _normalizePayload(draft.payload);
+  // After Edit, payload is Spell.toJson() (classIds/tagIds). Prefer that shape
+  // so Approve does not drop classes by re-parsing the AI extract schema.
+  final fromEdited = _trySpellFromEditedPayload(
+    draft.payload,
+    sourceFileId: sourceFileId,
+  );
+  if (fromEdited != null) return fromEdited;
+
+  final normalized = _normalizePayload(
+    draft.payload,
+    casterClasses: casterClasses,
+    spellTags: spellTags,
+  );
   final jsonText = const JsonEncoder().convert(normalized);
 
   try {
@@ -89,7 +101,8 @@ Spell spellFromExtractDraft({
         material: false,
       ),
       duration: const SpellDuration.instantaneous(),
-      classIds: const [],
+      classIds: _idList(draft.payload['classIds']),
+      tagIds: _idList(draft.payload['tagIds']),
       description: (draft.payload['description'] as String?) ??
           draft.notes ??
           draft.sourceText,
@@ -100,7 +113,55 @@ Spell spellFromExtractDraft({
   }
 }
 
-Map<String, dynamic> _normalizePayload(Map<String, dynamic> raw) {
+/// Payload written by Edit ([Spell.toJson]) — distinguished by `classIds`.
+Spell? _trySpellFromEditedPayload(
+  Map<String, dynamic> payload, {
+  int? sourceFileId,
+}) {
+  if (!payload.containsKey('classIds')) return null;
+  if (payload['castingTime'] is! Map || payload['range'] is! Map) return null;
+
+  try {
+    final map = Map<String, dynamic>.from(payload);
+    final name = (map['name'] as String?)?.trim();
+    map['id'] = (map['id'] as String?)?.trim().isNotEmpty == true
+        ? map['id']
+        : Spell.slugify(name == null || name.isEmpty ? 'spell' : name);
+
+    final higher = map['higherLevels'];
+    if (higher is String) {
+      final trimmed = higher.trim();
+      map['higherLevels'] =
+          trimmed.isEmpty ? null : <String, dynamic>{'description': trimmed};
+    }
+
+    final spell = Spell.fromJson(map);
+    return spell.copyWith(
+      sourceFileId: sourceFileId ?? spell.sourceFileId,
+    );
+  } catch (_) {
+    return null;
+  }
+}
+
+List<int> _idList(Object? raw) {
+  if (raw is! List) return const [];
+  final ids = <int>[];
+  for (final item in raw) {
+    if (item is int) {
+      ids.add(item);
+    } else if (item is num) {
+      ids.add(item.toInt());
+    }
+  }
+  return ids;
+}
+
+Map<String, dynamic> _normalizePayload(
+  Map<String, dynamic> raw, {
+  required List<CatalogItem> casterClasses,
+  required List<CatalogItem> spellTags,
+}) {
   final map = Map<String, dynamic>.from(raw);
 
   map['castingTime'] ??= {
@@ -152,9 +213,19 @@ Map<String, dynamic> _normalizePayload(Map<String, dynamic> raw) {
 
   map['school'] ??= 'evocation';
   map['level'] ??= 0;
-  map['classes'] ??= <String>[];
-  map['tags'] ??= <String>[];
   map['description'] ??= '';
+
+  // AI template expects name lists; convert catalog ids when present.
+  map['classes'] = _classesOrTagsForTemplate(
+    names: map['classes'],
+    ids: map['classIds'],
+    catalog: casterClasses,
+  );
+  map['tags'] = _classesOrTagsForTemplate(
+    names: map['tags'],
+    ids: map['tagIds'],
+    catalog: spellTags,
+  );
 
   final higher = map['higherLevels'];
   if (higher is Map) {
@@ -164,4 +235,29 @@ Map<String, dynamic> _normalizePayload(Map<String, dynamic> raw) {
   }
 
   return map;
+}
+
+List<String> _classesOrTagsForTemplate({
+  required Object? names,
+  required Object? ids,
+  required List<CatalogItem> catalog,
+}) {
+  final fromNames = <String>[];
+  if (names is List) {
+    for (final raw in names) {
+      final text = '$raw'.trim();
+      if (text.isNotEmpty) fromNames.add(text);
+    }
+  }
+  if (fromNames.isNotEmpty) return fromNames;
+
+  if (ids is! List || ids.isEmpty) return const [];
+  final byId = {for (final item in catalog) item.id: item.name};
+  return [
+    for (final raw in ids)
+      if (raw is int && byId[raw] != null)
+        byId[raw]!
+      else if (raw is num && byId[raw.toInt()] != null)
+        byId[raw.toInt()]!,
+  ];
 }

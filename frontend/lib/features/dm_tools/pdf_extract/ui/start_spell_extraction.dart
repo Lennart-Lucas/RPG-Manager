@@ -6,6 +6,7 @@ import '../../resources/data/resource_models.dart';
 import '../data/anthropic_key_store.dart';
 import '../data/extract_api.dart';
 import '../data/pdf_text_extractor.dart';
+import 'extract_options_dialog.dart';
 import 'spell_extract_review_page.dart';
 
 /// Runs PDF text extraction + backend extract job, then opens review.
@@ -37,27 +38,67 @@ Future<void> startSpellExtraction({
     return;
   }
 
+  final extractor = PdfTextExtractor();
+  int pageCount;
+  try {
+    pageCount = await extractor.pageCount(localPath);
+  } catch (e) {
+    messenger.showSnackBar(
+      SnackBar(content: Text('Could not open PDF: $e')),
+    );
+    return;
+  }
+  if (pageCount < 1) {
+    messenger.showSnackBar(
+      const SnackBar(content: Text('This PDF has no pages')),
+    );
+    return;
+  }
+
+  if (!context.mounted) return;
+  final options = await showExtractOptionsDialog(
+    context: context,
+    pageCount: pageCount,
+  );
+  if (options == null || !context.mounted) return;
+
+  if (!options.kinds.contains(ExtractRecordKind.spells)) {
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Only spell extraction is available for now')),
+    );
+    return;
+  }
+
   if (!context.mounted) return;
   showDialog<void>(
     context: context,
     barrierDismissible: false,
-    builder: (context) => const AlertDialog(
+    builder: (context) => AlertDialog(
       content: Row(
         children: [
-          CircularProgressIndicator(),
-          SizedBox(width: 20),
-          Expanded(child: Text('Extracting spells from PDF…')),
+          const CircularProgressIndicator(),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Text(
+              'Extracting spells from pages '
+              '${options.startPage}–${options.endPage}…',
+            ),
+          ),
         ],
       ),
     ),
   );
 
   try {
-    final text = await PdfTextExtractor().extractFromFile(localPath);
+    final text = await extractor.extractFromFile(
+      localPath,
+      startPage: options.startPage,
+      endPage: options.endPage,
+    );
     if (text.trim().isEmpty) {
       if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
       messenger.showSnackBar(
-        const SnackBar(content: Text('No text found in this PDF')),
+        const SnackBar(content: Text('No text found in this page range')),
       );
       return;
     }
@@ -91,6 +132,7 @@ Future<void> startSpellExtraction({
         builder: (context) => SpellExtractReviewPage(
           auth: auth,
           sourceFile: file,
+          localPath: localPath,
           drafts: result.drafts,
           sectionSummaries: result.sectionSummaries,
         ),

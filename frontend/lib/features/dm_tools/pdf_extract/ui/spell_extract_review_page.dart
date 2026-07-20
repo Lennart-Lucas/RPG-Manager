@@ -5,10 +5,12 @@ import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
+import '../../../dm_tools/resources/data/local_resource_file_copy.dart';
 import '../../../dm_tools/resources/data/resource_models.dart';
 import '../../../dm_tools/resources/data/resources_api.dart';
 import '../../../player_options/spells/data/spell_model.dart';
 import '../../../player_options/spells/ui/spell_form_sheet.dart';
+import '../../../player_options/spells/ui/spell_sheet.dart';
 import '../data/extract_models.dart';
 import '../data/spell_from_draft.dart';
 
@@ -17,12 +19,14 @@ class SpellExtractReviewPage extends StatefulWidget {
     super.key,
     required this.auth,
     required this.sourceFile,
+    required this.localPath,
     required this.drafts,
     required this.sectionSummaries,
   });
 
   final AuthController auth;
   final ResourceFile sourceFile;
+  final String localPath;
   final List<ExtractDraft> drafts;
   final List<ExtractSectionSummary> sectionSummaries;
 
@@ -35,6 +39,7 @@ enum _ReviewFilter { all, hard, soft, complete, junk }
 class _SpellExtractReviewPageState extends State<SpellExtractReviewPage> {
   final _catalogApi = CatalogApi();
   final _resourcesApi = ResourcesApi();
+  final _fileCopy = LocalResourceFileCopy();
 
   late List<ExtractDraft> _drafts;
   late List<ExtractDraft> _sorted;
@@ -164,6 +169,17 @@ class _SpellExtractReviewPageState extends State<SpellExtractReviewPage> {
       if (item.name.trim().toLowerCase() == key) return item;
     }
     return null;
+  }
+
+  Future<void> _openLocalFile() async {
+    try {
+      await _fileCopy.openLocalPath(widget.localPath);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open local file')),
+      );
+    }
   }
 
   Future<void> _editCurrent() async {
@@ -403,6 +419,11 @@ class _SpellExtractReviewPageState extends State<SpellExtractReviewPage> {
       appBar: AppBar(
         title: Text('Review spells (${widget.sourceFile.name})'),
         actions: [
+          IconButton(
+            tooltip: 'Open local file',
+            onPressed: _openLocalFile,
+            icon: const Icon(Icons.open_in_new),
+          ),
           if (junkCount > 0)
             TextButton(
               onPressed: _busy ? null : _rejectAllJunk,
@@ -578,10 +599,32 @@ class _SpellExtractReviewPageState extends State<SpellExtractReviewPage> {
                             ),
                             const VerticalDivider(width: 1),
                             Expanded(
-                              child: _DraftDetailPane(
-                                draft: draft,
-                                libraryMatchLabel: draft.libraryMatchName ??
-                                    draft.libraryMatchId?.toString(),
+                              child: Builder(
+                                builder: (context) {
+                                  final spell = spellFromExtractDraft(
+                                    draft: draft,
+                                    casterClasses: _casters,
+                                    spellTags: _spellTags,
+                                    sourceFileId: widget.sourceFile.id,
+                                  );
+                                  return _DraftDetailPane(
+                                    draft: draft,
+                                    spell: spell,
+                                    classNames: _namesForCatalogIds(
+                                      spell.classIds,
+                                      _casters,
+                                      fallback: draft.payload['classes'],
+                                    ),
+                                    tagNames: _namesForCatalogIds(
+                                      spell.tagIds,
+                                      _spellTags,
+                                      fallback: draft.payload['tags'],
+                                    ),
+                                    libraryMatchLabel:
+                                        draft.libraryMatchName ??
+                                            draft.libraryMatchId?.toString(),
+                                  );
+                                },
                               ),
                             ),
                           ],
@@ -645,6 +688,25 @@ class _SpellExtractReviewPageState extends State<SpellExtractReviewPage> {
     ];
     return parts.join(' · ');
   }
+
+  List<String> _namesForCatalogIds(
+    List<int> ids,
+    List<CatalogItem> catalog, {
+    Object? fallback,
+  }) {
+    if (ids.isNotEmpty) {
+      final byId = {for (final item in catalog) item.id: item.name};
+      return [
+        for (final id in ids)
+          if (byId[id] != null) byId[id]!,
+      ];
+    }
+    if (fallback is! List) return const [];
+    return [
+      for (final raw in fallback)
+        if ('$raw'.trim().isNotEmpty) '$raw'.trim(),
+    ];
+  }
 }
 
 enum _DupAction { discard, rename, overwrite }
@@ -652,22 +714,38 @@ enum _DupAction { discard, rename, overwrite }
 class _DraftDetailPane extends StatelessWidget {
   const _DraftDetailPane({
     required this.draft,
+    required this.spell,
+    required this.classNames,
+    required this.tagNames,
     this.libraryMatchLabel,
   });
 
   final ExtractDraft draft;
+  final Spell spell;
+  final List<String> classNames;
+  final List<String> tagNames;
   final String? libraryMatchLabel;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final payload = draft.payload;
+    final scheme = Theme.of(context).colorScheme;
     final flags = <String>[
       if (draft.duplicateNameInLibrary)
         'Library duplicate${libraryMatchLabel != null ? ": $libraryMatchLabel" : ""}',
       if (draft.duplicateNameInBatch) 'Duplicate name in this batch',
       ...draft.needsReview,
     ];
+    final notes = draft.notes?.trim();
+    final hasNotes = notes != null && notes.isNotEmpty;
+    final unknown = draft.unknownFields;
+    final hasUnknown = unknown != null && unknown.isNotEmpty;
+    final cards = buildSpellSheets(
+      spell,
+      classNames: classNames,
+      tagNames: tagNames,
+      cardScale: 1.05,
+    );
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -681,11 +759,10 @@ class _DraftDetailPane extends StatelessWidget {
                 Text('Source text', style: textTheme.titleSmall),
                 const SizedBox(height: 8),
                 Expanded(
+                  flex: hasNotes || hasUnknown ? 3 : 1,
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      border: Border.all(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                      ),
+                      border: Border.all(color: scheme.outlineVariant),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: SingleChildScrollView(
@@ -702,6 +779,34 @@ class _DraftDetailPane extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (hasNotes ||
+                    hasUnknown ||
+                    draft.source.section != null ||
+                    draft.source.page != null) ...[
+                  const SizedBox(height: 12),
+                  Text('Notes & meta', style: textTheme.titleSmall),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    flex: 2,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: scheme.outlineVariant),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: ListView(
+                        padding: const EdgeInsets.all(12),
+                        children: [
+                          if (hasNotes) _field('Notes', notes),
+                          if (hasUnknown) _field('Unknown fields', unknown),
+                          if (draft.source.section != null)
+                            _field('Section', draft.source.section),
+                          if (draft.source.page != null)
+                            _field('Page', draft.source.page),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -710,7 +815,7 @@ class _DraftDetailPane extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Extracted fields', style: textTheme.titleSmall),
+                Text('Spell card', style: textTheme.titleSmall),
                 const SizedBox(height: 8),
                 if (flags.isNotEmpty) ...[
                   Wrap(
@@ -727,38 +832,18 @@ class _DraftDetailPane extends StatelessWidget {
                   const SizedBox(height: 8),
                 ],
                 Expanded(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: Theme.of(context).colorScheme.outlineVariant,
+                  child: SingleChildScrollView(
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        alignment: WrapAlignment.center,
+                        children: [
+                          for (final card in cards)
+                            SizedBox(width: 360, child: card),
+                        ],
                       ),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: ListView(
-                      padding: const EdgeInsets.all(12),
-                      children: [
-                        _field('Name', payload['name']),
-                        _field('Level', payload['level']),
-                        _field('School', payload['school']),
-                        _field('Casting time', payload['castingTime']),
-                        _field('Range', payload['range']),
-                        _field('Components', payload['components']),
-                        _field('Duration', payload['duration']),
-                        _field('Classes', payload['classes']),
-                        _field('Tags', payload['tags']),
-                        _field('Description', payload['description']),
-                        _field('Higher levels', payload['higherLevels']),
-                        _field('Source page', payload['sourcePage']),
-                        if (draft.notes != null && draft.notes!.isNotEmpty)
-                          _field('Notes', draft.notes),
-                        if (draft.unknownFields != null &&
-                            draft.unknownFields!.isNotEmpty)
-                          _field('Unknown fields', draft.unknownFields),
-                        if (draft.source.section != null)
-                          _field('Section', draft.source.section),
-                        if (draft.source.page != null)
-                          _field('Page', draft.source.page),
-                      ],
                     ),
                   ),
                 ),
