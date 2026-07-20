@@ -79,8 +79,8 @@ class ExtractApi {
           },
           body: jsonEncode({
             'sessionId': '5823b4',
-            'runId': 'post-fix',
-            'hypothesisId': 'A',
+            'runId': 'claude-debug',
+            'hypothesisId': 'C1',
             'location': 'extract_api.dart:createJob:response',
             'message': 'extract job response',
             'data': {
@@ -104,7 +104,50 @@ class ExtractApi {
     if (body is! Map<String, dynamic>) {
       throw AuthApiException('Unexpected extract response');
     }
-    return ExtractJobResult.fromJson(body);
+    final result = ExtractJobResult.fromJson(body);
+    // #region agent log
+    final first = result.drafts.isEmpty ? null : result.drafts.first;
+    http
+        .post(
+          Uri.parse(
+            'http://127.0.0.1:7407/ingest/3ebe5f69-cb83-47c4-be24-ce1801f79526',
+          ),
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Debug-Session-Id': '5823b4',
+          },
+          body: jsonEncode({
+            'sessionId': '5823b4',
+            'runId': 'claude-debug',
+            'hypothesisId': 'C1',
+            'location': 'extract_api.dart:createJob:drafts',
+            'message': 'first draft summary',
+            'data': {
+              'draftCount': result.drafts.length,
+              'firstName': first?.displayName,
+              'firstPayloadKeys': first?.payload.keys.toList(),
+              'firstNeedsReview': first?.needsReview,
+              'firstNotes': first?.notes,
+              'firstUnknown': first?.unknownFields?.keys.toList(),
+              'firstTier': first?.tier,
+              'nameOnlyCount': result.drafts
+                  .where((d) => d.payload.keys.length <= 1)
+                  .length,
+              'claudeErrorCount': result.drafts
+                  .where((d) => d.needsReview.contains('claude_error'))
+                  .length,
+              'schemaFailCount': result.drafts
+                  .where(
+                    (d) => d.needsReview.contains('schema_validation_failed'),
+                  )
+                  .length,
+            },
+            'timestamp': DateTime.now().millisecondsSinceEpoch,
+          }),
+        )
+        .catchError((_) => http.Response('', 500));
+    // #endregion
+    return result;
   }
 
   String _errorMessage(http.Response response) {
