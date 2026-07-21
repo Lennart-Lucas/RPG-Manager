@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 
+import '../../../core/offline/authenticated_http.dart';
+import '../../../core/offline/offline_sync_controller.dart';
 import '../../../core/platform/client_platform.dart';
 import '../data/auth_api.dart';
 import '../data/token_store.dart';
@@ -46,7 +48,7 @@ class AuthController extends ChangeNotifier {
       final exp = json['exp'];
       final expInt = exp is int ? exp : int.tryParse('$exp');
       if (expInt == null) return true;
-      final nowSec = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
+      final nowSec = DateTime.now().millisecondsSinceEpoch ~/ 1000;
       return nowSec >= (expInt - skewSeconds);
     } catch (_) {
       return true;
@@ -67,7 +69,16 @@ class AuthController extends ChangeNotifier {
     final future = _refreshAccessToken();
     _refreshInFlight = future;
     try {
-      return await future;
+      final token = await future;
+      if (token != null) return token;
+      // Desktop offline: allow stale access token so cached GETs can run.
+      if (detectClientPlatform() == ClientPlatform.desktop &&
+          _accessToken != null &&
+          _accessToken!.isNotEmpty) {
+        OfflineSyncController.instance.markOffline();
+        return _accessToken;
+      }
+      return null;
     } finally {
       if (identical(_refreshInFlight, future)) {
         _refreshInFlight = null;
@@ -84,7 +95,20 @@ class AuthController extends ChangeNotifier {
       final tokens = await _api.refresh(refresh);
       await _persistTokens(tokens);
       return tokens.accessToken;
-    } catch (_) {
+    } on AuthApiException catch (e) {
+      if (e.statusCode == 401) {
+        return null;
+      }
+      // Network / other: keep existing access if still usable.
+      if (!_accessTokenNeedsRefresh(_accessToken)) {
+        return _accessToken;
+      }
+      return null;
+    } catch (e) {
+      if (isNetworkFailure(e) && !_accessTokenNeedsRefresh(_accessToken)) {
+        OfflineSyncController.instance.markOffline();
+        return _accessToken;
+      }
       return null;
     }
   }
@@ -93,6 +117,7 @@ class AuthController extends ChangeNotifier {
     status = AuthStatus.unknown;
     notifyListeners();
 
+    final sync = OfflineSyncController.instance;
     final refresh = await _tokenStore.readRefreshToken();
     final access = await _tokenStore.readAccessToken();
     if (refresh == null) {
@@ -106,27 +131,88 @@ class AuthController extends ChangeNotifier {
         _accessToken = access;
         _refreshToken = refresh;
         user = await _api.me(access);
+        await sync.cacheUserProfile(user!);
+        sync.setUserId(user!.id);
         status = AuthStatus.authenticated;
         notifyListeners();
         return;
       }
-    } on AuthApiException {
-      // try refresh below
+    } on AuthApiException catch (e) {
+      if (e.statusCode == 401) {
+        // try refresh below
+      } else {
+        final cached = await _trySoftOffline(
+          access: access,
+          refresh: refresh,
+        );
+        if (cached) return;
+      }
+    } catch (e) {
+      if (isNetworkFailure(e)) {
+        final cached = await _trySoftOffline(
+          access: access,
+          refresh: refresh,
+        );
+        if (cached) return;
+      }
     }
 
     try {
       final tokens = await _api.refresh(refresh);
       await _persistTokens(tokens);
       user = await _api.me(tokens.accessToken);
+      await sync.cacheUserProfile(user!);
+      sync.setUserId(user!.id);
       status = AuthStatus.authenticated;
-    } catch (_) {
-      await _tokenStore.clear();
-      _accessToken = null;
-      _refreshToken = null;
-      user = null;
-      status = AuthStatus.unauthenticated;
+    } on AuthApiException catch (e) {
+      if (e.statusCode == 401) {
+        await _clearSession();
+      } else {
+        final cached = await _trySoftOffline(
+          access: access ?? _accessToken,
+          refresh: refresh,
+        );
+        if (!cached) await _clearSession();
+      }
+    } catch (e) {
+      if (isNetworkFailure(e)) {
+        final cached = await _trySoftOffline(
+          access: access ?? _accessToken,
+          refresh: refresh,
+        );
+        if (!cached) await _clearSession();
+      } else {
+        await _clearSession();
+      }
     }
     notifyListeners();
+  }
+
+  Future<bool> _trySoftOffline({
+    required String? access,
+    required String refresh,
+  }) async {
+    if (detectClientPlatform() != ClientPlatform.desktop) return false;
+    final sync = OfflineSyncController.instance;
+    sync.markOffline();
+    final profile = await sync.loadCachedUserProfile(null);
+    if (profile == null) return false;
+    _accessToken = access ?? await _tokenStore.readAccessToken();
+    _refreshToken = refresh;
+    user = profile;
+    sync.setUserId(profile.id);
+    status = AuthStatus.authenticated;
+    notifyListeners();
+    return true;
+  }
+
+  Future<void> _clearSession() async {
+    await _tokenStore.clear();
+    _accessToken = null;
+    _refreshToken = null;
+    user = null;
+    OfflineSyncController.instance.setUserId(null);
+    status = AuthStatus.unauthenticated;
   }
 
   Future<bool> register(String email, String password) async {
@@ -168,6 +254,7 @@ class AuthController extends ChangeNotifier {
       _accessToken = null;
       _refreshToken = null;
       user = null;
+      OfflineSyncController.instance.setUserId(null);
       status = AuthStatus.unauthenticated;
       busy = false;
       notifyListeners();
@@ -189,6 +276,7 @@ class AuthController extends ChangeNotifier {
         accessToken: token,
         aiIntegration: enabled,
       );
+      await OfflineSyncController.instance.cacheUserProfile(user!);
       errorMessage = null;
       notifyListeners();
       return true;
@@ -213,6 +301,9 @@ class AuthController extends ChangeNotifier {
       final tokens = await action();
       await _persistTokens(tokens);
       user = await _api.me(tokens.accessToken);
+      await OfflineSyncController.instance.cacheUserProfile(user!);
+      OfflineSyncController.instance.setUserId(user!.id);
+      OfflineSyncController.instance.markOnline();
       status = AuthStatus.authenticated;
       return true;
     } on AuthApiException catch (e) {

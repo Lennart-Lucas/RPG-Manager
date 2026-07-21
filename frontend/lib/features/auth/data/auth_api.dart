@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../../../core/config/app_config.dart';
+import '../../../core/offline/authenticated_http.dart';
+import '../../../core/offline/offline_sync_controller.dart';
 import '../../../core/platform/client_platform.dart';
 import '../models/auth_models.dart';
 
@@ -17,9 +19,12 @@ class AuthApiException implements Exception {
 }
 
 class AuthApi {
-  AuthApi({http.Client? client}) : _client = client ?? http.Client();
+  AuthApi({http.Client? client, AuthenticatedHttp? httpClient})
+      : _client = client ?? http.Client(),
+        _http = httpClient ?? OfflineSyncController.instance.httpClient;
 
   final http.Client _client;
+  final AuthenticatedHttp _http;
 
   Uri _uri(String path) =>
       Uri.parse('${AppConfig.apiBaseUrl}${AppConfig.apiPrefix}$path');
@@ -66,8 +71,8 @@ class AuthApi {
   }
 
   Future<UserProfile> me(String accessToken) async {
-    final response = await _client.get(
-      _uri('/auth/me'),
+    final response = await _http.get(
+      uri: _uri('/auth/me'),
       headers: {'Authorization': 'Bearer $accessToken'},
     );
     if (response.statusCode != 200) {
@@ -85,8 +90,11 @@ class AuthApi {
     required String accessToken,
     required bool aiIntegration,
   }) async {
-    final response = await _client.patch(
-      _uri('/auth/me'),
+    final sync = OfflineSyncController.instance;
+    final meUri = _uri('/auth/me');
+    final response = await _http.mutate(
+      method: 'PATCH',
+      uri: meUri,
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $accessToken',
@@ -94,6 +102,36 @@ class AuthApi {
       body: jsonEncode({
         'ai_integration': aiIntegration,
       }),
+      successStatus: 200,
+      entityCacheUri: meUri,
+      buildOptimisticBody: (_) {
+        return {
+          'id': sync.userId ?? 0,
+          'email': '',
+          'is_active': true,
+          'is_dm': true,
+          'ai_integration': aiIntegration,
+        };
+      },
+      applyOptimisticCache: (_, optimistic) async {
+        final userId = sync.userId;
+        if (userId == null) return;
+        final existing = await sync.cache.get(userId: userId, uri: meUri);
+        if (existing != null) {
+          final map = Map<String, dynamic>.from(jsonDecode(existing) as Map);
+          map['ai_integration'] = aiIntegration;
+          await sync.cache.putJson(userId: userId, uri: meUri, json: map);
+          optimistic
+            ..clear()
+            ..addAll(map);
+        } else {
+          await sync.cache.putJson(
+            userId: userId,
+            uri: meUri,
+            json: optimistic,
+          );
+        }
+      },
     );
     if (response.statusCode != 200) {
       throw AuthApiException(

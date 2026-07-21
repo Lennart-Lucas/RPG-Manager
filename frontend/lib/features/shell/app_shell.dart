@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/offline/offline_marker.dart';
+import '../../core/offline/offline_sync_controller.dart';
 import '../../core/theme/theme_controller.dart';
 import '../auth/state/auth_controller.dart';
 import '../auth/ui/home_screen.dart';
@@ -73,11 +75,19 @@ class _AppShellState extends State<AppShell> {
   void initState() {
     super.initState();
     ShellPageAppBarStore.instance.addListener(_onShellAppBarChanged);
+    OfflineSyncController.instance.addListener(_onShellAppBarChanged);
+    OfflineSyncController.instance.onSyncError = (message) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    };
   }
 
   @override
   void dispose() {
     ShellPageAppBarStore.instance.removeListener(_onShellAppBarChanged);
+    OfflineSyncController.instance.removeListener(_onShellAppBarChanged);
     super.dispose();
   }
 
@@ -106,7 +116,10 @@ class _AppShellState extends State<AppShell> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_title),
-        actions: pageBar?.actions,
+        actions: [
+          const OfflineAppBarMarker(),
+          ...?pageBar?.actions,
+        ],
       ),
       drawer: AppSidebar(
         auth: widget.auth,

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'core/offline/offline_marker.dart';
+import 'core/offline/offline_sync_controller.dart';
 import 'core/theme/theme_controller.dart';
 import 'core/ui/app_scroll_behavior.dart';
 import 'features/auth/state/auth_controller.dart';
@@ -29,12 +31,19 @@ class _RpgManagerAppState extends State<RpgManagerApp> {
     super.initState();
     _auth = AuthController();
     _theme = ThemeController();
+    final sync = OfflineSyncController.instance;
+    sync.onSyncError = (message) {
+      // SnackBars need a context; AppShell / overlay can listen later.
+      debugPrint('Offline sync: $message');
+    };
+    sync.start(tokenProvider: _auth.requireAccessToken);
     _auth.bootstrap();
     _theme.bootstrap();
   }
 
   @override
   void dispose() {
+    OfflineSyncController.instance.stop();
     _auth.dispose();
     _theme.dispose();
     super.dispose();
@@ -43,12 +52,19 @@ class _RpgManagerAppState extends State<RpgManagerApp> {
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: Listenable.merge([_auth, _theme]),
+      animation: Listenable.merge([
+        _auth,
+        _theme,
+        OfflineSyncController.instance,
+      ]),
       builder: (context, _) {
         return MaterialApp(
           title: 'RPG Manager',
           theme: _theme.themeData,
           scrollBehavior: const AppScrollBehavior(),
+          builder: (context, child) {
+            return OfflineStatusOverlay(child: child);
+          },
           home: _buildHome(),
         );
       },

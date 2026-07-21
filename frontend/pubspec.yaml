@@ -21,6 +21,7 @@ dependencies:
   printing: ^5.13.0
   random_table_engine:
     path: ../packages/random_table_engine
+  connectivity_plus: ^7.3.0
 
 dev_dependencies:
   flutter_test:

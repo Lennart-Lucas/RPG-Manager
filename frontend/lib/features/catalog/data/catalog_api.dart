@@ -3,15 +3,18 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../../../core/config/app_config.dart';
+import '../../../core/offline/authenticated_http.dart';
+import '../../../core/offline/offline_sync_controller.dart';
 import '../../../core/ui/markdown_form_field.dart';
 import '../../auth/data/auth_api.dart';
 import 'catalog_kind.dart';
 import 'catalog_models.dart';
 
 class CatalogApi {
-  CatalogApi({http.Client? client}) : _client = client ?? http.Client();
+  CatalogApi({http.Client? client, AuthenticatedHttp? httpClient})
+      : _http = httpClient ?? OfflineSyncController.instance.httpClient;
 
-  final http.Client _client;
+  final AuthenticatedHttp _http;
 
   Uri _uri(CatalogKind kind, [String suffix = '']) => Uri.parse(
         '${AppConfig.apiBaseUrl}${AppConfig.apiPrefix}/catalog/${kind.apiValue}$suffix',
@@ -26,8 +29,8 @@ class CatalogApi {
     String accessToken,
     CatalogKind kind,
   ) async {
-    final response = await _client.get(
-      _uri(kind),
+    final response = await _http.get(
+      uri: _uri(kind),
       headers: _headers(accessToken),
     );
     if (response.statusCode != 200) {
@@ -56,8 +59,8 @@ class CatalogApi {
       'q': query,
       'limit': '$limit',
     });
-    final response = await _client.get(
-      uri,
+    final response = await _http.get(
+      uri: uri,
       headers: _headers(accessToken),
     );
     if (response.statusCode != 200) {
@@ -83,8 +86,8 @@ class CatalogApi {
     CatalogKind kind,
     int itemId,
   ) async {
-    final response = await _client.get(
-      _uri(kind, '/$itemId'),
+    final response = await _http.get(
+      uri: _uri(kind, '/$itemId'),
       headers: _headers(accessToken),
     );
     if (response.statusCode != 200) {
@@ -104,13 +107,40 @@ class CatalogApi {
     required String name,
     Map<String, dynamic>? payload,
   }) async {
-    final response = await _client.post(
-      _uri(kind),
+    final listUri = _uri(kind);
+    final body = jsonEncode({
+      'name': name,
+      'payload': ?payload,
+    });
+    final sync = OfflineSyncController.instance;
+    final response = await _http.mutate(
+      method: 'POST',
+      uri: listUri,
       headers: _headers(accessToken),
-      body: jsonEncode({
-        'name': name,
-        'payload': ?payload,
-      }),
+      body: body,
+      successStatus: 201,
+      listCacheUri: listUri,
+      buildOptimisticBody: (tempId) => {
+            'id': tempId,
+            'user_id': sync.userId ?? 0,
+            'kind': kind.apiValue,
+            'name': name,
+            'payload': payload,
+          },
+      applyOptimisticCache: (tempId, optimistic) async {
+        final userId = sync.userId;
+        if (userId == null) return;
+        await sync.cache.applyOptimisticListMutation(
+          userId: userId,
+          listUri: listUri,
+          mutate: (list) => list.add(optimistic),
+        );
+        await sync.cache.putJson(
+          userId: userId,
+          uri: _uri(kind, '/$tempId'),
+          json: optimistic,
+        );
+      },
     );
     if (response.statusCode != 201) {
       throw AuthApiException(
@@ -130,13 +160,63 @@ class CatalogApi {
     String? name,
     Map<String, dynamic>? payload,
   }) async {
-    final response = await _client.patch(
-      _uri(kind, '/$itemId'),
+    final listUri = _uri(kind);
+    final entityUri = _uri(kind, '/$itemId');
+    final body = jsonEncode({
+      'name': ?name,
+      'payload': ?payload,
+    });
+    final sync = OfflineSyncController.instance;
+    final response = await _http.mutate(
+      method: 'PATCH',
+      uri: entityUri,
       headers: _headers(accessToken),
-      body: jsonEncode({
-        'name': ?name,
-        'payload': ?payload,
-      }),
+      body: body,
+      successStatus: 200,
+      listCacheUri: listUri,
+      entityCacheUri: entityUri,
+      buildOptimisticBody: (tempId) => {
+            'id': itemId,
+            'user_id': sync.userId ?? 0,
+            'kind': kind.apiValue,
+            'name': name ?? '',
+            'payload': payload,
+          },
+      applyOptimisticCache: (_, optimistic) async {
+        final userId = sync.userId;
+        if (userId == null) return;
+        await sync.cache.applyOptimisticListMutation(
+          userId: userId,
+          listUri: listUri,
+          mutate: (list) {
+            for (var i = 0; i < list.length; i++) {
+              final item = list[i];
+              if (item is Map && item['id'] == itemId) {
+                final merged = Map<String, dynamic>.from(item);
+                if (name != null) merged['name'] = name;
+                if (payload != null) merged['payload'] = payload;
+                list[i] = merged;
+                return;
+              }
+            }
+          },
+        );
+        final existing = await sync.cache.get(userId: userId, uri: entityUri);
+        if (existing != null) {
+          final map = Map<String, dynamic>.from(
+            jsonDecode(existing) as Map,
+          );
+          if (name != null) map['name'] = name;
+          if (payload != null) map['payload'] = payload;
+          await sync.cache.putJson(userId: userId, uri: entityUri, json: map);
+        } else {
+          await sync.cache.putJson(
+            userId: userId,
+            uri: entityUri,
+            json: optimistic,
+          );
+        }
+      },
     );
     if (response.statusCode != 200) {
       throw AuthApiException(
@@ -154,9 +234,30 @@ class CatalogApi {
     required CatalogKind kind,
     required int itemId,
   }) async {
-    final response = await _client.delete(
-      _uri(kind, '/$itemId'),
+    final listUri = _uri(kind);
+    final entityUri = _uri(kind, '/$itemId');
+    final sync = OfflineSyncController.instance;
+    final response = await _http.mutate(
+      method: 'DELETE',
+      uri: entityUri,
       headers: _headers(accessToken),
+      successStatus: 204,
+      alternateSuccessStatus: 200,
+      listCacheUri: listUri,
+      buildOptimisticBody: (_) => <String, dynamic>{},
+      applyOptimisticCache: (tempId, optimistic) async {
+        final userId = sync.userId;
+        if (userId == null) return;
+        await sync.cache.applyOptimisticListMutation(
+          userId: userId,
+          listUri: listUri,
+          mutate: (list) {
+            list.removeWhere(
+              (item) => item is Map && item['id'] == itemId,
+            );
+          },
+        );
+      },
     );
     if (response.statusCode != 204 && response.statusCode != 200) {
       throw AuthApiException(
