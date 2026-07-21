@@ -14,6 +14,7 @@ import '../mechanics/mechanics_icons.dart';
 import '../mechanics/features/ui/features_body.dart';
 import '../mechanics/spell_tags/ui/spell_tags_body.dart';
 import '../player_options/classes/ui/classes_body.dart';
+import '../player_options/feats/ui/feats_body.dart';
 import '../player_options/items/ui/items_body.dart';
 import '../player_options/player_options_icons.dart';
 import '../player_options/spells/ui/spells_body.dart';
@@ -143,7 +144,7 @@ class _AppShellState extends State<AppShell> {
             icon: playlistsPageIcon,
           ),
         AppPage.classes => ClassesBody(auth: widget.auth),
-        AppPage.feats => _catalog(CatalogKind.feats, featsPageIcon),
+        AppPage.feats => FeatsBody(auth: widget.auth),
         AppPage.items => ItemsBody(auth: widget.auth),
         AppPage.languages =>
           _catalog(CatalogKind.languages, languagesPageIcon),

@@ -57,10 +57,12 @@ class _FeatFormState extends State<_FeatForm> {
   void _submit() {
     final form = _formKey.currentState;
     if (form == null || !form.validate()) return;
+    final name = _nameController.text.trim();
     Navigator.pop(
       context,
       FeatRecord(
-        name: _nameController.text.trim(),
+        id: widget.initial?.id ?? FeatRecord.slugify(name),
+        name: name,
         requirement: _requirementController.text,
         description: _descriptionController.text,
       ),

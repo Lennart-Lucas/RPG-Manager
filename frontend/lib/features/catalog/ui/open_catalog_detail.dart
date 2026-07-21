@@ -10,6 +10,7 @@ import '../../mechanics/rules/data/rule_model.dart';
 import '../../mechanics/spell_tags/data/spell_tag_model.dart';
 import '../../player_options/classes/data/class_model.dart';
 import '../../player_options/feats/data/feat_model.dart';
+import '../../player_options/feats/ui/feat_detail_page.dart';
 import '../../player_options/items/data/item_model.dart';
 import '../../player_options/items/ui/item_detail_page.dart';
 import '../../player_options/skills/data/skill_model.dart';
@@ -56,6 +57,8 @@ Future<void> openCatalogRecordDetail({
         await _openSpellDetail(context, auth, item);
       case CatalogKind.items:
         await _openItemDetail(context, auth, item);
+      case CatalogKind.feats:
+        await _openFeatDetail(context, auth, item);
       case CatalogKind.creatures:
         await _openCreatureDetail(context, auth, item);
       case CatalogKind.creatureTypes:
@@ -214,6 +217,29 @@ Future<void> _openItemDetail(
         item: item,
         entry: entry.copyWith(name: item.name),
         sourceFileName: sourceFileName,
+      ),
+    ),
+  );
+}
+
+Future<void> _openFeatDetail(
+  BuildContext context,
+  AuthController auth,
+  CatalogItem item,
+) async {
+  final entry = FeatRecord.fromCatalogPayload(
+    name: item.name,
+    payload: item.payload,
+    id: FeatRecord.slugify(item.name),
+  );
+
+  if (!context.mounted) return;
+  await Navigator.of(context).push<void>(
+    MaterialPageRoute(
+      builder: (context) => FeatDetailPage(
+        auth: auth,
+        item: item,
+        entry: entry.copyWith(name: item.name),
       ),
     ),
   );

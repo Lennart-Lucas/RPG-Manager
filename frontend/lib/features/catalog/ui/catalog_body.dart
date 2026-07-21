@@ -6,8 +6,6 @@ import '../../mechanics/item_properties/data/item_property_model.dart';
 import '../../mechanics/item_properties/ui/item_property_form_sheet.dart';
 import '../../mechanics/rules/data/rule_model.dart';
 import '../../mechanics/rules/ui/rule_form_sheet.dart';
-import '../../player_options/feats/data/feat_model.dart';
-import '../../player_options/feats/ui/feat_form_sheet.dart';
 import '../../player_options/skills/data/default_skills.dart';
 import '../../player_options/skills/data/skill_model.dart';
 import '../../player_options/skills/ui/skill_form_sheet.dart';
@@ -147,37 +145,6 @@ class _CatalogBodyState extends State<CatalogBody> {
       return;
     }
 
-    if (widget.kind == CatalogKind.feats) {
-      final token = await _token();
-      if (token == null || !mounted) return;
-      final feat = await showFeatFormSheet(
-        context,
-        searchLinks: (query) async => _api.search(token, query: query),
-        loadAutoLinkTargets: () async => const [],
-      );
-      if (feat == null || !mounted) return;
-      try {
-        await _api.create(
-          accessToken: token,
-          kind: CatalogKind.feats,
-          name: feat.name,
-          payload: feat.toJson(),
-        );
-        await _reload();
-      } on AuthApiException catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message)),
-        );
-      } catch (_) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not create feat')),
-        );
-      }
-      return;
-    }
-
     if (widget.kind == CatalogKind.itemProperties) {
       final token = await _token();
       if (token == null || !mounted) return;
@@ -309,42 +276,6 @@ class _CatalogBodyState extends State<CatalogBody> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Could not update rule')),
-        );
-      }
-      return;
-    }
-
-    if (widget.kind == CatalogKind.feats) {
-      final token = await _token();
-      if (token == null || !mounted) return;
-      final feat = await showFeatFormSheet(
-        context,
-        initial: FeatRecord.fromCatalogPayload(
-          name: item.name,
-          payload: item.payload,
-        ),
-        searchLinks: (query) async => _api.search(token, query: query),
-        loadAutoLinkTargets: () async => const [],
-      );
-      if (feat == null || !mounted) return;
-      try {
-        await _api.update(
-          accessToken: token,
-          kind: CatalogKind.feats,
-          itemId: item.id,
-          name: feat.name,
-          payload: feat.toJson(),
-        );
-        await _reload();
-      } on AuthApiException catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message)),
-        );
-      } catch (_) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not update feat')),
         );
       }
       return;

@@ -11,8 +11,6 @@ import '../../mechanics/spell_tags/data/spell_tag_model.dart';
 import '../../mechanics/spell_tags/ui/spell_tag_form_sheet.dart';
 import '../../player_options/classes/data/class_model.dart';
 import '../../player_options/classes/ui/class_form_sheet.dart';
-import '../../player_options/feats/data/feat_model.dart';
-import '../../player_options/feats/ui/feat_form_sheet.dart';
 import '../../player_options/skills/data/default_skills.dart';
 import '../../player_options/skills/data/skill_model.dart';
 import '../../player_options/skills/ui/skill_form_sheet.dart';
@@ -198,25 +196,6 @@ class _CatalogRecordDetailPageState extends State<CatalogRecordDetailPage> {
           );
           setState(() => _item = updated);
           await _loadRules();
-        case CatalogKind.feats:
-          final feat = await showFeatFormSheet(
-            context,
-            initial: FeatRecord.fromCatalogPayload(
-              name: _item.name,
-              payload: _item.payload,
-            ),
-            searchLinks: (query) async => _api.search(token, query: query),
-            loadAutoLinkTargets: () async => const [],
-          );
-          if (feat == null || !mounted) return;
-          final updated = await _api.update(
-            accessToken: token,
-            kind: CatalogKind.feats,
-            itemId: _item.id,
-            name: feat.name,
-            payload: feat.toJson(),
-          );
-          setState(() => _item = updated);
         case CatalogKind.itemProperties:
           final property = await showItemPropertyFormSheet(
             context,
@@ -432,39 +411,6 @@ class _CatalogRecordDetailPageState extends State<CatalogRecordDetailPage> {
                           ),
                           const SizedBox(height: 8),
                           SimpleCardRichText(content: rule.body),
-                        ],
-                      ],
-                    );
-                  },
-                ),
-              ],
-              if (_item.kind == CatalogKind.feats) ...[
-                Builder(
-                  builder: (context) {
-                    final feat = FeatRecord.fromCatalogPayload(
-                      name: _item.name,
-                      payload: _item.payload,
-                    );
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (feat.requirement.trim().isNotEmpty) ...[
-                          const SizedBox(height: 24),
-                          Text(
-                            'Requirement',
-                            style: Theme.of(context).textTheme.titleSmall,
-                          ),
-                          const SizedBox(height: 8),
-                          SimpleCardRichText(content: feat.requirement),
-                        ],
-                        if (feat.description.trim().isNotEmpty) ...[
-                          const SizedBox(height: 24),
-                          Text(
-                            'Description',
-                            style: Theme.of(context).textTheme.titleSmall,
-                          ),
-                          const SizedBox(height: 8),
-                          SimpleCardRichText(content: feat.description),
                         ],
                       ],
                     );

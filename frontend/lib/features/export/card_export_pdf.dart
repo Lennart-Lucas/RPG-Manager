@@ -8,6 +8,8 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../../core/ui/mtg_card_layout.dart';
+import '../player_options/feats/data/feat_model.dart';
+import '../player_options/feats/ui/feat_sheet.dart';
 import '../player_options/items/data/item_model.dart';
 import '../player_options/items/ui/item_sheet.dart';
 import '../player_options/spells/data/spell_model.dart';
@@ -174,6 +176,39 @@ Future<List<Uint8List>> rasterizeItemCards({
   final key = GlobalKey();
   final out = <Uint8List>[];
   for (final sheet in buildItemSheets(item)) {
+    out.add(
+      await _captureCardWidget(
+        context: context,
+        boundaryKey: key,
+        theme: theme,
+        card: sheet,
+      ),
+    );
+  }
+  return out;
+}
+
+Future<Uint8List> rasterizeFeatCard({
+  required BuildContext context,
+  required FeatRecord feat,
+  required ThemeData theme,
+}) async {
+  final pages = await rasterizeFeatCards(
+    context: context,
+    feat: feat,
+    theme: theme,
+  );
+  return pages.first;
+}
+
+Future<List<Uint8List>> rasterizeFeatCards({
+  required BuildContext context,
+  required FeatRecord feat,
+  required ThemeData theme,
+}) async {
+  final key = GlobalKey();
+  final out = <Uint8List>[];
+  for (final sheet in buildFeatSheets(feat)) {
     out.add(
       await _captureCardWidget(
         context: context,
