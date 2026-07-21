@@ -5,8 +5,11 @@ import '../../auth/state/auth_controller.dart';
 import '../../dm_tools/resources/data/resources_api.dart';
 import '../../mechanics/features/data/feature_model.dart';
 import '../../mechanics/features/ui/feature_detail_page.dart';
+import '../../mechanics/item_properties/data/item_property_model.dart';
+import '../../mechanics/rules/data/rule_model.dart';
 import '../../mechanics/spell_tags/data/spell_tag_model.dart';
 import '../../player_options/classes/data/class_model.dart';
+import '../../player_options/feats/data/feat_model.dart';
 import '../../player_options/items/data/item_model.dart';
 import '../../player_options/items/ui/item_detail_page.dart';
 import '../../player_options/skills/data/skill_model.dart';
@@ -421,6 +424,44 @@ String? catalogRecordSubtitle(CatalogItem item) {
         payload: item.payload,
       );
       return 'Type: ${record.recordTypeLabel}';
+    case CatalogKind.rules:
+      final rule = RuleRecord.fromCatalogPayload(
+        name: item.name,
+        payload: item.payload,
+      );
+      final body = rule.body.trim();
+      if (body.isEmpty) {
+        return rule.parentRuleId != null ? 'Has parent rule' : null;
+      }
+      final oneLine = body.replaceAll(RegExp(r'\s+'), ' ');
+      if (oneLine.length <= 120) return oneLine;
+      return '${oneLine.substring(0, 117)}…';
+    case CatalogKind.feats:
+      final feat = FeatRecord.fromCatalogPayload(
+        name: item.name,
+        payload: item.payload,
+      );
+      final description = feat.description.trim();
+      if (description.isEmpty) {
+        final requirement = feat.requirement.trim();
+        if (requirement.isEmpty) return null;
+        final oneLine = requirement.replaceAll(RegExp(r'\s+'), ' ');
+        if (oneLine.length <= 120) return oneLine;
+        return '${oneLine.substring(0, 117)}…';
+      }
+      final oneLine = description.replaceAll(RegExp(r'\s+'), ' ');
+      if (oneLine.length <= 120) return oneLine;
+      return '${oneLine.substring(0, 117)}…';
+    case CatalogKind.itemProperties:
+      final property = ItemPropertyRecord.fromCatalogPayload(
+        name: item.name,
+        payload: item.payload,
+      );
+      final description = property.description.trim();
+      if (description.isEmpty) return null;
+      final oneLine = description.replaceAll(RegExp(r'\s+'), ' ');
+      if (oneLine.length <= 120) return oneLine;
+      return '${oneLine.substring(0, 117)}…';
     default:
       return null;
   }

@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../auth/data/auth_api.dart';
 import '../../auth/state/auth_controller.dart';
+import '../../mechanics/item_properties/data/item_property_model.dart';
+import '../../mechanics/item_properties/ui/item_property_form_sheet.dart';
+import '../../mechanics/rules/data/rule_model.dart';
+import '../../mechanics/rules/ui/rule_form_sheet.dart';
+import '../../player_options/feats/data/feat_model.dart';
+import '../../player_options/feats/ui/feat_form_sheet.dart';
 import '../../player_options/skills/data/default_skills.dart';
 import '../../player_options/skills/data/skill_model.dart';
 import '../../player_options/skills/ui/skill_form_sheet.dart';
@@ -10,7 +16,6 @@ import '../data/catalog_kind.dart';
 import '../data/catalog_models.dart';
 import 'name_record_form_sheet.dart';
 import 'open_catalog_detail.dart';
-
 
 class CatalogBody extends StatefulWidget {
   const CatalogBody({
@@ -110,6 +115,100 @@ class _CatalogBodyState extends State<CatalogBody> {
       return;
     }
 
+    if (widget.kind == CatalogKind.rules) {
+      final token = await _token();
+      if (token == null || !mounted) return;
+      final rule = await showRuleFormSheet(
+        context,
+        siblingRules: _items,
+        searchLinks: (query) async => _api.search(token, query: query),
+        loadAutoLinkTargets: () async => const [],
+      );
+      if (rule == null || !mounted) return;
+      try {
+        await _api.create(
+          accessToken: token,
+          kind: CatalogKind.rules,
+          name: rule.name,
+          payload: rule.toJson(),
+        );
+        await _reload();
+      } on AuthApiException catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
+      } catch (_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not create rule')),
+        );
+      }
+      return;
+    }
+
+    if (widget.kind == CatalogKind.feats) {
+      final token = await _token();
+      if (token == null || !mounted) return;
+      final feat = await showFeatFormSheet(
+        context,
+        searchLinks: (query) async => _api.search(token, query: query),
+        loadAutoLinkTargets: () async => const [],
+      );
+      if (feat == null || !mounted) return;
+      try {
+        await _api.create(
+          accessToken: token,
+          kind: CatalogKind.feats,
+          name: feat.name,
+          payload: feat.toJson(),
+        );
+        await _reload();
+      } on AuthApiException catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
+      } catch (_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not create feat')),
+        );
+      }
+      return;
+    }
+
+    if (widget.kind == CatalogKind.itemProperties) {
+      final token = await _token();
+      if (token == null || !mounted) return;
+      final property = await showItemPropertyFormSheet(
+        context,
+        searchLinks: (query) async => _api.search(token, query: query),
+        loadAutoLinkTargets: () async => const [],
+      );
+      if (property == null || !mounted) return;
+      try {
+        await _api.create(
+          accessToken: token,
+          kind: CatalogKind.itemProperties,
+          name: property.name,
+          payload: property.toJson(),
+        );
+        await _reload();
+      } on AuthApiException catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
+      } catch (_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not create item property')),
+        );
+      }
+      return;
+    }
+
     final name = await showNameRecordFormSheet(
       context,
       singularLabel: widget.kind.singularLabel,
@@ -172,6 +271,116 @@ class _CatalogBodyState extends State<CatalogBody> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Could not update skill')),
+        );
+      }
+      return;
+    }
+
+    if (widget.kind == CatalogKind.rules) {
+      final token = await _token();
+      if (token == null || !mounted) return;
+      final rule = await showRuleFormSheet(
+        context,
+        initial: RuleRecord.fromCatalogPayload(
+          name: item.name,
+          payload: item.payload,
+        ),
+        editingItemId: item.id,
+        siblingRules: _items,
+        searchLinks: (query) async => _api.search(token, query: query),
+        loadAutoLinkTargets: () async => const [],
+      );
+      if (rule == null || !mounted) return;
+      try {
+        await _api.update(
+          accessToken: token,
+          kind: CatalogKind.rules,
+          itemId: item.id,
+          name: rule.name,
+          payload: rule.toJson(),
+        );
+        await _reload();
+      } on AuthApiException catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
+      } catch (_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not update rule')),
+        );
+      }
+      return;
+    }
+
+    if (widget.kind == CatalogKind.feats) {
+      final token = await _token();
+      if (token == null || !mounted) return;
+      final feat = await showFeatFormSheet(
+        context,
+        initial: FeatRecord.fromCatalogPayload(
+          name: item.name,
+          payload: item.payload,
+        ),
+        searchLinks: (query) async => _api.search(token, query: query),
+        loadAutoLinkTargets: () async => const [],
+      );
+      if (feat == null || !mounted) return;
+      try {
+        await _api.update(
+          accessToken: token,
+          kind: CatalogKind.feats,
+          itemId: item.id,
+          name: feat.name,
+          payload: feat.toJson(),
+        );
+        await _reload();
+      } on AuthApiException catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
+      } catch (_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not update feat')),
+        );
+      }
+      return;
+    }
+
+    if (widget.kind == CatalogKind.itemProperties) {
+      final token = await _token();
+      if (token == null || !mounted) return;
+      final property = await showItemPropertyFormSheet(
+        context,
+        initial: ItemPropertyRecord.fromCatalogPayload(
+          name: item.name,
+          payload: item.payload,
+        ),
+        searchLinks: (query) async => _api.search(token, query: query),
+        loadAutoLinkTargets: () async => const [],
+      );
+      if (property == null || !mounted) return;
+      try {
+        await _api.update(
+          accessToken: token,
+          kind: CatalogKind.itemProperties,
+          itemId: item.id,
+          name: property.name,
+          payload: property.toJson(),
+        );
+        await _reload();
+      } on AuthApiException catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
+      } catch (_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not update item property')),
         );
       }
       return;

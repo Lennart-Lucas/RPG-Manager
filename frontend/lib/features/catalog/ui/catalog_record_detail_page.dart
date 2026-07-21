@@ -2,10 +2,17 @@ import 'package:flutter/material.dart';
 
 import '../../auth/data/auth_api.dart';
 import '../../auth/state/auth_controller.dart';
+import '../../../core/ui/simple_card_rich_text.dart';
+import '../../mechanics/item_properties/data/item_property_model.dart';
+import '../../mechanics/item_properties/ui/item_property_form_sheet.dart';
+import '../../mechanics/rules/data/rule_model.dart';
+import '../../mechanics/rules/ui/rule_form_sheet.dart';
 import '../../mechanics/spell_tags/data/spell_tag_model.dart';
 import '../../mechanics/spell_tags/ui/spell_tag_form_sheet.dart';
 import '../../player_options/classes/data/class_model.dart';
 import '../../player_options/classes/ui/class_form_sheet.dart';
+import '../../player_options/feats/data/feat_model.dart';
+import '../../player_options/feats/ui/feat_form_sheet.dart';
 import '../../player_options/skills/data/default_skills.dart';
 import '../../player_options/skills/data/skill_model.dart';
 import '../../player_options/skills/ui/skill_form_sheet.dart';
@@ -39,8 +46,49 @@ class _CatalogRecordDetailPageState extends State<CatalogRecordDetailPage> {
   final _api = CatalogApi();
 
   late CatalogItem _item = widget.item;
+  List<CatalogItem> _rules = const [];
+  bool _loadingRules = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_item.kind == CatalogKind.rules) {
+      _loadRules();
+    }
+  }
 
   Future<String?> _token() => widget.auth.requireAccessToken();
+
+  Future<void> _loadRules() async {
+    setState(() => _loadingRules = true);
+    try {
+      final token = await _token();
+      if (token == null) return;
+      final items = await _api.list(token, CatalogKind.rules);
+      if (!mounted) return;
+      setState(() {
+        _rules = items;
+        _loadingRules = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadingRules = false);
+    }
+  }
+
+  String? get _parentRuleName {
+    if (_item.kind != CatalogKind.rules) return null;
+    final rule = RuleRecord.fromCatalogPayload(
+      name: _item.name,
+      payload: _item.payload,
+    );
+    final parentId = rule.parentRuleId;
+    if (parentId == null) return null;
+    for (final item in _rules) {
+      if (item.id == parentId) return item.name;
+    }
+    return 'Rule #$parentId';
+  }
 
   Future<void> _edit() async {
     if (_item.kind == CatalogKind.skills && isDefaultSkillName(_item.name)) {
@@ -122,6 +170,70 @@ class _CatalogRecordDetailPageState extends State<CatalogRecordDetailPage> {
             itemId: _item.id,
             name: record.name,
             payload: record.toJson(),
+          );
+          setState(() => _item = updated);
+        case CatalogKind.rules:
+          if (_rules.isEmpty && !_loadingRules) {
+            await _loadRules();
+          }
+          if (!mounted) return;
+          final rule = await showRuleFormSheet(
+            context,
+            initial: RuleRecord.fromCatalogPayload(
+              name: _item.name,
+              payload: _item.payload,
+            ),
+            editingItemId: _item.id,
+            siblingRules: _rules.isEmpty ? [_item] : _rules,
+            searchLinks: (query) async => _api.search(token, query: query),
+            loadAutoLinkTargets: () async => const [],
+          );
+          if (rule == null || !mounted) return;
+          final updated = await _api.update(
+            accessToken: token,
+            kind: CatalogKind.rules,
+            itemId: _item.id,
+            name: rule.name,
+            payload: rule.toJson(),
+          );
+          setState(() => _item = updated);
+          await _loadRules();
+        case CatalogKind.feats:
+          final feat = await showFeatFormSheet(
+            context,
+            initial: FeatRecord.fromCatalogPayload(
+              name: _item.name,
+              payload: _item.payload,
+            ),
+            searchLinks: (query) async => _api.search(token, query: query),
+            loadAutoLinkTargets: () async => const [],
+          );
+          if (feat == null || !mounted) return;
+          final updated = await _api.update(
+            accessToken: token,
+            kind: CatalogKind.feats,
+            itemId: _item.id,
+            name: feat.name,
+            payload: feat.toJson(),
+          );
+          setState(() => _item = updated);
+        case CatalogKind.itemProperties:
+          final property = await showItemPropertyFormSheet(
+            context,
+            initial: ItemPropertyRecord.fromCatalogPayload(
+              name: _item.name,
+              payload: _item.payload,
+            ),
+            searchLinks: (query) async => _api.search(token, query: query),
+            loadAutoLinkTargets: () async => const [],
+          );
+          if (property == null || !mounted) return;
+          final updated = await _api.update(
+            accessToken: token,
+            kind: CatalogKind.itemProperties,
+            itemId: _item.id,
+            name: property.name,
+            payload: property.toJson(),
           );
           setState(() => _item = updated);
         default:
@@ -290,6 +402,98 @@ class _CatalogRecordDetailPageState extends State<CatalogRecordDetailPage> {
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
+                ),
+              ],
+              if (_item.kind == CatalogKind.rules) ...[
+                Builder(
+                  builder: (context) {
+                    final rule = RuleRecord.fromCatalogPayload(
+                      name: _item.name,
+                      payload: _item.payload,
+                    );
+                    final parentName = _parentRuleName;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (parentName != null) ...[
+                          const SizedBox(height: 24),
+                          Text(
+                            'Parent',
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(parentName),
+                        ],
+                        if (rule.body.trim().isNotEmpty) ...[
+                          const SizedBox(height: 24),
+                          Text(
+                            'Body',
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                          const SizedBox(height: 8),
+                          SimpleCardRichText(content: rule.body),
+                        ],
+                      ],
+                    );
+                  },
+                ),
+              ],
+              if (_item.kind == CatalogKind.feats) ...[
+                Builder(
+                  builder: (context) {
+                    final feat = FeatRecord.fromCatalogPayload(
+                      name: _item.name,
+                      payload: _item.payload,
+                    );
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (feat.requirement.trim().isNotEmpty) ...[
+                          const SizedBox(height: 24),
+                          Text(
+                            'Requirement',
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                          const SizedBox(height: 8),
+                          SimpleCardRichText(content: feat.requirement),
+                        ],
+                        if (feat.description.trim().isNotEmpty) ...[
+                          const SizedBox(height: 24),
+                          Text(
+                            'Description',
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                          const SizedBox(height: 8),
+                          SimpleCardRichText(content: feat.description),
+                        ],
+                      ],
+                    );
+                  },
+                ),
+              ],
+              if (_item.kind == CatalogKind.itemProperties) ...[
+                Builder(
+                  builder: (context) {
+                    final property = ItemPropertyRecord.fromCatalogPayload(
+                      name: _item.name,
+                      payload: _item.payload,
+                    );
+                    if (property.description.trim().isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 24),
+                        Text(
+                          'Description',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        const SizedBox(height: 8),
+                        SimpleCardRichText(content: property.description),
+                      ],
+                    );
+                  },
                 ),
               ],
             ],
