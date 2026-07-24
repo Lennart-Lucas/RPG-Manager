@@ -171,6 +171,8 @@ def collapse_doubled_pdf_glyphs(text: str) -> str:
             )
             if consec >= max(3, int(len(letters) * 0.35)):
                 core = _DOUBLED_GLYPH_RE.sub(r"\1", core)
+                # Doubled hyphens from glyph collapse (Hex--Stone → Hex-Stone)
+                core = re.sub(r"-{2,}", "-", core)
         out_lines.append(core + newline)
     return "".join(out_lines)
 
@@ -267,9 +269,13 @@ def _looks_like_entry_start(
         if kind == "items":
             if looks_like_item_type_line(peek.strip()):
                 return True
-            if REQUIRES_ATTUNEMENT_RE.search(peek):
+            if REQUIRES_ATTUNEMENT_RE.search(peek) and re.search(
+                rf"(?i)\b(?:{_ITEM_TYPE_ALT})\b", peek
+            ):
                 return True
-            break
+            # Items require a type/rarity (or attunement) peek — do not
+            # treat bare ALL-CAPS / Title Case lines as entry starts.
+            return False
         if META_LINE_RE.match(peek):
             return True
         peek_s = peek.strip()
@@ -278,7 +284,7 @@ def _looks_like_entry_start(
         if re.search(r"(?i)\d+(?:st|nd|rd|th)[\-\s]?level\b", peek_s):
             return True
         break
-    # ALL CAPS short titles are common spell/item names
+    # ALL CAPS short titles are common spell names (spells only reaches here)
     letters = re.sub(r"[^A-Za-z]", "", stripped)
     if letters and letters.isupper() and 2 <= len(letters) <= 40:
         return True
@@ -379,15 +385,13 @@ def health_check_section(entries: list[SplitEntry], leftover: str) -> tuple[bool
     if leftover_stripped and len(leftover_stripped) > 400:
         reasons.append("large_leftover_text")
 
-    # Fail health if too few entries for a "list" section, or outliers/leftover
+    # Leftover alone is not critical when we already have a plausible entry list —
+    # dumping the whole section into Tier2 re-anchors and often worsens results.
     critical = [
         r
         for r in reasons
-        if r.startswith("implausible_entry_count")
-        or r == "entry_length_outlier"
-        or r == "large_leftover_text"
+        if r.startswith("implausible_entry_count") or r == "entry_length_outlier"
     ]
-    # Allow small sections (1–2) to fail into tier 2 rather than trust them
     ok = len(critical) == 0
     return ok, reasons
 

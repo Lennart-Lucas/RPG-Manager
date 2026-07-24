@@ -226,7 +226,52 @@ def test_collapse_doubled_pdf_glyphs():
     )
 
 
-def test_tier1_splits_priced_item_headers():
+def test_health_check_allows_large_leftover_with_entries():
+    from app.services.extract.tier1_split import SplitEntry, health_check_section
+
+    entries = [
+        SplitEntry(text="x" * 100, name_hint="A"),
+        SplitEntry(text="y" * 100, name_hint="B"),
+        SplitEntry(text="z" * 100, name_hint="C"),
+    ]
+    ok, reasons = health_check_section(entries, "L" * 500)
+    assert ok
+    assert "large_leftover_text" in reasons
+
+
+def test_item_entry_start_requires_type_peek():
+    from app.services.extract.tier1_split import split_document
+
+    # Spell-shaped Title Case lines must not become item entries
+    text = """
+Some Chapter
+
+Ray of Sickness
+1st-level necromancy
+Casting Time: 1 action
+Range: 60 feet
+
+Cloak of Darkness
+Wonderous item, very rare
+Hidden in shadow.
+
+Ring of Protection
+Ring, rare (requires attunement)
+Bonus to AC.
+
+Potion of Healing
+Potion, common
+Regain hit points.
+"""
+    result = split_document(text, kind="items")
+    names = [
+        e.name_hint
+        for s in result.sections
+        for e in s.entries
+        if e.name_hint
+    ]
+    assert not any(n and "Ray of Sickness" in n for n in names)
+    assert any(n and "Cloak of Darkness" in n for n in names)
     sample = """
 Magic Items
 

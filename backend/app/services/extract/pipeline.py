@@ -20,6 +20,8 @@ from app.services.extract.tier1_split import (
     SplitSection,
     filter_decorative_unknown_fields,
     looks_like_entry_chunk,
+    looks_like_item_type_line,
+    looks_like_spell_chunk,
     split_document,
 )
 from app.services.extract.tier2_anchors import (
@@ -327,6 +329,35 @@ async def _process_healthy_entries(
         )
 
 
+def _item_signal_counts(text: str) -> tuple[int, int]:
+    """Return (item_type_header_lines, spell_signal_lines)."""
+    from app.services.extract.tier1_split import META_LINE_RE, SCHOOL_LEVEL_RE
+
+    item_hits = 0
+    spell_hits = 0
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if looks_like_item_type_line(stripped):
+            item_hits += 1
+        if META_LINE_RE.match(stripped) or SCHOOL_LEVEL_RE.search(stripped):
+            spell_hits += 1
+    return item_hits, spell_hits
+
+
+def _should_skip_items_tier2(body: str) -> bool:
+    """Skip Tier2 when a section is clearly spell prose with few item headers."""
+    item_hits, spell_hits = _item_signal_counts(body)
+    if item_hits >= 3:
+        return False
+    if spell_hits >= 4 and spell_hits > item_hits:
+        return True
+    if item_hits == 0 and spell_hits >= 2:
+        return True
+    return False
+
+
 async def _process_tier2_section(
     *,
     api_key: str,
@@ -335,7 +366,11 @@ async def _process_tier2_section(
     document_title: str | None,
     drafts: list[ExtractDraft],
 ) -> None:
-    body = (section.body_text or section.leftover_text or "").strip()
+    # Prefer leftover-only when Tier1 already found entries but health failed.
+    if section.entries and (section.leftover_text or "").strip():
+        body = section.leftover_text.strip()
+    else:
+        body = (section.body_text or section.leftover_text or "").strip()
     if not body and section.entries:
         body = "\n\n".join(e.text for e in section.entries)
     if not body:
@@ -353,6 +388,9 @@ async def _process_tier2_section(
                 tier=2,
             )
         )
+        return
+
+    if kind == "items" and _should_skip_items_tier2(body):
         return
 
     try:
@@ -397,6 +435,25 @@ async def _process_tier2_section(
     for pair in pairs:
         span = verify_anchor_pair(body, pair["first_line"], pair["last_line"])
         if not span.verified or not span.entry_text:
+            probe = f"{pair['first_line']}\n{pair['last_line']}"
+            if kind == "items" and (
+                looks_like_spell_chunk(probe)
+                or looks_like_spell_chunk(pair["last_line"])
+            ):
+                drafts.append(
+                    _not_an_entry_draft(
+                        kind=kind,
+                        name_hint=span.name_hint,
+                        source_text=probe,
+                        document_title=document_title,
+                        section=section.title,
+                        page=None,
+                        tier=2,
+                        boundary=BoundaryConfidence.unverified,
+                        extra_needs=["prefiltered", "boundary_unverified"],
+                    )
+                )
+                continue
             drafts.append(
                 ExtractDraft(
                     kind=kind,
@@ -475,7 +532,7 @@ async def run_extract_job(
                 leftover_chars=len(section.leftover_text or ""),
             )
         )
-        if section.health_ok:
+        if section.entries:
             await _process_healthy_entries(
                 api_key=api_key,
                 kind=kind,
@@ -483,7 +540,7 @@ async def run_extract_job(
                 document_title=request.document_title,
                 drafts=drafts,
             )
-        else:
+        if not section.health_ok:
             await _process_tier2_section(
                 api_key=api_key,
                 kind=kind,

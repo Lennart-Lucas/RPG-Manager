@@ -33,18 +33,38 @@ def find_verbatim(haystack: str, needle: str) -> int:
     """Return start index of needle in haystack, preferring exact then normalized line match."""
     if not needle.strip():
         return -1
-    exact = haystack.find(needle)
-    if exact >= 0:
-        return exact
+    candidates = [needle]
+    collapsed = re.sub(r"([A-Za-z])\1", r"\1", needle)
+    collapsed = re.sub(r"-{2,}", "-", collapsed)
+    if collapsed != needle:
+        candidates.append(collapsed)
+    for candidate in candidates:
+        exact = haystack.find(candidate)
+        if exact >= 0:
+            return exact
     # Try line-normalized search
-    needle_norm = _normalize_line(needle)
-    for i, line in enumerate(haystack.splitlines()):
-        if _normalize_line(line) == needle_norm:
-            # Map back to character offset
-            offset = 0
-            for prev in haystack.splitlines(keepends=True)[:i]:
-                offset += len(prev)
-            return offset
+    for candidate in candidates:
+        needle_norm = _normalize_line(candidate)
+        for i, line in enumerate(haystack.splitlines()):
+            line_collapsed = re.sub(r"([A-Za-z])\1", r"\1", line)
+            line_collapsed = re.sub(r"-{2,}", "-", line_collapsed)
+            if (
+                _normalize_line(line) == needle_norm
+                or _normalize_line(line_collapsed) == needle_norm
+            ):
+                offset = 0
+                for prev in haystack.splitlines(keepends=True)[:i]:
+                    offset += len(prev)
+                return offset
+    # Soft: match when needle is a prefix of a source line (truncated last lines)
+    needle_norm = _normalize_line(candidates[-1])
+    if len(needle_norm) >= 24:
+        for i, line in enumerate(haystack.splitlines()):
+            if _normalize_line(line).startswith(needle_norm[:60]):
+                offset = 0
+                for prev in haystack.splitlines(keepends=True)[:i]:
+                    offset += len(prev)
+                return offset
     return -1
 
 
