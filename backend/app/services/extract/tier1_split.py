@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Literal
 
 
 PAGE_MARKER_RE = re.compile(r"(?m)^---\s*page\s+(\d+)\s*---\s*$")
 
 # Common RPG section headers for spell lists
-SECTION_HEADER_RE = re.compile(
+SPELL_SECTION_HEADER_RE = re.compile(
     r"(?im)^\s*(?:"
     r"spells?|"
     r"cantrips?|"
@@ -16,6 +16,34 @@ SECTION_HEADER_RE = re.compile(
     r"spell\s+descriptions?"
     r")\s*$"
 )
+
+# Common RPG section headers for item lists
+ITEM_SECTION_HEADER_RE = re.compile(
+    r"(?im)^\s*(?:"
+    r"magic\s+items?|"
+    r"wondrous\s+items?|"
+    r"wonderous\s+items?|"
+    r"equipment|"
+    r"armor|"
+    r"armour|"
+    r"weapons?|"
+    r"potions?|"
+    r"rings?|"
+    r"rods?|"
+    r"staves?|"
+    r"staffs?|"
+    r"wands?|"
+    r"scrolls?|"
+    r"tools?|"
+    r"shields?|"
+    r"adventuring\s+gear|"
+    r"treasure|"
+    r"item\s+descriptions?"
+    r")\s*$"
+)
+
+# Back-compat alias used by spell-only call sites / tests
+SECTION_HEADER_RE = SPELL_SECTION_HEADER_RE
 
 # Entry start: Title Case / ALL CAPS name on its own line, optionally with level tag
 ENTRY_START_RE = re.compile(
@@ -30,6 +58,26 @@ META_LINE_RE = re.compile(
 SCHOOL_LEVEL_RE = re.compile(
     r"(?i)\b(?:cantrip|\d+(?:st|nd|rd|th)[\-\s]?level)\b"
 )
+
+# Type + rarity header line for magic items, e.g. "Wondrous item, very rare"
+# or "Weapon (longsword), rare (requires attunement)"
+ITEM_TYPE_RARITY_RE = re.compile(
+    r"(?i)^\s*(?:"
+    r"(?:wondrous|wonderous|magic)\s+items?|"
+    r"armor|armour|shield|weapon|potion|ring|rod|staff|stave|wand|"
+    r"scroll|book|tool|equipment"
+    r")"
+    r"(?:\s*\([^)]*\))?"
+    r"(?:\s+item)?"
+    r"\s*,\s*"
+    r"(?:common|uncommon|rare|very\s+rare|legendary|ledgendary|artifact)"
+    r"(?:\s*\([^)]*\))?"
+    r"\s*$"
+)
+
+REQUIRES_ATTUNEMENT_RE = re.compile(r"(?i)\brequires\s+attunement\b")
+
+ExtractKind = Literal["spells", "items"]
 
 # Decorative / non-mechanical unknown_fields keys to drop after extraction.
 DECORATIVE_UNKNOWN_KEYS = frozenset(
@@ -51,6 +99,10 @@ DECORATIVE_UNKNOWN_KEYS = frozenset(
 )
 
 
+def section_header_re(kind: ExtractKind) -> re.Pattern[str]:
+    return ITEM_SECTION_HEADER_RE if kind == "items" else SPELL_SECTION_HEADER_RE
+
+
 def looks_like_spell_chunk(text: str) -> bool:
     """True when chunk has spell-shaped signals worth sending to Claude."""
     if not text or not text.strip():
@@ -60,6 +112,29 @@ def looks_like_spell_chunk(text: str) -> bool:
     if SCHOOL_LEVEL_RE.search(text):
         return True
     return False
+
+
+def looks_like_item_chunk(text: str) -> bool:
+    """True when chunk has item type/rarity or attunement signals."""
+    if not text or not text.strip():
+        return False
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    for line in lines[:6]:
+        if ITEM_TYPE_RARITY_RE.match(line):
+            return True
+        if REQUIRES_ATTUNEMENT_RE.search(line) and ITEM_TYPE_RARITY_RE.search(
+            line
+        ):
+            return True
+    if REQUIRES_ATTUNEMENT_RE.search(text) and len(lines) >= 2:
+        return True
+    return False
+
+
+def looks_like_entry_chunk(text: str, kind: ExtractKind) -> bool:
+    if kind == "items":
+        return looks_like_item_chunk(text)
+    return looks_like_spell_chunk(text)
 
 
 def filter_decorative_unknown_fields(
@@ -116,15 +191,23 @@ def _strip_page_markers(text: str) -> str:
     return PAGE_MARKER_RE.sub("", text)
 
 
-def _looks_like_entry_start(line: str, next_lines: list[str]) -> bool:
+def _looks_like_entry_start(
+    line: str,
+    next_lines: list[str],
+    *,
+    kind: ExtractKind,
+    header_re: re.Pattern[str],
+) -> bool:
     stripped = line.strip()
     if not stripped or len(stripped) > 80:
         return False
-    if SECTION_HEADER_RE.match(stripped):
+    if header_re.match(stripped):
         return False
     if PAGE_MARKER_RE.match(stripped):
         return False
     if META_LINE_RE.match(stripped):
+        return False
+    if ITEM_TYPE_RARITY_RE.match(stripped):
         return False
     # School / level lines are never entry titles
     if re.search(r"(?i)\bcantrip\b", stripped):
@@ -133,10 +216,16 @@ def _looks_like_entry_start(line: str, next_lines: list[str]) -> bool:
         return False
     if not ENTRY_START_RE.match(stripped):
         return False
-    # Prefer starts followed by meta lines or school/level lines
+    # Prefer starts followed by meta / school-level / item type-rarity lines
     for peek in next_lines[:4]:
         if not peek.strip():
             continue
+        if kind == "items":
+            if ITEM_TYPE_RARITY_RE.match(peek.strip()):
+                return True
+            if REQUIRES_ATTUNEMENT_RE.search(peek):
+                return True
+            break
         if META_LINE_RE.match(peek):
             return True
         peek_s = peek.strip()
@@ -145,21 +234,23 @@ def _looks_like_entry_start(line: str, next_lines: list[str]) -> bool:
         if re.search(r"(?i)\d+(?:st|nd|rd|th)[\-\s]?level\b", peek_s):
             return True
         break
-    # ALL CAPS short titles are common spell names
+    # ALL CAPS short titles are common spell/item names
     letters = re.sub(r"[^A-Za-z]", "", stripped)
     if letters and letters.isupper() and 2 <= len(letters) <= 40:
         return True
     return False
 
 
-def _split_into_sections(text: str) -> list[tuple[str | None, str]]:
+def _split_into_sections(
+    text: str, header_re: re.Pattern[str]
+) -> list[tuple[str | None, str]]:
     lines = text.splitlines(keepends=True)
     sections: list[tuple[str | None, list[str]]] = []
     current_title: str | None = None
     current_lines: list[str] = []
 
     for line in lines:
-        if SECTION_HEADER_RE.match(line.strip()):
+        if header_re.match(line.strip()):
             if current_lines or current_title is not None:
                 sections.append((current_title, current_lines))
             current_title = line.strip()
@@ -176,12 +267,19 @@ def _split_into_sections(text: str) -> list[tuple[str | None, str]]:
     return [(title, "".join(body_lines)) for title, body_lines in sections]
 
 
-def _split_section_entries(section_text: str, full_text: str, base_offset: int) -> tuple[list[SplitEntry], str]:
+def _split_section_entries(
+    section_text: str,
+    full_text: str,
+    base_offset: int,
+    *,
+    kind: ExtractKind,
+    header_re: re.Pattern[str],
+) -> tuple[list[SplitEntry], str]:
     lines = section_text.splitlines()
     starts: list[int] = []
     for i, line in enumerate(lines):
         peek = lines[i + 1 : i + 5]
-        if _looks_like_entry_start(line, peek):
+        if _looks_like_entry_start(line, peek, kind=kind, header_re=header_re):
             starts.append(i)
 
     if not starts:
@@ -250,10 +348,11 @@ def health_check_section(entries: list[SplitEntry], leftover: str) -> tuple[bool
     return ok, reasons
 
 
-def split_document(text: str) -> Tier1Result:
+def split_document(text: str, kind: ExtractKind = "spells") -> Tier1Result:
     used_markers = bool(PAGE_MARKER_RE.search(text))
     working = text
-    sections_raw = _split_into_sections(working)
+    header_re = section_header_re(kind)
+    sections_raw = _split_into_sections(working, header_re)
     result_sections: list[SplitSection] = []
 
     # Track offsets into original text for page lookup
@@ -269,7 +368,9 @@ def split_document(text: str) -> Tier1Result:
         else:
             base_offset = search_from
 
-        entries, leftover = _split_section_entries(body, working, base_offset)
+        entries, leftover = _split_section_entries(
+            body, working, base_offset, kind=kind, header_re=header_re
+        )
         ok, reasons = health_check_section(entries, leftover)
         result_sections.append(
             SplitSection(
@@ -315,7 +416,9 @@ def split_document(text: str) -> Tier1Result:
         and result_sections[0].title is None
     ):
         cleaned = _strip_page_markers(working)
-        entries, leftover = _split_section_entries(cleaned, working, 0)
+        entries, leftover = _split_section_entries(
+            cleaned, working, 0, kind=kind, header_re=header_re
+        )
         ok, reasons = health_check_section(entries, leftover)
         result_sections = [
             SplitSection(

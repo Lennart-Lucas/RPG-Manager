@@ -308,7 +308,7 @@ class _FileDetailPageState extends State<FileDetailPage> {
     }
   }
 
-  Future<void> _extractSpells() async {
+  Future<void> _extractFromPdf() async {
     final path = _localPath;
     if (path == null || path.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -316,7 +316,7 @@ class _FileDetailPageState extends State<FileDetailPage> {
       );
       return;
     }
-    await startSpellExtraction(
+    await startExtraction(
       context: context,
       auth: widget.auth,
       file: _file,
@@ -404,9 +404,9 @@ class _FileDetailPageState extends State<FileDetailPage> {
           if (hasLocal)
             IconButton(
               tooltip: aiEnabled
-                  ? 'Extract spells'
-                  : 'Enable AI integration to extract spells',
-              onPressed: canExtract ? _extractSpells : null,
+                  ? 'Extract'
+                  : 'Enable AI integration to extract',
+              onPressed: canExtract ? _extractFromPdf : null,
               icon: const Icon(Icons.auto_fix_high_outlined),
             ),
           IconButton(
@@ -573,9 +573,9 @@ class _FileDetailPageState extends State<FileDetailPage> {
                         children: [
                           if (hasLocal)
                             FilledButton.icon(
-                              onPressed: canExtract ? _extractSpells : null,
+                              onPressed: canExtract ? _extractFromPdf : null,
                               icon: const Icon(Icons.auto_fix_high_outlined),
-                              label: const Text('Extract spells'),
+                              label: const Text('Extract'),
                             ),
                           if (hasLocal)
                             FilledButton.tonalIcon(

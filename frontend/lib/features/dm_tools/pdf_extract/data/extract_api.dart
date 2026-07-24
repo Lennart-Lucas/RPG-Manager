@@ -19,6 +19,7 @@ class ExtractApi {
     required String accessToken,
     required String anthropicApiKey,
     required String text,
+    String kind = 'spells',
     String? documentTitle,
     int? sourceFileId,
     String? sectionHint,
@@ -31,7 +32,7 @@ class ExtractApi {
         'X-Anthropic-Api-Key': anthropicApiKey,
       },
       body: jsonEncode({
-        'kind': 'spells',
+        'kind': kind,
         'document_title': ?documentTitle,
         'source_file_id': ?sourceFileId,
         'text': text,

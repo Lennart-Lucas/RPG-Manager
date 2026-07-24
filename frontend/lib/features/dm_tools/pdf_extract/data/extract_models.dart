@@ -87,7 +87,7 @@ class ExtractDraft {
     if (needsReview.contains('boundary_unverified')) score += 80;
     if (needsReview.contains('claude_error')) score += 90;
     if (needsReview.contains('extraction_failed')) score += 85;
-    if (needsReview.contains('not_a_spell')) score += 75;
+    if (isJunk) score += 75;
     if (boundaryConfidence == 'unverified') score += 70;
     if (duplicateNameInLibrary) score += 40;
     if (duplicateNameInBatch) score += 30;
@@ -108,12 +108,20 @@ class ExtractDraft {
     return score;
   }
 
+  bool get isItems => kind == 'items';
+
   bool get hasCompleteCoreFields {
     final name = payload['name'];
     final hasName = name is String && name.trim().isNotEmpty;
     final description = payload['description'];
     final hasDescription =
         description is String && description.trim().isNotEmpty;
+    if (isItems) {
+      return hasName &&
+          payload['itemType'] != null &&
+          payload['rarity'] != null &&
+          hasDescription;
+    }
     return hasName &&
         payload['level'] != null &&
         payload['school'] != null &&
@@ -125,10 +133,14 @@ class ExtractDraft {
       needsReview.contains('boundary_unverified') ||
       needsReview.contains('claude_error') ||
       needsReview.contains('extraction_failed') ||
-      needsReview.contains('not_a_spell') ||
+      isJunk ||
       !hasCompleteCoreFields;
 
   bool get isNotASpell => needsReview.contains('not_a_spell');
+
+  bool get isNotAnItem => needsReview.contains('not_an_item');
+
+  bool get isJunk => isNotASpell || isNotAnItem;
 
   bool get isSoftReviewOnly =>
       !isHardReviewIssue &&
@@ -146,7 +158,7 @@ class ExtractDraft {
   String get displayName {
     final name = payload['name'];
     if (name is String && name.trim().isNotEmpty) return name.trim();
-    return 'Untitled spell';
+    return isItems ? 'Untitled item' : 'Untitled spell';
   }
 }
 

@@ -7,6 +7,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from app.services.extract.item_schema import ItemExtractPayload
 from app.services.extract.spell_schema import (
     SPELL_EXTRACT_JSON_SCHEMA,
     SpellExtractPayload,
@@ -138,7 +139,18 @@ def try_parse_spell_payload(
         return None, str(exc)
 
 
-def payload_to_dict(payload: SpellExtractPayload) -> dict[str, Any]:
+def try_parse_item_payload(
+    data: dict[str, Any],
+) -> tuple[ItemExtractPayload | None, str | None]:
+    try:
+        return ItemExtractPayload.model_validate(data), None
+    except ValidationError as exc:
+        return None, str(exc)
+
+
+def payload_to_dict(
+    payload: SpellExtractPayload | ItemExtractPayload,
+) -> dict[str, Any]:
     return payload.model_dump(mode="json", exclude_none=False)
 
 

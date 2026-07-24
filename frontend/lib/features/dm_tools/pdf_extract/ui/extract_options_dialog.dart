@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// Which catalog kinds to extract. Only [spells] is supported today.
+/// Which catalog kinds to extract.
 enum ExtractRecordKind {
   spells,
+  items,
 }
 
 extension ExtractRecordKindLabel on ExtractRecordKind {
   String get label => switch (this) {
         ExtractRecordKind.spells => 'Spells',
+        ExtractRecordKind.items => 'Items',
+      };
+
+  String get apiValue => switch (this) {
+        ExtractRecordKind.spells => 'spells',
+        ExtractRecordKind.items => 'items',
       };
 }
 
@@ -172,7 +179,6 @@ class _ExtractOptionsDialogState extends State<_ExtractOptionsDialog> {
               contentPadding: EdgeInsets.zero,
               dense: true,
               title: Text(ExtractRecordKind.spells.label),
-              subtitle: const Text('Supported'),
               value: _kinds.contains(ExtractRecordKind.spells),
               onChanged: (checked) {
                 setState(() {
@@ -180,6 +186,21 @@ class _ExtractOptionsDialogState extends State<_ExtractOptionsDialog> {
                     _kinds.add(ExtractRecordKind.spells);
                   } else {
                     _kinds.remove(ExtractRecordKind.spells);
+                  }
+                });
+              },
+            ),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              title: Text(ExtractRecordKind.items.label),
+              value: _kinds.contains(ExtractRecordKind.items),
+              onChanged: (checked) {
+                setState(() {
+                  if (checked == true) {
+                    _kinds.add(ExtractRecordKind.items);
+                  } else {
+                    _kinds.remove(ExtractRecordKind.items);
                   }
                 });
               },

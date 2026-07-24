@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import Any, Literal
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,14 +19,17 @@ from app.services.extract import claude_client
 from app.services.extract.tier1_split import (
     SplitSection,
     filter_decorative_unknown_fields,
-    looks_like_spell_chunk,
+    looks_like_entry_chunk,
     split_document,
 )
 from app.services.extract.tier2_anchors import (
     parse_anchor_response,
+    try_parse_item_payload,
     try_parse_spell_payload,
     verify_anchor_pair,
 )
+
+ExtractKind = Literal["spells", "items"]
 
 
 def _norm_name(name: str | None) -> str:
@@ -35,13 +38,22 @@ def _norm_name(name: str | None) -> str:
     return re.sub(r"\s+", " ", name).strip().casefold()
 
 
-async def _library_spell_names(
-    session: AsyncSession, user_id: int
+def _catalog_kind_for(kind: ExtractKind) -> CatalogKind:
+    return CatalogKind.items if kind == "items" else CatalogKind.spells
+
+
+def _not_a_entry_flag(kind: ExtractKind) -> str:
+    return "not_an_item" if kind == "items" else "not_a_spell"
+
+
+async def _library_names(
+    session: AsyncSession, user_id: int, kind: ExtractKind
 ) -> dict[str, tuple[int, str]]:
+    catalog_kind = _catalog_kind_for(kind)
     result = await session.execute(
         select(CatalogItem.id, CatalogItem.name).where(
             CatalogItem.user_id == user_id,
-            CatalogItem.kind == CatalogKind.spells.value,
+            CatalogItem.kind == catalog_kind.value,
             CatalogItem.deleted_at.is_(None),
         )
     )
@@ -98,6 +110,7 @@ async def _extract_entry_with_retry(
     *,
     api_key: str,
     entry_text: str,
+    kind: ExtractKind,
 ) -> tuple[dict[str, Any] | None, list[str], str | None, dict[str, Any] | None]:
     """Returns payload dict, needs_review, notes, unknown_fields."""
     needs: list[str] = []
@@ -106,9 +119,14 @@ async def _extract_entry_with_retry(
 
     for attempt in range(2):
         try:
-            data = await claude_client.extract_spell(
-                api_key=api_key, entry_text=entry_text
-            )
+            if kind == "items":
+                data = await claude_client.extract_item(
+                    api_key=api_key, entry_text=entry_text
+                )
+            else:
+                data = await claude_client.extract_spell(
+                    api_key=api_key, entry_text=entry_text
+                )
         except claude_client.ClaudeError as exc:
             last_err = str(exc)
             if attempt == 0:
@@ -121,7 +139,11 @@ async def _extract_entry_with_retry(
                 {"_claude_error": last_err[:300], "_status": exc.status_code},
             )
 
-        payload, err = try_parse_spell_payload(data)
+        if kind == "items":
+            payload, err = try_parse_item_payload(data)
+        else:
+            payload, err = try_parse_spell_payload(data)
+
         if payload is not None:
             dumped = payload.model_dump(mode="json")
             notes = dumped.pop("notes", None)
@@ -147,26 +169,39 @@ async def _extract_entry_with_retry(
     return None, needs, None, {"_validation_error": last_err}
 
 
-def _mark_not_a_spell_if_needed(
+def _mark_not_an_entry_if_needed(
     payload: dict[str, Any],
     needs: list[str],
+    kind: ExtractKind,
 ) -> None:
+    flag = _not_a_entry_flag(kind)
     name = payload.get("name")
     has_name = isinstance(name, str) and bool(name.strip())
     description = payload.get("description")
     has_description = isinstance(description, str) and bool(description.strip())
+    if kind == "items":
+        if (
+            not has_name
+            and payload.get("itemType") is None
+            and payload.get("rarity") is None
+            and not has_description
+        ):
+            if flag not in needs:
+                needs.append(flag)
+        return
     if (
         not has_name
         and payload.get("level") is None
         and payload.get("school") is None
         and not has_description
     ):
-        if "not_a_spell" not in needs:
-            needs.append("not_a_spell")
+        if flag not in needs:
+            needs.append(flag)
 
 
-def _not_a_spell_draft(
+def _not_an_entry_draft(
     *,
+    kind: ExtractKind,
     name_hint: str | None,
     source_text: str,
     document_title: str | None,
@@ -176,8 +211,20 @@ def _not_a_spell_draft(
     boundary: BoundaryConfidence,
     extra_needs: list[str] | None = None,
 ) -> ExtractDraft:
-    needs = ["not_a_spell", *(extra_needs or [])]
+    flag = _not_a_entry_flag(kind)
+    needs = [flag, *(extra_needs or [])]
+    if kind == "items":
+        notes = (
+            "Skipped Claude: chunk lacks item-shaped signals "
+            "(type/rarity line or requires attunement)."
+        )
+    else:
+        notes = (
+            "Skipped Claude: chunk lacks spell-shaped signals "
+            "(casting time / range / components / level-school line)."
+        )
     return ExtractDraft(
+        kind=kind,
         payload={"name": name_hint},
         source_text=source_text,
         boundary_confidence=boundary,
@@ -186,8 +233,7 @@ def _not_a_spell_draft(
             section=section,
             page=page,
         ),
-        notes="Skipped Claude: chunk lacks spell-shaped signals "
-        "(casting time / range / components / level-school line).",
+        notes=notes,
         unknown_fields=None,
         needs_review=needs,
         tier=tier,
@@ -196,6 +242,7 @@ def _not_a_spell_draft(
 
 def _finalize_extracted_draft(
     *,
+    kind: ExtractKind,
     payload: dict[str, Any] | None,
     needs: list[str],
     notes: str | None,
@@ -215,9 +262,10 @@ def _finalize_extracted_draft(
         if notes is None and unknown and unknown.get("_claude_error"):
             notes = f"claude_error: {unknown.get('_claude_error')}"
     else:
-        _mark_not_a_spell_if_needed(payload, needs)
+        _mark_not_an_entry_if_needed(payload, needs, kind)
     unknown = filter_decorative_unknown_fields(unknown)
     return ExtractDraft(
+        kind=kind,
         payload=payload,
         source_text=source_text,
         boundary_confidence=boundary,
@@ -236,14 +284,16 @@ def _finalize_extracted_draft(
 async def _process_healthy_entries(
     *,
     api_key: str,
+    kind: ExtractKind,
     section: SplitSection,
     document_title: str | None,
     drafts: list[ExtractDraft],
 ) -> None:
     for entry in section.entries:
-        if not looks_like_spell_chunk(entry.text):
+        if not looks_like_entry_chunk(entry.text, kind):
             drafts.append(
-                _not_a_spell_draft(
+                _not_an_entry_draft(
+                    kind=kind,
                     name_hint=entry.name_hint,
                     source_text=entry.text,
                     document_title=document_title,
@@ -257,10 +307,11 @@ async def _process_healthy_entries(
             continue
 
         payload, needs, notes, unknown = await _extract_entry_with_retry(
-            api_key=api_key, entry_text=entry.text
+            api_key=api_key, entry_text=entry.text, kind=kind
         )
         drafts.append(
             _finalize_extracted_draft(
+                kind=kind,
                 payload=payload,
                 needs=needs,
                 notes=notes,
@@ -279,6 +330,7 @@ async def _process_healthy_entries(
 async def _process_tier2_section(
     *,
     api_key: str,
+    kind: ExtractKind,
     section: SplitSection,
     document_title: str | None,
     drafts: list[ExtractDraft],
@@ -289,6 +341,7 @@ async def _process_tier2_section(
     if not body:
         drafts.append(
             ExtractDraft(
+                kind=kind,
                 payload={"name": section.title or "Unknown section"},
                 source_text="",
                 boundary_confidence=BoundaryConfidence.unverified,
@@ -304,11 +357,12 @@ async def _process_tier2_section(
 
     try:
         raw_anchors = await claude_client.detect_anchors(
-            api_key=api_key, section_text=body
+            api_key=api_key, section_text=body, kind=kind
         )
     except claude_client.ClaudeError:
         drafts.append(
             ExtractDraft(
+                kind=kind,
                 payload={"name": section.title or "Section"},
                 source_text=body[:4000],
                 boundary_confidence=BoundaryConfidence.unverified,
@@ -326,6 +380,7 @@ async def _process_tier2_section(
     if not pairs:
         drafts.append(
             ExtractDraft(
+                kind=kind,
                 payload={"name": section.title or "Section"},
                 source_text=body[:4000],
                 boundary_confidence=BoundaryConfidence.unverified,
@@ -344,6 +399,7 @@ async def _process_tier2_section(
         if not span.verified or not span.entry_text:
             drafts.append(
                 ExtractDraft(
+                    kind=kind,
                     payload={"name": span.name_hint},
                     source_text=(
                         f"FIRST: {pair['first_line']}\nLAST: {pair['last_line']}"
@@ -359,9 +415,10 @@ async def _process_tier2_section(
             )
             continue
 
-        if not looks_like_spell_chunk(span.entry_text):
+        if not looks_like_entry_chunk(span.entry_text, kind):
             drafts.append(
-                _not_a_spell_draft(
+                _not_an_entry_draft(
+                    kind=kind,
                     name_hint=span.name_hint,
                     source_text=span.entry_text,
                     document_title=document_title,
@@ -375,10 +432,11 @@ async def _process_tier2_section(
             continue
 
         payload, needs, notes, unknown = await _extract_entry_with_retry(
-            api_key=api_key, entry_text=span.entry_text
+            api_key=api_key, entry_text=span.entry_text, kind=kind
         )
         drafts.append(
             _finalize_extracted_draft(
+                kind=kind,
                 payload=payload,
                 needs=needs,
                 notes=notes,
@@ -401,7 +459,8 @@ async def run_extract_job(
     api_key: str,
     request: ExtractJobRequest,
 ) -> ExtractJobResponse:
-    split = split_document(request.text)
+    kind: ExtractKind = "items" if request.kind == "items" else "spells"
+    split = split_document(request.text, kind=kind)
     drafts: list[ExtractDraft] = []
     summaries: list[ExtractSectionSummary] = []
 
@@ -419,6 +478,7 @@ async def run_extract_job(
         if section.health_ok:
             await _process_healthy_entries(
                 api_key=api_key,
+                kind=kind,
                 section=section,
                 document_title=request.document_title,
                 drafts=drafts,
@@ -426,11 +486,42 @@ async def run_extract_job(
         else:
             await _process_tier2_section(
                 api_key=api_key,
+                kind=kind,
                 section=section,
                 document_title=request.document_title,
                 drafts=drafts,
             )
 
-    library = await _library_spell_names(session, user_id)
+    library = await _library_names(session, user_id, kind)
     _apply_duplicate_flags(drafts, library)
     return ExtractJobResponse(drafts=drafts, section_summaries=summaries)
+
+
+async def run_spell_pipeline(
+    *,
+    session: AsyncSession,
+    user_id: int,
+    api_key: str,
+    request: ExtractJobRequest,
+) -> ExtractJobResponse:
+    return await run_extract_job(
+        session=session,
+        user_id=user_id,
+        api_key=api_key,
+        request=request.model_copy(update={"kind": "spells"}),
+    )
+
+
+async def run_item_pipeline(
+    *,
+    session: AsyncSession,
+    user_id: int,
+    api_key: str,
+    request: ExtractJobRequest,
+) -> ExtractJobResponse:
+    return await run_extract_job(
+        session=session,
+        user_id=user_id,
+        api_key=api_key,
+        request=request.model_copy(update={"kind": "items"}),
+    )

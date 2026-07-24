@@ -20,7 +20,7 @@ class ExtractSourceMeta(BaseModel):
 
 
 class ExtractJobRequest(BaseModel):
-    kind: Literal["spells"] = "spells"
+    kind: Literal["spells", "items"] = "spells"
     document_title: str | None = Field(default=None, max_length=255)
     source_file_id: int | None = None
     text: str = Field(min_length=1, max_length=1_000_000)
@@ -28,7 +28,7 @@ class ExtractJobRequest(BaseModel):
 
 
 class ExtractDraft(BaseModel):
-    kind: Literal["spells"] = "spells"
+    kind: Literal["spells", "items"] = "spells"
     payload: dict[str, Any]
     source_text: str
     boundary_confidence: BoundaryConfidence

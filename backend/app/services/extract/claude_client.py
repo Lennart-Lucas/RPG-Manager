@@ -7,6 +7,7 @@ from typing import Any
 import httpx
 
 from app.config import settings
+from app.services.extract.item_schema import ITEM_EXTRACT_JSON_SCHEMA
 from app.services.extract.spell_schema import SPELL_EXTRACT_JSON_SCHEMA
 from app.services.extract.tier2_anchors import ANCHOR_JSON_SCHEMA
 
@@ -144,23 +145,24 @@ async def extract_spell(
     return _tool_input(response, "spell_extract")
 
 
-ANCHOR_SYSTEM = (
-    "You identify individual spell entry boundaries in RPG source text. "
-    "For each spell entry, quote the exact first line and exact last line "
-    "verbatim from the source — do not paraphrase or normalize punctuation. "
-    "Only include entries you can ground in the text."
-)
-
-
 async def detect_anchors(
     *,
     api_key: str,
     section_text: str,
+    kind: str = "spells",
 ) -> dict[str, Any]:
+    entry_label = "item" if kind == "items" else "spell"
+    tool_name = "item_anchors" if kind == "items" else "spell_anchors"
+    system = (
+        f"You identify individual {entry_label} entry boundaries in RPG source text. "
+        f"For each {entry_label} entry, quote the exact first line and exact last line "
+        "verbatim from the source — do not paraphrase or normalize punctuation. "
+        "Only include entries you can ground in the text."
+    )
     tools = [
         {
-            "name": "spell_anchors",
-            "description": "Verbatim first/last lines for each spell entry.",
+            "name": tool_name,
+            "description": f"Verbatim first/last lines for each {entry_label} entry.",
             "input_schema": ANCHOR_JSON_SCHEMA,
         }
     ]
@@ -169,16 +171,64 @@ async def detect_anchors(
     if len(clipped) > 80_000:
         clipped = clipped[:80_000]
     user = (
-        "Identify each spell entry in this section. "
-        "Return verbatim first_line and last_line for each via the spell_anchors tool.\n\n"
+        f"Identify each {entry_label} entry in this section. "
+        f"Return verbatim first_line and last_line for each via the {tool_name} tool.\n\n"
         f"---\n{clipped}\n---"
     )
     response = await _messages_create(
         api_key=api_key,
-        system=ANCHOR_SYSTEM,
+        system=system,
         user=user,
         tools=tools,
-        tool_name="spell_anchors",
+        tool_name=tool_name,
         max_tokens=4096,
     )
-    return _tool_input(response, "spell_anchors")
+    return _tool_input(response, tool_name)
+
+
+ITEM_EXTRACT_SYSTEM = (
+    "You extract structured D&D 5e magic/mundane item data from source text. "
+    "Extract only what is explicitly present in the text. "
+    "Use null for any field that is missing or unclear. "
+    "Never invent, infer, or fill gaps beyond normalizing known type/rarity labels. "
+    "Normalize itemType to: armor, shield, book, scroll, equipment, potion, ring, "
+    "rod, stave, wand, tool, weapon, wondrous_item "
+    "(map wonderous/wondrous item → wondrous_item). "
+    "Normalize rarity to: common, uncommon, rare, very_rare, legendary, artifact "
+    "(very rare → very_rare). "
+    "Set magic true when the entry is a magic item (wondrous, potion, ring, etc.) "
+    "or the text clearly indicates magic; otherwise null if unclear. "
+    "Set requiresAttunement true only if the text says requires attunement. "
+    "Set consumable true for potions, scrolls, and similar one-use items when clear. "
+    "Put parenthetical weapon/armor subtype (e.g. longsword) in typeReference. "
+    "description should be the full body text as markdown. "
+    "If the chunk is not an item entry (cover, art credit, TOC, filler), "
+    "leave name/itemType/rarity/description null and briefly say so in notes. "
+    "Do not put illustration credits or page decoration into unknown_fields."
+)
+
+
+async def extract_item(
+    *,
+    api_key: str,
+    entry_text: str,
+) -> dict[str, Any]:
+    tools = [
+        {
+            "name": "item_extract",
+            "description": "Structured item fields extracted from the source text.",
+            "input_schema": ITEM_EXTRACT_JSON_SCHEMA,
+        }
+    ]
+    user = (
+        "Extract the item from the following source text into the item_extract tool.\n\n"
+        f"---\n{entry_text}\n---"
+    )
+    response = await _messages_create(
+        api_key=api_key,
+        system=ITEM_EXTRACT_SYSTEM,
+        user=user,
+        tools=tools,
+        tool_name="item_extract",
+    )
+    return _tool_input(response, "item_extract")
