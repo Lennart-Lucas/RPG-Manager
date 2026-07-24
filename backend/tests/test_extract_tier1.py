@@ -189,3 +189,63 @@ def test_normalize_wonderous_and_very_rare():
     )
     assert payload.itemType == "wondrous_item"
     assert payload.rarity == "very_rare"
+
+
+def test_looks_like_item_chunk_accepts_price_suffix():
+    text = (
+        "Hex-Stone Amulet\n"
+        "Wondrous Item, Very Rare (Requires Attunement), 36,000 gp\n"
+        "This pendant emits a sickly green light."
+    )
+    assert looks_like_item_chunk(text)
+
+
+def test_looks_like_item_chunk_accepts_price_before_rarity():
+    text = (
+        "Oil of Explosive Speed\n"
+        "Potion, 50gp, uncommon, weight: 1 lb\n"
+        "This vial contains volatile eldritch oil."
+    )
+    assert looks_like_item_chunk(text)
+
+
+def test_looks_like_item_chunk_accepts_wonderous_with_price():
+    text = (
+        "Hex Stone Token\n"
+        "Wonderous Item, Rare, 200g\n"
+        "These palm-size wafers boost magical abilities."
+    )
+    assert looks_like_item_chunk(text)
+
+
+def test_collapse_doubled_pdf_glyphs():
+    from app.services.extract.tier1_split import collapse_doubled_pdf_glyphs
+
+    assert "Cloak of Darkness" in collapse_doubled_pdf_glyphs(
+        "CCllooaakk ooff DDaarrkknneessss\nWonderous item, very rare\n"
+    )
+
+
+def test_tier1_splits_priced_item_headers():
+    sample = """
+Magic Items
+
+Hex-Stone Amulet
+Wondrous Item, Very Rare (Requires Attunement), 36,000 gp
+This pendant emits a sickly green light.
+
+Gnawfang
+Weapon (Dagger), Very Rare (Requires Attunement), 2,000 gp
+Carved from a sliver of the Rat God's fang.
+
+Hex Stone Token
+Wonderous Item, Rare, 200g
+These palm-size wafers of magical minerals can be consumed.
+"""
+    result = split_document(sample, kind="items")
+    section = result.sections[0]
+    assert section.health_ok, section.health_reasons
+    assert len(section.entries) == 3
+    assert any(
+        e.name_hint and "Hex-Stone" in e.name_hint for e in section.entries
+    )

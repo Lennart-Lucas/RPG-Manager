@@ -59,23 +59,36 @@ SCHOOL_LEVEL_RE = re.compile(
     r"(?i)\b(?:cantrip|\d+(?:st|nd|rd|th)[\-\s]?level)\b"
 )
 
-# Type + rarity header line for magic items, e.g. "Wondrous item, very rare"
-# or "Weapon (longsword), rare (requires attunement)"
-ITEM_TYPE_RARITY_RE = re.compile(
-    r"(?i)^\s*(?:"
+# Type + rarity header line for magic items.
+# Accepts common PDF variants with price / weight / attunement trailing:
+#   "Wondrous item, very rare"
+#   "Weapon (longsword), rare (requires attunement)"
+#   "Wondrous Item, Very Rare (Requires Attunement), 6,000 gp"
+#   "Wonderous Item, Rare, 200g"
+#   "Potion, 50gp, uncommon, weight: 1 lb"
+_ITEM_TYPE_ALT = (
     r"(?:wondrous|wonderous|magic)\s+items?|"
     r"armor|armour|shield|weapon|potion|ring|rod|staff|stave|wand|"
     r"scroll|book|tool|equipment"
-    r")"
-    r"(?:\s*\([^)]*\))?"
-    r"(?:\s+item)?"
-    r"\s*,\s*"
-    r"(?:common|uncommon|rare|very\s+rare|legendary|ledgendary|artifact)"
-    r"(?:\s*\([^)]*\))?"
-    r"\s*$"
+)
+_RARITY_ALT = (
+    r"very\s+rare|common|uncommon|rare|legendary|ledgendary|artifact"
+)
+
+ITEM_TYPE_RARITY_RE = re.compile(
+    rf"(?i)^\s*(?:{_ITEM_TYPE_ALT})"
+    rf"(?:\s*\([^)]*\))?"
+    rf"(?:\s+item)?"
+    rf"\s*,\s*"
+    rf".{{0,80}}?"
+    rf"(?:{_RARITY_ALT})\b"
+    rf".{{0,60}}$"
 )
 
 REQUIRES_ATTUNEMENT_RE = re.compile(r"(?i)\brequires\s+attunement\b")
+
+# PDF text often doubles glyphs: "CCllooaakk" → "Cloak"
+_DOUBLED_GLYPH_RE = re.compile(r"([A-Za-z])\1")
 
 ExtractKind = Literal["spells", "items"]
 
@@ -114,21 +127,52 @@ def looks_like_spell_chunk(text: str) -> bool:
     return False
 
 
+def looks_like_item_type_line(line: str) -> bool:
+    """True for compact item header lines (type + rarity, optional price)."""
+    stripped = line.strip()
+    if not stripped or len(stripped) > 140:
+        return False
+    return bool(ITEM_TYPE_RARITY_RE.match(stripped))
+
+
 def looks_like_item_chunk(text: str) -> bool:
     """True when chunk has item type/rarity or attunement signals."""
     if not text or not text.strip():
         return False
     lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
-    for line in lines[:6]:
-        if ITEM_TYPE_RARITY_RE.match(line):
+    for line in lines[:8]:
+        if looks_like_item_type_line(line):
             return True
-        if REQUIRES_ATTUNEMENT_RE.search(line) and ITEM_TYPE_RARITY_RE.search(
-            line
-        ):
+        if REQUIRES_ATTUNEMENT_RE.search(line) and looks_like_item_type_line(line):
             return True
+        # Type token + rarity on same short line even if comma layout is odd
+        if len(line) <= 140 and REQUIRES_ATTUNEMENT_RE.search(line):
+            if re.search(rf"(?i)\b(?:{_ITEM_TYPE_ALT})\b", line) and re.search(
+                rf"(?i)\b(?:{_RARITY_ALT})\b", line
+            ):
+                return True
     if REQUIRES_ATTUNEMENT_RE.search(text) and len(lines) >= 2:
         return True
     return False
+
+
+def collapse_doubled_pdf_glyphs(text: str) -> str:
+    """Collapse common pdfrx doubled-letter artifacts on heavily doubled lines."""
+    out_lines: list[str] = []
+    for line in text.splitlines(keepends=True):
+        core = line.rstrip("\n\r")
+        newline = line[len(core) :]
+        letters = re.findall(r"[A-Za-z]", core)
+        if len(letters) >= 6:
+            consec = sum(
+                1
+                for i in range(len(letters) - 1)
+                if letters[i].lower() == letters[i + 1].lower()
+            )
+            if consec >= max(3, int(len(letters) * 0.35)):
+                core = _DOUBLED_GLYPH_RE.sub(r"\1", core)
+        out_lines.append(core + newline)
+    return "".join(out_lines)
 
 
 def looks_like_entry_chunk(text: str, kind: ExtractKind) -> bool:
@@ -221,7 +265,7 @@ def _looks_like_entry_start(
         if not peek.strip():
             continue
         if kind == "items":
-            if ITEM_TYPE_RARITY_RE.match(peek.strip()):
+            if looks_like_item_type_line(peek.strip()):
                 return True
             if REQUIRES_ATTUNEMENT_RE.search(peek):
                 return True
@@ -351,6 +395,8 @@ def health_check_section(entries: list[SplitEntry], leftover: str) -> tuple[bool
 def split_document(text: str, kind: ExtractKind = "spells") -> Tier1Result:
     used_markers = bool(PAGE_MARKER_RE.search(text))
     working = text
+    if kind == "items":
+        working = collapse_doubled_pdf_glyphs(working)
     header_re = section_header_re(kind)
     sections_raw = _split_into_sections(working, header_re)
     result_sections: list[SplitSection] = []
