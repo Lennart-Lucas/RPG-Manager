@@ -12,6 +12,7 @@ import '../../../dm_tools/resources/data/resource_models.dart';
 import '../../../dm_tools/resources/data/resources_api.dart';
 import '../../../export/card_export_pdf.dart';
 import '../../../export/card_png_export_present.dart';
+import '../../../mechanics/spell_tags/ui/spell_tag_detail_page.dart';
 import '../../classes/data/class_model.dart';
 import '../../player_options_icons.dart';
 import '../data/spell_model.dart';
@@ -25,7 +26,7 @@ class SpellDetailPage extends StatefulWidget {
     required this.item,
     required this.spell,
     required this.classNames,
-    required this.tagNames,
+    required this.tags,
     this.sourceFileName,
   });
 
@@ -33,7 +34,7 @@ class SpellDetailPage extends StatefulWidget {
   final CatalogItem item;
   final Spell spell;
   final List<String> classNames;
-  final List<String> tagNames;
+  final List<({int id, String name})> tags;
   final String? sourceFileName;
 
   @override
@@ -47,7 +48,7 @@ class _SpellDetailPageState extends State<SpellDetailPage> {
   late CatalogItem _item = widget.item;
   late Spell _spell = widget.spell;
   late List<String> _classNames = widget.classNames;
-  late List<String> _tagNames = widget.tagNames;
+  late List<({int id, String name})> _tags = widget.tags;
   late String? _sourceFileName = widget.sourceFileName;
   bool _exportingPng = false;
 
@@ -180,16 +181,16 @@ class _SpellDetailPageState extends State<SpellDetailPage> {
         }
       }
       classNames.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-      final tagNames = <String>[];
+      final tags = <({int id, String name})>[];
       for (final id in parsed.tagIds) {
         for (final t in lookups.spellTags) {
           if (t.id == id) {
-            tagNames.add(t.name);
+            tags.add((id: t.id, name: t.name));
             break;
           }
         }
       }
-      tagNames.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+      tags.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
       String? sourceName = _sourceFileName;
       if (parsed.sourceFileId != null) {
@@ -208,7 +209,7 @@ class _SpellDetailPageState extends State<SpellDetailPage> {
         _item = updated;
         _spell = parsed.copyWith(name: updated.name);
         _classNames = classNames;
-        _tagNames = tagNames;
+        _tags = tags;
         _sourceFileName = sourceName;
       });
     } on AuthApiException catch (e) {
@@ -233,7 +234,7 @@ class _SpellDetailPageState extends State<SpellDetailPage> {
         spell: _spell,
         theme: Theme.of(context),
         classNames: _classNames,
-        tagNames: _tagNames,
+        tags: _tags,
       );
       if (!mounted) return;
       await presentCardPngExport(
@@ -249,6 +250,33 @@ class _SpellDetailPageState extends State<SpellDetailPage> {
       }
     } finally {
       if (mounted) setState(() => _exportingPng = false);
+    }
+  }
+
+  Future<void> _openTag(int tagId) async {
+    try {
+      final token = await _token();
+      if (token == null || !mounted) return;
+      final tagItem = await _api.get(token, CatalogKind.spellTags, tagId);
+      if (!mounted) return;
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (context) => SpellTagDetailPage(
+            auth: widget.auth,
+            item: tagItem,
+          ),
+        ),
+      );
+    } on AuthApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open spell tag')),
+      );
     }
   }
 
@@ -352,7 +380,8 @@ class _SpellDetailPageState extends State<SpellDetailPage> {
                       cards: buildSpellSheets(
                         _spell,
                         classNames: _classNames,
-                        tagNames: _tagNames,
+                        tags: _tags,
+                        onTagTap: _openTag,
                         cardScale: desktopScale,
                         maxFontSize: kMtgCardRulesMaxFontSize * desktopScale,
                       ),

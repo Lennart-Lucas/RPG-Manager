@@ -198,6 +198,7 @@ class RecordListCardChipGroup extends StatelessWidget {
     required this.accentColor,
     required this.textTheme,
     required this.colors,
+    this.onLabelTap,
     super.key,
   });
 
@@ -207,6 +208,7 @@ class RecordListCardChipGroup extends StatelessWidget {
   final Color accentColor;
   final TextTheme textTheme;
   final ColorScheme colors;
+  final ValueChanged<int>? onLabelTap;
 
   @override
   Widget build(BuildContext context) {
@@ -239,6 +241,7 @@ class RecordListCardChipGroup extends StatelessWidget {
             accentColor: accentColor,
             labelStyle: labelStyle,
             isEmptyPlaceholder: isEmpty,
+            onLabelTap: isEmpty ? null : onLabelTap,
           ),
       ],
     );

@@ -31,6 +31,7 @@ class SpellRecordListView extends StatelessWidget {
     required this.tagEntriesBySpellKey,
     required this.onSpellPrimaryTap,
     this.onSpellLongPress,
+    this.onTagTap,
     this.selectedSpellIds = const {},
     this.selectionEmphasis = false,
     this.bottomPadding = 88,
@@ -49,6 +50,7 @@ class SpellRecordListView extends StatelessWidget {
   final Map<String, List<({String id, String name})>> tagEntriesBySpellKey;
   final void Function(SpellCatalogEntry entry) onSpellPrimaryTap;
   final void Function(SpellCatalogEntry entry)? onSpellLongPress;
+  final ValueChanged<int>? onTagTap;
   final Set<String> selectedSpellIds;
   final bool selectionEmphasis;
   final double bottomPadding;
@@ -133,6 +135,7 @@ class SpellRecordListView extends StatelessWidget {
                     onLongPress: onSpellLongPress == null
                         ? null
                         : () => onSpellLongPress!(rowEntry.entries[i]),
+                    onTagTap: selectionEmphasis ? null : onTagTap,
                   ),
                 ),
               ],

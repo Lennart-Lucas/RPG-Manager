@@ -117,14 +117,14 @@ Future<Uint8List> rasterizeSpellCard({
   required Spell spell,
   required ThemeData theme,
   List<String> classNames = const [],
-  List<String> tagNames = const [],
+  List<({int id, String name})> tags = const [],
 }) async {
   final pages = await rasterizeSpellCards(
     context: context,
     spell: spell,
     theme: theme,
     classNames: classNames,
-    tagNames: tagNames,
+    tags: tags,
   );
   return pages.first;
 }
@@ -134,14 +134,14 @@ Future<List<Uint8List>> rasterizeSpellCards({
   required Spell spell,
   required ThemeData theme,
   List<String> classNames = const [],
-  List<String> tagNames = const [],
+  List<({int id, String name})> tags = const [],
 }) async {
   final key = GlobalKey();
   final out = <Uint8List>[];
   for (final sheet in buildSpellSheets(
     spell,
     classNames: classNames,
-    tagNames: tagNames,
+    tags: tags,
   )) {
     out.add(
       await _captureCardWidget(

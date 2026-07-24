@@ -11,6 +11,7 @@ class SpellListItemCard extends StatelessWidget {
     required this.tagEntries,
     required this.onTap,
     this.onLongPress,
+    this.onTagTap,
     this.minWidth = 280,
     this.maxWidth = 1060,
     this.selected = false,
@@ -23,6 +24,7 @@ class SpellListItemCard extends StatelessWidget {
   final List<({String id, String name})> tagEntries;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
+  final ValueChanged<int>? onTagTap;
   final double minWidth;
   final double maxWidth;
   final bool selected;
@@ -112,6 +114,14 @@ class SpellListItemCard extends StatelessWidget {
                 accentColor: colors.tertiary,
                 textTheme: textTheme,
                 colors: colors,
+                onLabelTap: onTagTap == null
+                    ? null
+                    : (index) {
+                        if (index < 0 || index >= tagEntries.length) return;
+                        final id = int.tryParse(tagEntries[index].id);
+                        if (id == null) return;
+                        onTagTap!(id);
+                      },
               ),
             ),
           ],

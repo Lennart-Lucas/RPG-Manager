@@ -335,7 +335,11 @@ class _FileDetailPageState extends State<FileDetailPage> {
           item: entry.item,
           spell: entry.spell,
           classNames: classNames,
-          tagNames: tagEntries.map((e) => e.name).toList(),
+          tags: [
+            for (final t in tagEntries)
+              if (int.tryParse(t.id) != null)
+                (id: int.parse(t.id), name: t.name),
+          ],
           sourceFileName: _file.name,
         ),
       ),

@@ -7,7 +7,9 @@ import '../../mechanics/features/data/feature_model.dart';
 import '../../mechanics/features/ui/feature_detail_page.dart';
 import '../../mechanics/item_properties/data/item_property_model.dart';
 import '../../mechanics/rules/data/rule_model.dart';
+import '../../mechanics/rules/ui/rule_detail_page.dart';
 import '../../mechanics/spell_tags/data/spell_tag_model.dart';
+import '../../mechanics/spell_tags/ui/spell_tag_detail_page.dart';
 import '../../player_options/classes/data/class_model.dart';
 import '../../player_options/feats/data/feat_model.dart';
 import '../../player_options/feats/ui/feat_detail_page.dart';
@@ -59,6 +61,10 @@ Future<void> openCatalogRecordDetail({
         await _openItemDetail(context, auth, item);
       case CatalogKind.feats:
         await _openFeatDetail(context, auth, item);
+      case CatalogKind.rules:
+        await _openRuleDetail(context, auth, item);
+      case CatalogKind.spellTags:
+        await _openSpellTagDetail(context, auth, item);
       case CatalogKind.creatures:
         await _openCreatureDetail(context, auth, item);
       case CatalogKind.creatureTypes:
@@ -136,17 +142,17 @@ Future<void> _openSpellDetail(
   }
   classNames.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
 
-  final tagNames = <String>[];
+  final tags = <({int id, String name})>[];
   for (final id in spell.tagIds) {
     for (final t in spellTags) {
       if (t.id == id) {
         final name = t.name.trim();
-        tagNames.add(name.isEmpty ? '$id' : name);
+        tags.add((id: id, name: name.isEmpty ? '$id' : name));
         break;
       }
     }
   }
-  tagNames.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+  tags.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
   String? sourceFileName;
   if (spell.sourceFileId != null) {
@@ -171,7 +177,7 @@ Future<void> _openSpellDetail(
         item: item,
         spell: spell,
         classNames: classNames,
-        tagNames: tagNames,
+        tags: tags,
         sourceFileName: sourceFileName,
       ),
     ),
@@ -240,6 +246,48 @@ Future<void> _openFeatDetail(
         auth: auth,
         item: item,
         entry: entry.copyWith(name: item.name),
+      ),
+    ),
+  );
+}
+
+Future<void> _openRuleDetail(
+  BuildContext context,
+  AuthController auth,
+  CatalogItem item,
+) async {
+  final api = CatalogApi();
+  final token = await auth.requireAccessToken();
+  var siblings = const <CatalogItem>[];
+  if (token != null) {
+    try {
+      siblings = await api.list(token, CatalogKind.rules);
+    } catch (_) {}
+  }
+
+  if (!context.mounted) return;
+  await Navigator.of(context).push<void>(
+    MaterialPageRoute(
+      builder: (context) => RuleDetailPage(
+        auth: auth,
+        item: item,
+        siblingRules: siblings,
+      ),
+    ),
+  );
+}
+
+Future<void> _openSpellTagDetail(
+  BuildContext context,
+  AuthController auth,
+  CatalogItem item,
+) async {
+  if (!context.mounted) return;
+  await Navigator.of(context).push<void>(
+    MaterialPageRoute(
+      builder: (context) => SpellTagDetailPage(
+        auth: auth,
+        item: item,
       ),
     ),
   );

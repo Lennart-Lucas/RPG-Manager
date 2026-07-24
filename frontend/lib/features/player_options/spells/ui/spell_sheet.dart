@@ -25,7 +25,8 @@ double _spellCardBandIconSize(double maxFontSize) =>
 class SpellSheet extends StatelessWidget {
   final Spell spell;
   final List<String> classNames;
-  final List<String> tagNames;
+  final List<({int id, String name})> tags;
+  final ValueChanged<int>? onTagTap;
   final EdgeInsetsGeometry padding;
   final double cardScale;
   final String? rulesContentOverride;
@@ -37,7 +38,8 @@ class SpellSheet extends StatelessWidget {
   const SpellSheet({
     required this.spell,
     this.classNames = const [],
-    this.tagNames = const [],
+    this.tags = const [],
+    this.onTagTap,
     this.padding = EdgeInsets.zero,
     this.cardScale = 1.0,
     this.maxFontSize = kMtgCardRulesMaxFontSize,
@@ -84,7 +86,8 @@ class SpellSheet extends StatelessWidget {
                     _SpellHeaderBand(
                       name: headerName,
                       spell: spell,
-                      tagNames: tagNames,
+                      tags: tags,
+                      onTagTap: onTagTap,
                       colors: colors,
                       topRadius: radius,
                       maxFontSize: maxFontSize,
@@ -189,7 +192,8 @@ class SpellSheet extends StatelessWidget {
 List<SpellSheet> buildSpellSheets(
   Spell spell, {
   List<String> classNames = const [],
-  List<String> tagNames = const [],
+  List<({int id, String name})> tags = const [],
+  ValueChanged<int>? onTagTap,
   EdgeInsetsGeometry padding = EdgeInsets.zero,
   double cardScale = 1.0,
   double maxFontSize = kMtgCardRulesMaxFontSize,
@@ -202,7 +206,8 @@ List<SpellSheet> buildSpellSheets(
       SpellSheet(
         spell: spell,
         classNames: classNames,
-        tagNames: tagNames,
+        tags: tags,
+        onTagTap: onTagTap,
         padding: padding,
         cardScale: cardScale,
         maxFontSize: maxFontSize,
@@ -213,7 +218,8 @@ List<SpellSheet> buildSpellSheets(
     return SpellSheet(
       spell: spell,
       classNames: classNames,
-      tagNames: tagNames,
+      tags: tags,
+      onTagTap: onTagTap,
       padding: padding,
       cardScale: cardScale,
       maxFontSize: maxFontSize,
@@ -415,7 +421,8 @@ class _SpellFooterBand extends StatelessWidget {
 class _SpellHeaderBand extends StatelessWidget {
   final String name;
   final Spell spell;
-  final List<String> tagNames;
+  final List<({int id, String name})> tags;
+  final ValueChanged<int>? onTagTap;
   final ColorScheme colors;
   final double topRadius;
   final double maxFontSize;
@@ -425,10 +432,11 @@ class _SpellHeaderBand extends StatelessWidget {
   const _SpellHeaderBand({
     required this.name,
     required this.spell,
-    required this.tagNames,
+    required this.tags,
     required this.colors,
     required this.topRadius,
     required this.maxFontSize,
+    this.onTagTap,
     this.continuationIndex,
     this.continuationTotal,
   });
@@ -445,11 +453,16 @@ class _SpellHeaderBand extends StatelessWidget {
         continuationIndex != null && continuationTotal != null
             ? ' · Part $continuationIndex/$continuationTotal'
             : '';
-    final tagsText = tagNames.isEmpty ? null : tagNames.join(', ');
-    final summaryText =
-        '${spell.levelDisplayName} · ${spell.school.label}'
-        '${tagsText == null ? '' : ' · $tagsText'}'
-        '$continuationText';
+    final baseStyle = TextStyle(
+      color: colors.onPrimaryContainer,
+      fontSize: summaryFontSize,
+      fontWeight: FontWeight.w600,
+      height: 1.0,
+    );
+    final tagStyle = baseStyle.copyWith(
+      decoration: onTagTap == null ? null : TextDecoration.underline,
+      decorationColor: colors.onPrimaryContainer,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -490,16 +503,34 @@ class _SpellHeaderBand extends StatelessWidget {
               ),
               const SizedBox(width: 5),
               Expanded(
-                child: Text(
-                  summaryText,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: colors.onPrimaryContainer,
-                    fontSize: summaryFontSize,
-                    fontWeight: FontWeight.w600,
-                    height: 1.0,
+                child: Text.rich(
+                  TextSpan(
+                    style: baseStyle,
+                    children: [
+                      TextSpan(
+                        text:
+                            '${spell.levelDisplayName} · ${spell.school.label}',
+                      ),
+                      for (final tag in tags) ...[
+                        const TextSpan(text: ' · '),
+                        WidgetSpan(
+                          alignment: PlaceholderAlignment.baseline,
+                          baseline: TextBaseline.alphabetic,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: onTagTap == null
+                                ? null
+                                : () => onTagTap!(tag.id),
+                            child: Text(tag.name, style: tagStyle),
+                          ),
+                        ),
+                      ],
+                      if (continuationText.isNotEmpty)
+                        TextSpan(text: continuationText),
+                    ],
                   ),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],

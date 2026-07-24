@@ -8,6 +8,7 @@ class OverflowChipRow extends StatelessWidget {
     this.labelStyle,
     this.emptyPlaceholderStyle,
     this.isEmptyPlaceholder = false,
+    this.onLabelTap,
     super.key,
   });
 
@@ -16,6 +17,7 @@ class OverflowChipRow extends StatelessWidget {
   final TextStyle? labelStyle;
   final TextStyle? emptyPlaceholderStyle;
   final bool isEmptyPlaceholder;
+  final ValueChanged<int>? onLabelTap;
 
   static const double chipSpacing = 6;
   static const double labelPadH = 7;
@@ -60,6 +62,9 @@ class OverflowChipRow extends StatelessWidget {
                     accentColor: accentColor,
                     labelStyle: style,
                     isEmptyPlaceholder: isEmptyPlaceholder,
+                    onTap: isEmptyPlaceholder || onLabelTap == null
+                        ? null
+                        : () => onLabelTap!(i),
                   ),
                 )
               else
@@ -68,6 +73,9 @@ class OverflowChipRow extends StatelessWidget {
                   accentColor: accentColor,
                   labelStyle: style,
                   isEmptyPlaceholder: isEmptyPlaceholder,
+                  onTap: isEmptyPlaceholder || onLabelTap == null
+                      ? null
+                      : () => onLabelTap!(i),
                 ),
             ],
             if (fit.hiddenCount > 0) ...[
@@ -140,6 +148,7 @@ class OverflowChip extends StatelessWidget {
     required this.labelStyle,
     this.isEmptyPlaceholder = false,
     this.muted = false,
+    this.onTap,
     super.key,
   });
 
@@ -148,6 +157,7 @@ class OverflowChip extends StatelessWidget {
   final TextStyle labelStyle;
   final bool isEmptyPlaceholder;
   final bool muted;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -168,7 +178,7 @@ class OverflowChip extends StatelessWidget {
             ? colors.onSurfaceVariant
             : accentColor;
 
-    return Chip(
+    final chip = Chip(
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       visualDensity: const VisualDensity(
         horizontal: -2,
@@ -182,6 +192,12 @@ class OverflowChip extends StatelessWidget {
       backgroundColor: bg,
       labelStyle: labelStyle.copyWith(color: fg),
       label: Text(label, overflow: TextOverflow.ellipsis, maxLines: 1),
+    );
+    if (onTap == null) return chip;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: chip,
     );
   }
 }

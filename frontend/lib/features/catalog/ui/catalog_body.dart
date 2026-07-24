@@ -4,7 +4,7 @@ import '../../auth/data/auth_api.dart';
 import '../../auth/state/auth_controller.dart';
 import '../../mechanics/item_properties/data/item_property_model.dart';
 import '../../mechanics/item_properties/ui/item_property_form_sheet.dart';
-import '../../mechanics/rules/data/rule_model.dart';
+import '../../mechanics/rules/ui/rule_detail_page.dart';
 import '../../mechanics/rules/ui/rule_form_sheet.dart';
 import '../../player_options/skills/data/default_skills.dart';
 import '../../player_options/skills/data/skill_model.dart';
@@ -209,6 +209,21 @@ class _CatalogBodyState extends State<CatalogBody> {
     if (widget.kind == CatalogKind.skills && isDefaultSkillName(item.name)) {
       return;
     }
+    if (widget.kind == CatalogKind.rules) {
+      final deleted = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (context) => RuleDetailPage(
+            auth: widget.auth,
+            item: item,
+            siblingRules: _items,
+          ),
+        ),
+      );
+      if (deleted == true || mounted) {
+        await _reload();
+      }
+      return;
+    }
     if (widget.kind == CatalogKind.skills) {
       final skill = await showSkillFormSheet(
         context,
@@ -238,44 +253,6 @@ class _CatalogBodyState extends State<CatalogBody> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Could not update skill')),
-        );
-      }
-      return;
-    }
-
-    if (widget.kind == CatalogKind.rules) {
-      final token = await _token();
-      if (token == null || !mounted) return;
-      final rule = await showRuleFormSheet(
-        context,
-        initial: RuleRecord.fromCatalogPayload(
-          name: item.name,
-          payload: item.payload,
-        ),
-        editingItemId: item.id,
-        siblingRules: _items,
-        searchLinks: (query) async => _api.search(token, query: query),
-        loadAutoLinkTargets: () async => const [],
-      );
-      if (rule == null || !mounted) return;
-      try {
-        await _api.update(
-          accessToken: token,
-          kind: CatalogKind.rules,
-          itemId: item.id,
-          name: rule.name,
-          payload: rule.toJson(),
-        );
-        await _reload();
-      } on AuthApiException catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message)),
-        );
-      } catch (_) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not update rule')),
         );
       }
       return;

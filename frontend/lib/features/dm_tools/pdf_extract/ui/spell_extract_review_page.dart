@@ -615,7 +615,7 @@ class _SpellExtractReviewPageState extends State<SpellExtractReviewPage> {
                                       _casters,
                                       fallback: draft.payload['classes'],
                                     ),
-                                    tagNames: _namesForCatalogIds(
+                                    tags: _tagsForCatalogIds(
                                       spell.tagIds,
                                       _spellTags,
                                       fallback: draft.payload['tags'],
@@ -707,6 +707,25 @@ class _SpellExtractReviewPageState extends State<SpellExtractReviewPage> {
         if ('$raw'.trim().isNotEmpty) '$raw'.trim(),
     ];
   }
+
+  List<({int id, String name})> _tagsForCatalogIds(
+    List<int> ids,
+    List<CatalogItem> catalog, {
+    Object? fallback,
+  }) {
+    if (ids.isNotEmpty) {
+      final byId = {for (final item in catalog) item.id: item.name};
+      return [
+        for (final id in ids)
+          if (byId[id] != null) (id: id, name: byId[id]!),
+      ];
+    }
+    if (fallback is! List) return const [];
+    return [
+      for (final raw in fallback)
+        if ('$raw'.trim().isNotEmpty) (id: 0, name: '$raw'.trim()),
+    ];
+  }
 }
 
 enum _DupAction { discard, rename, overwrite }
@@ -716,14 +735,14 @@ class _DraftDetailPane extends StatelessWidget {
     required this.draft,
     required this.spell,
     required this.classNames,
-    required this.tagNames,
+    required this.tags,
     this.libraryMatchLabel,
   });
 
   final ExtractDraft draft;
   final Spell spell;
   final List<String> classNames;
-  final List<String> tagNames;
+  final List<({int id, String name})> tags;
   final String? libraryMatchLabel;
 
   @override
@@ -743,7 +762,7 @@ class _DraftDetailPane extends StatelessWidget {
     final cards = buildSpellSheets(
       spell,
       classNames: classNames,
-      tagNames: tagNames,
+      tags: tags,
       cardScale: 1.05,
     );
 

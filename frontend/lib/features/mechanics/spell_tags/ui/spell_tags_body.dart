@@ -7,7 +7,7 @@ import '../../../catalog/data/catalog_api.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../mechanics_icons.dart';
-import '../data/spell_tag_model.dart';
+import 'spell_tag_detail_page.dart';
 import 'spell_tag_form_sheet.dart';
 
 class SpellTagsBody extends StatefulWidget {
@@ -33,13 +33,6 @@ class _SpellTagsBodyState extends State<SpellTagsBody> {
   }
 
   Future<String?> _token() => widget.auth.requireAccessToken();
-
-  SpellTag _tagFromItem(CatalogItem item) {
-    return SpellTag.fromCatalogPayload(
-      name: item.name,
-      payload: item.payload,
-    );
-  }
 
   Future<List<CatalogLinkTarget>> _searchLinks(
     String token,
@@ -149,36 +142,17 @@ class _SpellTagsBodyState extends State<SpellTagsBody> {
     }
   }
 
-  Future<void> _edit(CatalogItem item) async {
-    try {
-      final token = await _token();
-      if (token == null || !mounted) return;
-      final existing = _tagFromItem(item);
-      final tag = await showSpellTagFormSheet(
-        context,
-        initial: existing,
-        searchLinks: (query) => _searchLinks(token, query),
-        loadAutoLinkTargets: () => _loadAutoLinkTargets(token),
-      );
-      if (tag == null || !mounted) return;
-      await _api.update(
-        accessToken: token,
-        kind: CatalogKind.spellTags,
-        itemId: item.id,
-        name: tag.name,
-        payload: tag.toJson(),
-      );
+  Future<void> _openDetail(CatalogItem item) async {
+    final deleted = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) => SpellTagDetailPage(
+          auth: widget.auth,
+          item: item,
+        ),
+      ),
+    );
+    if (deleted == true || mounted) {
       await _reload();
-    } on AuthApiException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not update spell tag')),
-      );
     }
   }
 
@@ -330,7 +304,7 @@ class _SpellTagsBodyState extends State<SpellTagsBody> {
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
-                    onTap: () => _edit(item),
+                    onTap: () => _openDetail(item),
                   ),
                 );
               },

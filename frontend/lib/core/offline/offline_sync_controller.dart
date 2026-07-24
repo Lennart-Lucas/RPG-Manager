@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -59,15 +60,7 @@ class OfflineSyncController extends ChangeNotifier {
       return;
     }
     await queue.load();
-    _connectivitySub?.cancel();
-    _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
-      final hasLink = results.any((r) => r != ConnectivityResult.none);
-      if (!hasLink) {
-        markOffline();
-      } else {
-        unawaited(_probeAndMaybeSync());
-      }
-    });
+    await _startConnectivityWatch();
     _probeTimer?.cancel();
     _probeTimer = Timer.periodic(
       const Duration(seconds: 20),
@@ -75,6 +68,36 @@ class OfflineSyncController extends ChangeNotifier {
     );
     await _probeAndMaybeSync();
     notifyListeners();
+  }
+
+  Future<void> _startConnectivityWatch() async {
+    await _connectivitySub?.cancel();
+    _connectivitySub = null;
+    try {
+      // Hot restart often leaves plugins unregistered; full relaunch fixes that.
+      final initial = await Connectivity().checkConnectivity();
+      _onConnectivityResults(initial);
+      _connectivitySub = Connectivity().onConnectivityChanged.listen(
+        _onConnectivityResults,
+        onError: (Object error, StackTrace stack) {
+          debugPrint('Connectivity stream error: $error');
+        },
+        cancelOnError: false,
+      );
+    } on MissingPluginException catch (e) {
+      debugPrint('Connectivity plugin unavailable: $e');
+    } catch (e) {
+      debugPrint('Connectivity watch failed: $e');
+    }
+  }
+
+  void _onConnectivityResults(List<ConnectivityResult> results) {
+    final hasLink = results.any((r) => r != ConnectivityResult.none);
+    if (!hasLink) {
+      markOffline();
+    } else {
+      unawaited(_probeAndMaybeSync());
+    }
   }
 
   Future<void> stop() async {

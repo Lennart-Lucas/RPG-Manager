@@ -14,6 +14,7 @@ import '../../../dm_tools/resources/data/resources_api.dart';
 import '../../../export/card_export_pdf.dart';
 import '../../../export/card_export_theme.dart';
 import '../../../export/card_pdf_export_sheet.dart';
+import '../../../mechanics/spell_tags/ui/spell_tag_detail_page.dart';
 import '../../../shell/app_page.dart';
 import '../../../shell/shell_page_app_bar.dart';
 import '../../classes/data/class_model.dart';
@@ -203,8 +204,9 @@ class _SpellsBodyState extends State<SpellsBody>
           spell: entry.spell,
           theme: theme,
           classNames: derived.classNamesBySpellKey[entry.key] ?? const [],
-          tagNames: (derived.tagEntriesBySpellKey[entry.key] ?? const [])
-              .map((t) => t.name)
+          tags: (derived.tagEntriesBySpellKey[entry.key] ?? const [])
+              .map((t) => (id: int.tryParse(t.id) ?? 0, name: t.name))
+              .where((t) => t.id > 0)
               .toList(),
         ),
       );
@@ -558,13 +560,44 @@ class _SpellsBodyState extends State<SpellsBody>
           item: entry.item,
           spell: entry.spell,
           classNames: classNames,
-          tagNames: tagEntries.map((e) => e.name).toList(),
+          tags: [
+            for (final t in tagEntries)
+              if (int.tryParse(t.id) != null)
+                (id: int.parse(t.id), name: t.name),
+          ],
           sourceFileName: sourceName,
         ),
       ),
     );
     if (deleted == true || mounted) {
       await _reload();
+    }
+  }
+
+  Future<void> _openSpellTag(int tagId) async {
+    try {
+      final token = await _token();
+      if (token == null || !mounted) return;
+      final tagItem = await _api.get(token, CatalogKind.spellTags, tagId);
+      if (!mounted) return;
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (context) => SpellTagDetailPage(
+            auth: widget.auth,
+            item: tagItem,
+          ),
+        ),
+      );
+    } on AuthApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open spell tag')),
+      );
     }
   }
 
@@ -933,6 +966,7 @@ class _SpellsBodyState extends State<SpellsBody>
                               onSpellLongPress: _selectionMode
                                   ? null
                                   : (entry) => _edit(entry.item),
+                              onTagTap: _selectionMode ? null : _openSpellTag,
                             ),
             ),
             if (_selectionMode)
