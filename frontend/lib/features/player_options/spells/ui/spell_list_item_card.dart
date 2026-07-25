@@ -67,7 +67,9 @@ class SpellListItemCard extends StatelessWidget {
               Expanded(
                 child: RecordListCardMetaStat(
                   label: 'Casting',
-                  value: spell.castingAndRangeLine,
+                  value: spell.castingAndRangeListLine,
+                  valueMaxLines: 2,
+                  reserveValueLines: 2,
                 ),
               ),
               RecordListCardMetaDivider(
@@ -77,6 +79,8 @@ class SpellListItemCard extends StatelessWidget {
                 child: RecordListCardMetaStat(
                   label: 'Duration',
                   value: spell.durationListDisplay,
+                  valueMaxLines: 2,
+                  reserveValueLines: 2,
                 ),
               ),
               RecordListCardMetaDivider(
@@ -86,6 +90,8 @@ class SpellListItemCard extends StatelessWidget {
                 child: RecordListCardMetaStat(
                   label: 'Components',
                   value: spell.componentsAbbrev,
+                  valueMaxLines: 2,
+                  reserveValueLines: 2,
                 ),
               ),
             ],

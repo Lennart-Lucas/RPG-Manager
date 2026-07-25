@@ -53,6 +53,13 @@ extension SpellDisplay on Spell {
     return '$casting · ${range.label}';
   }
 
+  /// Casting + range for record list cards (omit reaction trigger — it stretches).
+  String get castingAndRangeListLine {
+    final unit = castingTime.unit.trim();
+    final casting = '${castingTime.amount} $unit'.trim();
+    return '$casting · ${range.label}';
+  }
+
   /// Compact duration for list cards (v3-style `(C)` marker).
   String get durationListDisplay {
     final base = duration.type == DurationType.special

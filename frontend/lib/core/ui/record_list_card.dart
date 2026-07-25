@@ -133,16 +133,40 @@ class RecordListCardMetaStat extends StatelessWidget {
   const RecordListCardMetaStat({
     required this.label,
     required this.value,
+    this.valueMaxLines,
+    this.reserveValueLines,
     super.key,
   });
 
   final String label;
   final String value;
 
+  /// Caps value text; omit for unbounded wrapping.
+  final int? valueMaxLines;
+
+  /// When set, reserves vertical space for this many value lines
+  /// (keeps sibling meta columns aligned).
+  final int? reserveValueLines;
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final colors = Theme.of(context).colorScheme;
+    final valueStyle = textTheme.bodySmall?.copyWith(
+          color: colors.onSurface,
+          height: 1.28,
+          fontWeight: FontWeight.w500,
+        ) ??
+        const TextStyle(fontSize: 12, height: 1.28, fontWeight: FontWeight.w500);
+    final fontSize = valueStyle.fontSize ?? 12;
+    final lineHeight = valueStyle.height ?? 1.28;
+    final valueText = Text(
+      value,
+      style: valueStyle,
+      maxLines: valueMaxLines,
+      overflow: valueMaxLines == null ? null : TextOverflow.ellipsis,
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -155,14 +179,14 @@ class RecordListCardMetaStat extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 2),
-        Text(
-          value,
-          style: textTheme.bodySmall?.copyWith(
-            color: colors.onSurface,
-            height: 1.28,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+        if (reserveValueLines != null && reserveValueLines! > 0)
+          SizedBox(
+            height: fontSize * lineHeight * reserveValueLines!,
+            width: double.infinity,
+            child: valueText,
+          )
+        else
+          valueText,
       ],
     );
   }
