@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../auth/data/auth_api.dart';
 import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
+import '../../../catalog/data/catalog_auto_link.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
+import '../../../../core/ui/markdown_form_field.dart';
 import '../../../dm_tools/resources/data/local_resource_file_copy.dart';
 import '../../../dm_tools/resources/data/resource_models.dart';
 import '../../../dm_tools/resources/data/resources_api.dart';
@@ -50,6 +52,7 @@ class _ItemExtractReviewPageState extends State<ItemExtractReviewPage> {
   String? _sectionFilter;
   List<ResourceFile> _files = const [];
   List<CatalogItem> _existingItems = const [];
+  List<CatalogLinkTarget> _autoLinkTargets = const [];
   String? _loadError;
 
   ExtractDraft? get _current {
@@ -145,16 +148,25 @@ class _ItemExtractReviewPageState extends State<ItemExtractReviewPage> {
       if (token == null) return;
       final items = await _catalogApi.list(token, CatalogKind.items);
       final files = await _resourcesApi.listFiles(token);
+      final autoLinkTargets =
+          await loadConditionDamageAutoLinkTargets(_catalogApi, token);
       if (!mounted) return;
       setState(() {
         _existingItems = items;
         _files = files;
+        _autoLinkTargets = autoLinkTargets;
         _loadError = null;
       });
     } on AuthApiException catch (e) {
       if (!mounted) return;
       setState(() => _loadError = e.message);
     }
+  }
+
+  Future<List<CatalogLinkTarget>> _searchLinks(String query) async {
+    final token = await _token();
+    if (token == null) return const [];
+    return searchCatalogLinkTargets(_catalogApi, token, query);
   }
 
   CatalogItem? _findLibraryItem(String name) {
@@ -187,6 +199,8 @@ class _ItemExtractReviewPageState extends State<ItemExtractReviewPage> {
       context,
       initial: item,
       resourceFiles: _files,
+      searchLinks: _searchLinks,
+      loadAutoLinkTargets: () async => _autoLinkTargets,
     );
     if (edited == null || !mounted) return;
     setState(() {
@@ -349,20 +363,26 @@ class _ItemExtractReviewPageState extends State<ItemExtractReviewPage> {
     try {
       final token = await _token();
       if (token == null) return;
+      var targets = _autoLinkTargets;
+      if (targets.isEmpty) {
+        targets = await loadConditionDamageAutoLinkTargets(_catalogApi, token);
+        if (mounted) setState(() => _autoLinkTargets = targets);
+      }
+      final linked = autoLinkItemFields(item, targets).value;
       if (updateId != null) {
         await _catalogApi.update(
           accessToken: token,
           kind: CatalogKind.items,
           itemId: updateId,
-          name: item.name,
-          payload: item.toJson(),
+          name: linked.name,
+          payload: linked.toJson(),
         );
       } else {
         await _catalogApi.create(
           accessToken: token,
           kind: CatalogKind.items,
-          name: item.name,
-          payload: item.toJson(),
+          name: linked.name,
+          payload: linked.toJson(),
         );
       }
       if (!mounted) return;
@@ -376,8 +396,8 @@ class _ItemExtractReviewPageState extends State<ItemExtractReviewPage> {
         SnackBar(
           content: Text(
             updateId != null
-                ? 'Updated ${item.name}'
-                : 'Saved ${item.name}',
+                ? 'Updated ${linked.name}'
+                : 'Saved ${linked.name}',
           ),
         ),
       );

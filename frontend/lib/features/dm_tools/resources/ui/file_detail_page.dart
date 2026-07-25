@@ -3,9 +3,14 @@ import 'package:flutter/material.dart';
 import '../../../auth/data/auth_api.dart';
 import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
+import '../../../catalog/data/catalog_auto_link.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../../player_options/classes/data/class_model.dart';
+import '../../../player_options/items/data/item_list_derived_data.dart';
+import '../../../player_options/items/data/item_model.dart';
+import '../../../player_options/items/ui/item_detail_page.dart';
+import '../../../player_options/items/ui/item_list_item_card.dart';
 import '../../../player_options/spells/data/spell_list_derived_data.dart';
 import '../../../player_options/spells/data/spell_model.dart';
 import '../../../player_options/spells/ui/spell_detail_page.dart';
@@ -18,6 +23,13 @@ import '../data/resource_models.dart';
 import '../data/resources_api.dart';
 import 'file_form_sheet.dart';
 import 'local_file_preview.dart';
+
+class _LinkedItemEntry {
+  const _LinkedItemEntry({required this.item, required this.entry});
+
+  final CatalogItem item;
+  final Item entry;
+}
 
 class FileDetailPage extends StatefulWidget {
   const FileDetailPage({
@@ -53,9 +65,11 @@ class _FileDetailPageState extends State<FileDetailPage> {
   bool _spellsLoading = true;
   String? _spellsError;
   List<SpellCatalogEntry> _linkedSpells = const [];
+  List<_LinkedItemEntry> _linkedItems = const [];
   Map<String, List<String>> _classNamesBySpellKey = const {};
   Map<String, List<({String id, String name})>> _tagEntriesBySpellKey =
       const {};
+  bool _autoLinking = false;
 
   @override
   void initState() {
@@ -75,6 +89,16 @@ class _FileDetailPageState extends State<FileDetailPage> {
     }
   }
 
+  Item? _itemFromCatalog(CatalogItem item) {
+    final payload = item.payload;
+    if (payload == null) return null;
+    try {
+      return Item.fromJson(payload).copyWith(name: item.name);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _loadLinkedSpells() async {
     setState(() {
       _spellsLoading = true;
@@ -87,12 +111,14 @@ class _FileDetailPageState extends State<FileDetailPage> {
       }
       final results = await Future.wait([
         _catalogApi.list(token, CatalogKind.spells),
+        _catalogApi.list(token, CatalogKind.items),
         _catalogApi.list(token, CatalogKind.classes),
         _catalogApi.list(token, CatalogKind.spellTags),
       ]);
       final spellItems = results[0];
-      final classItems = results[1];
-      final spellTags = results[2];
+      final itemItems = results[1];
+      final classItems = results[2];
+      final spellTags = results[3];
       final casters = classItems.where((item) {
         return ClassRecord.fromCatalogPayload(
           name: item.name,
@@ -115,6 +141,20 @@ class _FileDetailPageState extends State<FileDetailPage> {
       linked.sort(
         (a, b) =>
             a.spell.name.toLowerCase().compareTo(b.spell.name.toLowerCase()),
+      );
+
+      final linkedItems = <_LinkedItemEntry>[];
+      for (final catalogItem in itemItems) {
+        final entry = _itemFromCatalog(catalogItem);
+        if (entry == null) continue;
+        if (entry.sourceFileId != _file.id) continue;
+        linkedItems.add(
+          _LinkedItemEntry(item: catalogItem, entry: entry),
+        );
+      }
+      linkedItems.sort(
+        (a, b) =>
+            a.entry.name.toLowerCase().compareTo(b.entry.name.toLowerCase()),
       );
 
       final classNamesById = {
@@ -153,6 +193,7 @@ class _FileDetailPageState extends State<FileDetailPage> {
       if (!mounted) return;
       setState(() {
         _linkedSpells = linked;
+        _linkedItems = linkedItems;
         _classNamesBySpellKey = classNamesBySpellKey;
         _tagEntriesBySpellKey = tagEntriesBySpellKey;
         _spellsLoading = false;
@@ -168,8 +209,84 @@ class _FileDetailPageState extends State<FileDetailPage> {
       if (!mounted) return;
       setState(() {
         _spellsLoading = false;
-        _spellsError = 'Could not load imported spells';
+        _spellsError = 'Could not load imported records';
       });
+    }
+  }
+
+  Future<void> _autoLinkImported() async {
+    if (_autoLinking || _spellsLoading) return;
+    final total = _linkedSpells.length + _linkedItems.length;
+    if (total == 0) return;
+
+    setState(() => _autoLinking = true);
+    try {
+      final token = await _token();
+      if (token == null) {
+        if (mounted) setState(() => _autoLinking = false);
+        return;
+      }
+      final targets =
+          await loadConditionDamageAutoLinkTargets(_catalogApi, token);
+      var updated = 0;
+      var unchanged = 0;
+
+      for (final entry in _linkedSpells) {
+        final result = autoLinkSpellFields(entry.spell, targets);
+        if (!result.changed) {
+          unchanged++;
+          continue;
+        }
+        await _catalogApi.update(
+          accessToken: token,
+          kind: CatalogKind.spells,
+          itemId: entry.item.id,
+          name: result.value.name,
+          payload: result.value.toJson(),
+        );
+        updated++;
+      }
+
+      for (final linked in _linkedItems) {
+        final result = autoLinkItemFields(linked.entry, targets);
+        if (!result.changed) {
+          unchanged++;
+          continue;
+        }
+        await _catalogApi.update(
+          accessToken: token,
+          kind: CatalogKind.items,
+          itemId: linked.item.id,
+          name: result.value.name,
+          payload: result.value.toJson(),
+        );
+        updated++;
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            updated == 0
+                ? 'No new links found ($unchanged unchanged)'
+                : 'Auto-linked $updated record${updated == 1 ? '' : 's'}'
+                    '${unchanged > 0 ? ' · $unchanged unchanged' : ''}',
+          ),
+        ),
+      );
+      await _loadLinkedSpells();
+    } on AuthApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Auto-link failed: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _autoLinking = false);
     }
   }
 
@@ -364,6 +481,21 @@ class _FileDetailPageState extends State<FileDetailPage> {
     await _loadLinkedSpells();
   }
 
+  Future<void> _openItem(_LinkedItemEntry linked) async {
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) => ItemDetailPage(
+          auth: widget.auth,
+          item: linked.item,
+          entry: linked.entry,
+          sourceFileName: _file.name,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    await _loadLinkedSpells();
+  }
+
   Future<void> _deleteFile() async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -412,7 +544,12 @@ class _FileDetailPageState extends State<FileDetailPage> {
     final aiEnabled = widget.auth.user?.aiIntegration ?? false;
     final canExtract = hasLocal && aiEnabled && !busy;
     final canExportText = hasLocal && !busy;
-    final importedCount = _linkedSpells.length;
+    final importedCount = _linkedSpells.length + _linkedItems.length;
+    final canAutoLink = !_spellsLoading &&
+        _spellsError == null &&
+        importedCount > 0 &&
+        !_autoLinking &&
+        !busy;
 
     return Scaffold(
       appBar: AppBar(
@@ -624,18 +761,40 @@ class _FileDetailPageState extends State<FileDetailPage> {
                     const SizedBox(height: 28),
                     Row(
                       children: [
-                        Text(
-                          'Imported',
-                          style: textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Text(
+                                'Imported',
+                                style: textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              if (!_spellsLoading && _spellsError == null)
+                                Text(
+                                  '$importedCount',
+                                  style: textTheme.titleMedium?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 8),
                         if (!_spellsLoading && _spellsError == null)
-                          Text(
-                            '$importedCount',
-                            style: textTheme.titleMedium?.copyWith(
-                              color: scheme.onSurfaceVariant,
+                          FilledButton.tonalIcon(
+                            onPressed: canAutoLink ? _autoLinkImported : null,
+                            icon: _autoLinking
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.link),
+                            label: Text(
+                              _autoLinking ? 'Linking…' : 'Auto-link imported',
                             ),
                           ),
                       ],
@@ -686,99 +845,213 @@ class _FileDetailPageState extends State<FileDetailPage> {
                     ),
                   ),
                 )
-              else if (_linkedSpells.isEmpty)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 48),
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: scheme.surfaceContainerLow,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: scheme.outlineVariant),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Text(
-                          'No spells linked to this file yet.',
-                          textAlign: TextAlign.center,
-                          style: textTheme.bodyMedium?.copyWith(
-                            color: scheme.onSurfaceVariant,
+              else ...[
+                if (_linkedSpells.isEmpty)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: scheme.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: scheme.outlineVariant),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Text(
+                            'No spells linked to this file yet.',
+                            textAlign: TextAlign.center,
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                )
-              else
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 48),
-                  sliver: SliverLayoutBuilder(
-                    builder: (context, constraints) {
-                      const itemSpacing = 10.0;
-                      const minItemWidth = 280.0;
-                      const maxItemWidth = 1060.0;
-                      final availableWidth = constraints.crossAxisExtent;
-                      final desiredColumns =
-                          ((availableWidth + itemSpacing) /
-                                  (minItemWidth + itemSpacing))
-                              .floor()
-                              .clamp(1, 3);
-                      final listEntries = [
-                        for (final entry in _linkedSpells)
-                          SpellListEntry.spell(entry),
-                      ];
-                      final rowEntries =
-                          buildSpellRowEntries(listEntries, desiredColumns);
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    sliver: SliverLayoutBuilder(
+                      builder: (context, constraints) {
+                        const itemSpacing = 10.0;
+                        const minItemWidth = 280.0;
+                        const maxItemWidth = 1060.0;
+                        final availableWidth = constraints.crossAxisExtent;
+                        final desiredColumns =
+                            ((availableWidth + itemSpacing) /
+                                    (minItemWidth + itemSpacing))
+                                .floor()
+                                .clamp(1, 3);
+                        final listEntries = [
+                          for (final entry in _linkedSpells)
+                            SpellListEntry.spell(entry),
+                        ];
+                        final rowEntries =
+                            buildSpellRowEntries(listEntries, desiredColumns);
 
-                      return SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final rowEntry = rowEntries[index];
-                            return Padding(
-                              padding: EdgeInsets.only(
-                                bottom:
-                                    index == rowEntries.length - 1 ? 0 : 10,
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  for (var i = 0;
-                                      i < rowEntry.entries.length;
-                                      i++) ...[
-                                    if (i > 0)
-                                      const SizedBox(width: itemSpacing),
-                                    Expanded(
-                                      child: SpellListItemCard(
-                                        spell: rowEntry.entries[i].spell,
-                                        classNames: _classNamesBySpellKey[
-                                                rowEntry.entries[i].key] ??
-                                            const <String>[],
-                                        tagEntries: _tagEntriesBySpellKey[
-                                                rowEntry.entries[i].key] ??
-                                            const <({String id, String name})>[],
-                                        minWidth: minItemWidth,
-                                        maxWidth: maxItemWidth,
-                                        onTap: () =>
-                                            _openSpell(rowEntry.entries[i]),
+                        return SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              final rowEntry = rowEntries[index];
+                              return Padding(
+                                padding: EdgeInsets.only(
+                                  bottom:
+                                      index == rowEntries.length - 1 ? 0 : 10,
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    for (var i = 0;
+                                        i < rowEntry.entries.length;
+                                        i++) ...[
+                                      if (i > 0)
+                                        const SizedBox(width: itemSpacing),
+                                      Expanded(
+                                        child: SpellListItemCard(
+                                          spell: rowEntry.entries[i].spell,
+                                          classNames: _classNamesBySpellKey[
+                                                  rowEntry.entries[i].key] ??
+                                              const <String>[],
+                                          tagEntries: _tagEntriesBySpellKey[
+                                                  rowEntry.entries[i].key] ??
+                                              const <({String id, String name})>[],
+                                          minWidth: minItemWidth,
+                                          maxWidth: maxItemWidth,
+                                          onTap: () =>
+                                              _openSpell(rowEntry.entries[i]),
+                                        ),
                                       ),
-                                    ),
+                                    ],
+                                    for (var i = rowEntry.entries.length;
+                                        i < desiredColumns;
+                                        i++) ...[
+                                      const SizedBox(width: itemSpacing),
+                                      const Expanded(child: SizedBox.shrink()),
+                                    ],
                                   ],
-                                  for (var i = rowEntry.entries.length;
-                                      i < desiredColumns;
-                                      i++) ...[
-                                    const SizedBox(width: itemSpacing),
-                                    const Expanded(child: SizedBox.shrink()),
-                                  ],
-                                ],
-                              ),
-                            );
-                          },
-                          childCount: rowEntries.length,
-                        ),
-                      );
-                    },
+                                ),
+                              );
+                            },
+                            childCount: rowEntries.length,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                    child: Text(
+                      'Items',
+                      style: textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                 ),
+                if (_linkedItems.isEmpty)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 48),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: scheme.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: scheme.outlineVariant),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Text(
+                            'No items linked to this file yet.',
+                            textAlign: TextAlign.center,
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 48),
+                    sliver: SliverLayoutBuilder(
+                      builder: (context, constraints) {
+                        const itemSpacing = 10.0;
+                        const minItemWidth = 280.0;
+                        const maxItemWidth = 1060.0;
+                        final availableWidth = constraints.crossAxisExtent;
+                        final desiredColumns =
+                            ((availableWidth + itemSpacing) /
+                                    (minItemWidth + itemSpacing))
+                                .floor()
+                                .clamp(1, 3);
+                        final catalogEntries = [
+                          for (final linked in _linkedItems)
+                            ItemCatalogEntry(
+                              item: linked.item,
+                              entry: linked.entry,
+                            ),
+                        ];
+                        final listEntries = [
+                          for (final entry in catalogEntries)
+                            ItemListEntry.item(entry),
+                        ];
+                        final rowEntries =
+                            buildItemRowEntries(listEntries, desiredColumns);
+
+                        return SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              final rowEntry = rowEntries[index];
+                              return Padding(
+                                padding: EdgeInsets.only(
+                                  bottom:
+                                      index == rowEntries.length - 1 ? 0 : 10,
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    for (var i = 0;
+                                        i < rowEntry.entries.length;
+                                        i++) ...[
+                                      if (i > 0)
+                                        const SizedBox(width: itemSpacing),
+                                      Expanded(
+                                        child: ItemListItemCard(
+                                          item: rowEntry.entries[i].entry,
+                                          minWidth: minItemWidth,
+                                          maxWidth: maxItemWidth,
+                                          onTap: () {
+                                            final key =
+                                                rowEntry.entries[i].key;
+                                            final linked =
+                                                _linkedItems.firstWhere(
+                                              (e) => '${e.item.id}' == key,
+                                            );
+                                            _openItem(linked);
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                    for (var i = rowEntry.entries.length;
+                                        i < desiredColumns;
+                                        i++) ...[
+                                      const SizedBox(width: itemSpacing),
+                                      const Expanded(child: SizedBox.shrink()),
+                                    ],
+                                  ],
+                                ),
+                              );
+                            },
+                            childCount: rowEntries.length,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+              ],
             ],
           ),
         ],

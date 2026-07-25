@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../auth/data/auth_api.dart';
 import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
+import '../../../catalog/data/catalog_auto_link.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
+import '../../../../core/ui/markdown_form_field.dart';
 import '../../../dm_tools/resources/data/local_resource_file_copy.dart';
 import '../../../dm_tools/resources/data/resource_models.dart';
 import '../../../dm_tools/resources/data/resources_api.dart';
@@ -52,6 +54,7 @@ class _SpellExtractReviewPageState extends State<SpellExtractReviewPage> {
   List<CatalogItem> _spellTags = const [];
   List<ResourceFile> _files = const [];
   List<CatalogItem> _existingSpells = const [];
+  List<CatalogLinkTarget> _autoLinkTargets = const [];
   String? _loadError;
 
   ExtractDraft? get _current {
@@ -149,18 +152,27 @@ class _SpellExtractReviewPageState extends State<SpellExtractReviewPage> {
       final tags = await _catalogApi.list(token, CatalogKind.spellTags);
       final spells = await _catalogApi.list(token, CatalogKind.spells);
       final files = await _resourcesApi.listFiles(token);
+      final autoLinkTargets =
+          await loadConditionDamageAutoLinkTargets(_catalogApi, token);
       if (!mounted) return;
       setState(() {
         _casters = casters;
         _spellTags = tags;
         _existingSpells = spells;
         _files = files;
+        _autoLinkTargets = autoLinkTargets;
         _loadError = null;
       });
     } on AuthApiException catch (e) {
       if (!mounted) return;
       setState(() => _loadError = e.message);
     }
+  }
+
+  Future<List<CatalogLinkTarget>> _searchLinks(String query) async {
+    final token = await _token();
+    if (token == null) return const [];
+    return searchCatalogLinkTargets(_catalogApi, token, query);
   }
 
   CatalogItem? _findLibrarySpell(String name) {
@@ -197,6 +209,8 @@ class _SpellExtractReviewPageState extends State<SpellExtractReviewPage> {
       casterClasses: _casters,
       spellTags: _spellTags,
       resourceFiles: _files,
+      searchLinks: _searchLinks,
+      loadAutoLinkTargets: () async => _autoLinkTargets,
       aiIntegrationEnabled: true,
     );
     if (edited == null || !mounted) return;
@@ -363,20 +377,26 @@ class _SpellExtractReviewPageState extends State<SpellExtractReviewPage> {
     try {
       final token = await _token();
       if (token == null) return;
+      var targets = _autoLinkTargets;
+      if (targets.isEmpty) {
+        targets = await loadConditionDamageAutoLinkTargets(_catalogApi, token);
+        if (mounted) setState(() => _autoLinkTargets = targets);
+      }
+      final linked = autoLinkSpellFields(spell, targets).value;
       if (updateId != null) {
         await _catalogApi.update(
           accessToken: token,
           kind: CatalogKind.spells,
           itemId: updateId,
-          name: spell.name,
-          payload: spell.toJson(),
+          name: linked.name,
+          payload: linked.toJson(),
         );
       } else {
         await _catalogApi.create(
           accessToken: token,
           kind: CatalogKind.spells,
-          name: spell.name,
-          payload: spell.toJson(),
+          name: linked.name,
+          payload: linked.toJson(),
         );
       }
       if (!mounted) return;
@@ -390,8 +410,8 @@ class _SpellExtractReviewPageState extends State<SpellExtractReviewPage> {
         SnackBar(
           content: Text(
             updateId != null
-                ? 'Updated ${spell.name}'
-                : 'Saved ${spell.name}',
+                ? 'Updated ${linked.name}'
+                : 'Saved ${linked.name}',
           ),
         ),
       );
