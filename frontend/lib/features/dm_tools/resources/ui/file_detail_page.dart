@@ -10,6 +10,7 @@ import '../../../player_options/spells/data/spell_list_derived_data.dart';
 import '../../../player_options/spells/data/spell_model.dart';
 import '../../../player_options/spells/ui/spell_detail_page.dart';
 import '../../../player_options/spells/ui/spell_list_item_card.dart';
+import '../../pdf_extract/ui/start_pdf_text_export.dart';
 import '../../pdf_extract/ui/start_spell_extraction.dart';
 import '../data/local_file_path_store.dart';
 import '../data/local_resource_file_copy.dart';
@@ -325,6 +326,21 @@ class _FileDetailPageState extends State<FileDetailPage> {
     if (mounted) await _loadLinkedSpells();
   }
 
+  Future<void> _exportPdfText() async {
+    final path = _localPath;
+    if (path == null || path.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No local PDF on this device')),
+      );
+      return;
+    }
+    await startPdfTextExport(
+      context: context,
+      file: _file,
+      localPath: path,
+    );
+  }
+
   Future<void> _openSpell(SpellCatalogEntry entry) async {
     final classNames = _classNamesBySpellKey[entry.key] ?? const [];
     final tagEntries = _tagEntriesBySpellKey[entry.key] ?? const [];
@@ -395,12 +411,19 @@ class _FileDetailPageState extends State<FileDetailPage> {
     final busy = _deleting || _saving || _togglingProcessed;
     final aiEnabled = widget.auth.user?.aiIntegration ?? false;
     final canExtract = hasLocal && aiEnabled && !busy;
+    final canExportText = hasLocal && !busy;
     final importedCount = _linkedSpells.length;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(_file.name),
         actions: [
+          if (hasLocal)
+            IconButton(
+              tooltip: 'Export text',
+              onPressed: canExportText ? _exportPdfText : null,
+              icon: const Icon(Icons.description_outlined),
+            ),
           if (hasLocal)
             IconButton(
               tooltip: aiEnabled
@@ -576,6 +599,12 @@ class _FileDetailPageState extends State<FileDetailPage> {
                               onPressed: canExtract ? _extractFromPdf : null,
                               icon: const Icon(Icons.auto_fix_high_outlined),
                               label: const Text('Extract'),
+                            ),
+                          if (hasLocal)
+                            FilledButton.tonalIcon(
+                              onPressed: canExportText ? _exportPdfText : null,
+                              icon: const Icon(Icons.description_outlined),
+                              label: const Text('Export text'),
                             ),
                           if (hasLocal)
                             FilledButton.tonalIcon(
