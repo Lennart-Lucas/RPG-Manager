@@ -55,12 +55,19 @@ class _CatalogRecordDetailPageState extends State<CatalogRecordDetailPage> {
 
       switch (_item.kind) {
         case CatalogKind.classes:
+          final skills = await _api.list(token, CatalogKind.skills);
+          if (!mounted) return;
           final record = await showClassFormSheet(
             context,
             initial: ClassRecord.fromCatalogPayload(
               name: _item.name,
               payload: _item.payload,
             ),
+            skillNames: [for (final s in skills) s.name]..sort(),
+            searchLinks: (query) async =>
+                searchCatalogLinkTargets(_api, token, query),
+            loadAutoLinkTargets: () =>
+                loadConditionDamageAutoLinkTargets(_api, token),
           );
           if (record == null || !mounted) return;
           final updated = await _api.update(

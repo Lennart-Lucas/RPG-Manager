@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/ui/record_list_card.dart';
 import '../../../auth/data/auth_api.dart';
 import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
+import '../../../catalog/data/catalog_auto_link.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../player_options_icons.dart';
 import '../data/class_model.dart';
+import 'class_detail_page.dart';
 import 'class_form_sheet.dart';
 
 class ClassesBody extends StatefulWidget {
@@ -24,6 +27,7 @@ class _ClassesBodyState extends State<ClassesBody> {
   bool _loading = true;
   String? _error;
   List<CatalogItem> _items = const [];
+  List<String> _skillNames = const [];
 
   @override
   void initState() {
@@ -50,10 +54,14 @@ class _ClassesBodyState extends State<ClassesBody> {
       if (token == null) {
         throw AuthApiException('Not authenticated');
       }
-      final items = await _api.list(token, CatalogKind.classes);
+      final results = await Future.wait([
+        _api.list(token, CatalogKind.classes),
+        _api.list(token, CatalogKind.skills),
+      ]);
       if (!mounted) return;
       setState(() {
-        _items = items;
+        _items = results[0];
+        _skillNames = [for (final s in results[1]) s.name]..sort();
         _loading = false;
       });
     } on AuthApiException catch (e) {
@@ -72,11 +80,17 @@ class _ClassesBodyState extends State<ClassesBody> {
   }
 
   Future<void> _create() async {
-    final record = await showClassFormSheet(context);
-    if (record == null || !mounted) return;
     try {
       final token = await _token();
-      if (token == null) return;
+      if (token == null || !mounted) return;
+      final record = await showClassFormSheet(
+        context,
+        skillNames: _skillNames,
+        searchLinks: (q) => searchCatalogLinkTargets(_api, token, q),
+        loadAutoLinkTargets: () =>
+            loadConditionDamageAutoLinkTargets(_api, token),
+      );
+      if (record == null || !mounted) return;
       await _api.create(
         accessToken: token,
         kind: CatalogKind.classes,
@@ -97,34 +111,13 @@ class _ClassesBodyState extends State<ClassesBody> {
     }
   }
 
-  Future<void> _edit(CatalogItem item) async {
-    final record = await showClassFormSheet(
-      context,
-      initial: _recordFromItem(item),
+  Future<void> _open(CatalogItem item) async {
+    final deleted = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) => ClassDetailPage(auth: widget.auth, item: item),
+      ),
     );
-    if (record == null || !mounted) return;
-    try {
-      final token = await _token();
-      if (token == null) return;
-      await _api.update(
-        accessToken: token,
-        kind: CatalogKind.classes,
-        itemId: item.id,
-        name: record.name,
-        payload: record.toJson(),
-      );
-      await _reload();
-    } on AuthApiException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not update class')),
-      );
-    }
+    if (deleted == true || mounted) await _reload();
   }
 
   Future<void> _delete(CatalogItem item) async {
@@ -171,6 +164,7 @@ class _ClassesBodyState extends State<ClassesBody> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Stack(
       children: [
@@ -227,18 +221,15 @@ class _ClassesBodyState extends State<ClassesBody> {
                             Text(
                               'No classes yet',
                               textAlign: TextAlign.center,
-                              style: Theme.of(context).textTheme.headlineSmall,
+                              style: textTheme.headlineSmall,
                             ),
                             const SizedBox(height: 8),
                             Text(
                               'Tap + to add your first class.',
                               textAlign: TextAlign.center,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(
-                                    color: scheme.onSurfaceVariant,
-                                  ),
+                              style: textTheme.bodyMedium?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                              ),
                             ),
                           ],
                         ),
@@ -255,32 +246,43 @@ class _ClassesBodyState extends State<ClassesBody> {
             child: ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
               itemCount: _items.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 8),
+              separatorBuilder: (_, _) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
                 final item = _items[index];
                 final record = _recordFromItem(item);
-                return Material(
-                  color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
-                  borderRadius: BorderRadius.circular(12),
-                  child: ListTile(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                final subclassCount = record.subclasses.length;
+                final parts = <String>[
+                  record.hitDie,
+                  if (record.isCaster) 'Spellcaster' else 'Non-caster',
+                  if (subclassCount > 0)
+                    '$subclassCount subclass${subclassCount == 1 ? '' : 'es'}',
+                ];
+                return RecordListCard(
+                  leading: Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: scheme.primaryContainer.withValues(alpha: 0.88),
+                      borderRadius: BorderRadius.circular(13),
                     ),
-                    leading: Icon(classesPageIcon, color: scheme.primary),
-                    title: Text(item.name),
-                    subtitle: Text(
-                      record.isCaster ? 'Spellcaster' : 'Non-caster',
+                    child: Icon(
+                      classesPageIcon,
+                      size: 22,
+                      color: scheme.onPrimaryContainer,
                     ),
-                    trailing: IconButton(
-                      tooltip: 'Delete',
-                      onPressed: () => _delete(item),
-                      icon: Icon(
-                        Icons.delete_outline,
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                    onTap: () => _edit(item),
                   ),
+                  title: item.name,
+                  subtitle: parts.join(' · '),
+                  trailing: IconButton(
+                    tooltip: 'Delete',
+                    onPressed: () => _delete(item),
+                    icon: Icon(
+                      Icons.delete_outline,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  onTap: () => _open(item),
+                  children: const [],
                 );
               },
             ),

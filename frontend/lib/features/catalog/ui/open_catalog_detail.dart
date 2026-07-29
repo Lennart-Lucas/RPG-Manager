@@ -14,6 +14,7 @@ import '../../mechanics/rules/ui/rule_detail_page.dart';
 import '../../mechanics/spell_tags/data/spell_tag_model.dart';
 import '../../mechanics/spell_tags/ui/spell_tag_detail_page.dart';
 import '../../player_options/classes/data/class_model.dart';
+import '../../player_options/classes/ui/class_detail_page.dart';
 import '../../player_options/feats/data/feat_model.dart';
 import '../../player_options/feats/ui/feat_detail_page.dart';
 import '../../player_options/items/data/item_model.dart';
@@ -70,6 +71,12 @@ Future<void> openCatalogRecordDetail({
         await _openItemDetail(context, auth, item);
       case CatalogKind.feats:
         await _openFeatDetail(context, auth, item);
+      case CatalogKind.classes:
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            builder: (context) => ClassDetailPage(auth: auth, item: item),
+          ),
+        );
       case CatalogKind.rules:
         await _openRuleDetail(context, auth, item);
       case CatalogKind.spellTags:
@@ -605,7 +612,11 @@ String? catalogRecordSubtitle(CatalogItem item) {
         name: item.name,
         payload: item.payload,
       );
-      return record.isCaster ? 'Spellcaster' : 'Non-caster';
+      final parts = <String>[
+        record.hitDie,
+        if (record.isCaster) 'Spellcaster' else 'Non-caster',
+      ];
+      return parts.join(' · ');
     case CatalogKind.spellTags:
       final tag = SpellTag.fromCatalogPayload(
         name: item.name,
