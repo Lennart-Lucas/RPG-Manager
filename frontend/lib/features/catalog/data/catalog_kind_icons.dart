@@ -12,6 +12,7 @@ extension CatalogKindIcons on CatalogKind {
         CatalogKind.feats => featsPageIcon,
         CatalogKind.languages => languagesPageIcon,
         CatalogKind.races => racesPageIcon,
+        CatalogKind.transformations => transformationsPageIcon,
         CatalogKind.skills => skillsPageIcon,
         CatalogKind.spells => spellsPageIcon,
         CatalogKind.items => itemsPageIcon,

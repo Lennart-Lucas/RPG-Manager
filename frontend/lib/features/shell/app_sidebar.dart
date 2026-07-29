@@ -127,6 +127,7 @@ class _AppSidebarState extends State<AppSidebar> {
       AppPage.items ||
       AppPage.languages ||
       AppPage.races ||
+      AppPage.transformations ||
       AppPage.skills ||
       AppPage.spells =>
         true,
@@ -270,6 +271,12 @@ class _AppSidebarState extends State<AppSidebar> {
                           icon: racesPageIcon,
                           label: 'Races',
                           page: AppPage.races,
+                        ),
+                        _navTile(
+                          context,
+                          icon: transformationsPageIcon,
+                          label: 'Transformations',
+                          page: AppPage.transformations,
                         ),
                         _navTile(
                           context,

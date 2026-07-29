@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/ui/markdown_form_field.dart';
 import '../../auth/data/auth_api.dart';
 import '../../auth/state/auth_controller.dart';
 import '../../dm_tools/resources/data/resources_api.dart';
+import '../../mechanics/conditions/ui/conditions_body.dart';
+import '../../mechanics/damage_types/ui/damage_types_body.dart';
 import '../../mechanics/features/data/feature_model.dart';
 import '../../mechanics/features/ui/feature_detail_page.dart';
 import '../../mechanics/item_properties/data/item_property_model.dart';
@@ -15,15 +18,21 @@ import '../../player_options/feats/data/feat_model.dart';
 import '../../player_options/feats/ui/feat_detail_page.dart';
 import '../../player_options/items/data/item_model.dart';
 import '../../player_options/items/ui/item_detail_page.dart';
+import '../../player_options/races/ui/race_detail_page.dart';
 import '../../player_options/skills/data/skill_model.dart';
 import '../../player_options/spells/data/spell_model.dart';
 import '../../player_options/spells/ui/spell_detail_page.dart';
+import '../../player_options/transformations/ui/transformation_detail_page.dart';
 import '../../settings/generators/data/generator_model.dart';
 import '../../settings/generators/ui/generator_detail_page.dart';
+import '../../world/campaigns/ui/campaign_detail_page.dart';
+import '../../world/characters/ui/character_detail_page.dart';
 import '../../world/creature_types/data/creature_type_model.dart';
 import '../../world/creature_types/ui/creature_type_detail_page.dart';
 import '../../world/creatures/data/creature_model.dart';
 import '../../world/creatures/ui/creature_detail_page.dart';
+import '../../world/locations/ui/location_detail_page.dart';
+import '../../world/organisations/ui/organisation_detail_page.dart';
 import '../data/catalog_api.dart';
 import '../data/catalog_kind.dart';
 import '../data/catalog_models.dart';
@@ -65,6 +74,31 @@ Future<void> openCatalogRecordDetail({
         await _openRuleDetail(context, auth, item);
       case CatalogKind.spellTags:
         await _openSpellTagDetail(context, auth, item);
+      case CatalogKind.conditions:
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            builder: (context) => ConditionDetailPage(auth: auth, item: item),
+          ),
+        );
+      case CatalogKind.damageTypes:
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            builder: (context) => DamageTypeDetailPage(auth: auth, item: item),
+          ),
+        );
+      case CatalogKind.races:
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            builder: (context) => RaceDetailPage(auth: auth, item: item),
+          ),
+        );
+      case CatalogKind.transformations:
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            builder: (context) =>
+                TransformationDetailPage(auth: auth, item: item),
+          ),
+        );
       case CatalogKind.creatures:
         await _openCreatureDetail(context, auth, item);
       case CatalogKind.creatureTypes:
@@ -78,6 +112,31 @@ Future<void> openCatalogRecordDetail({
               auth: auth,
               item: item,
             ),
+          ),
+        );
+      case CatalogKind.characters:
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            builder: (context) => CharacterDetailPage(auth: auth, item: item),
+          ),
+        );
+      case CatalogKind.organisations:
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            builder: (context) =>
+                OrganisationDetailPage(auth: auth, item: item),
+          ),
+        );
+      case CatalogKind.locations:
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            builder: (context) => LocationDetailPage(auth: auth, item: item),
+          ),
+        );
+      case CatalogKind.campaigns:
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            builder: (context) => CampaignDetailPage(auth: auth, item: item),
           ),
         );
       default:
@@ -100,6 +159,89 @@ Future<void> openCatalogRecordDetail({
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Could not open record')),
+      );
+    }
+  }
+}
+
+/// Opens a catalog record by wiki kind + name (first search match).
+Future<void> openCatalogWikiLink({
+  required BuildContext context,
+  required AuthController auth,
+  required String kindApiValue,
+  required String name,
+}) async {
+  final kind = CatalogKind.tryParseApiValue(kindApiValue) ??
+      CatalogKind.tryParseApiValue(kindApiValue.replaceAll('-', '_'));
+  if (kind == null) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unknown link type: $kindApiValue')),
+      );
+    }
+    return;
+  }
+
+  final api = CatalogApi();
+  final token = await auth.requireAccessToken();
+  if (token == null || !context.mounted) return;
+
+  try {
+    final results = await api.search(token, query: name);
+    CatalogLinkTarget? match;
+    final needle = name.trim().toLowerCase();
+    for (final item in results) {
+      if (item.kind == kind.apiValue && item.name.toLowerCase() == needle) {
+        match = item;
+        break;
+      }
+    }
+    if (match == null) {
+      for (final item in results) {
+        if (item.kind == kind.apiValue &&
+            item.name.toLowerCase().contains(needle)) {
+          match = item;
+          break;
+        }
+      }
+    }
+    if (match == null) {
+      // Fallback: list kind and find by name.
+      final listed = await api.list(token, kind);
+      for (final item in listed) {
+        if (item.name.toLowerCase() == needle) {
+          match = CatalogLinkTarget(
+            id: item.id,
+            kind: item.kind.apiValue,
+            name: item.name,
+          );
+          break;
+        }
+      }
+    }
+    if (match == null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No $kindApiValue named “$name”')),
+        );
+      }
+      return;
+    }
+    if (!context.mounted) return;
+    await openCatalogRecordDetail(
+      context: context,
+      auth: auth,
+      kindApiValue: match.kind,
+      itemId: match.id,
+    );
+  } on AuthApiException catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  } catch (_) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open linked record')),
       );
     }
   }

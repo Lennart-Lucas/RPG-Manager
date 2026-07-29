@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/offline/offline_marker.dart';
 import '../../../../core/ui/markdown_form_field.dart';
 import '../../../../core/ui/simple_card_rich_text.dart';
 import '../../../auth/data/auth_api.dart';
 import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
+import '../../../catalog/data/catalog_auto_link.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
+import '../../../catalog/ui/open_catalog_detail.dart';
 import '../../mechanics_icons.dart';
 import '../data/rule_model.dart';
 import 'rule_form_sheet.dart';
@@ -136,7 +139,8 @@ class _RuleDetailPageState extends State<RuleDetailPage> {
         editingItemId: _item.id,
         siblingRules: _siblingRules.isEmpty ? [_item] : _siblingRules,
         searchLinks: (query) => _searchLinks(token, query),
-        loadAutoLinkTargets: () async => const [],
+        loadAutoLinkTargets: () =>
+            loadConditionDamageAutoLinkTargets(_api, token),
       );
       if (updatedRule == null || !mounted) return;
       final updated = await _api.update(
@@ -251,6 +255,7 @@ class _RuleDetailPageState extends State<RuleDetailPage> {
             icon: const Icon(Icons.delete_outline),
             onPressed: _delete,
           ),
+          const OfflineAppBarMarker(),
         ],
       ),
       body: Stack(
@@ -360,7 +365,15 @@ class _RuleDetailPageState extends State<RuleDetailPage> {
                 const SizedBox(height: 24),
                 Text('Body', style: textTheme.titleSmall),
                 const SizedBox(height: 8),
-                SimpleCardRichText(content: rule.body),
+                SimpleCardRichText(
+                  content: rule.body,
+                  onWikiLinkTap: (kind, name) => openCatalogWikiLink(
+                    context: context,
+                    auth: widget.auth,
+                    kindApiValue: kind,
+                    name: name,
+                  ),
+                ),
               ] else ...[
                 const SizedBox(height: 24),
                 Text(

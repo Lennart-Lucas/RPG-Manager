@@ -10,6 +10,7 @@ enum AppPage {
   items,
   languages,
   races,
+  transformations,
   skills,
   spells,
   conditions,

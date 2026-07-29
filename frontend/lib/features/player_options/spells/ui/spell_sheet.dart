@@ -34,6 +34,7 @@ class SpellSheet extends StatelessWidget {
   final int? continuationTotal;
   final MtgCardRulesScaleController? rulesScaleController;
   final double maxFontSize;
+  final void Function(String kind, String name)? onWikiLinkTap;
 
   const SpellSheet({
     required this.spell,
@@ -47,6 +48,7 @@ class SpellSheet extends StatelessWidget {
     this.continuationIndex,
     this.continuationTotal,
     this.rulesScaleController,
+    this.onWikiLinkTap,
     super.key,
   });
 
@@ -157,6 +159,7 @@ class SpellSheet extends StatelessWidget {
                                               maxFontSize: maxFontSize,
                                               scaleController:
                                                   rulesScaleController,
+                                              onWikiLinkTap: onWikiLinkTap,
                                             ),
                                           ),
                                         )
@@ -197,6 +200,7 @@ List<SpellSheet> buildSpellSheets(
   EdgeInsetsGeometry padding = EdgeInsets.zero,
   double cardScale = 1.0,
   double maxFontSize = kMtgCardRulesMaxFontSize,
+  void Function(String kind, String name)? onWikiLinkTap,
 }) {
   final pages = paginateCardBodyText(spell.rulesContent);
   final sharedScaleController =
@@ -211,6 +215,7 @@ List<SpellSheet> buildSpellSheets(
         padding: padding,
         cardScale: cardScale,
         maxFontSize: maxFontSize,
+        onWikiLinkTap: onWikiLinkTap,
       ),
     ];
   }
@@ -227,6 +232,7 @@ List<SpellSheet> buildSpellSheets(
       continuationIndex: i + 1,
       continuationTotal: pages.length,
       rulesScaleController: sharedScaleController,
+      onWikiLinkTap: onWikiLinkTap,
     );
   });
 }

@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/ui/markdown_form_field.dart';
+import '../../../../core/ui/record_list_card.dart';
 import '../../../auth/data/auth_api.dart';
 import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../mechanics_icons.dart';
+import '../data/spell_tag_model.dart';
 import 'spell_tag_detail_page.dart';
 import 'spell_tag_form_sheet.dart';
 
@@ -200,6 +202,7 @@ class _SpellTagsBodyState extends State<SpellTagsBody> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Stack(
       children: [
@@ -281,31 +284,58 @@ class _SpellTagsBodyState extends State<SpellTagsBody> {
         else
           RefreshIndicator(
             onRefresh: _reload,
-            child: ListView.separated(
+            child: ListView.builder(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
               itemCount: _items.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
                 final item = _items[index];
-                return Material(
-                  color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
-                  borderRadius: BorderRadius.circular(12),
-                  child: ListTile(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                final tag = SpellTag.fromCatalogPayload(
+                  name: item.name,
+                  payload: item.payload,
+                );
+                final preview = tag.description
+                    .replaceAll(RegExp(r'\s+'), ' ')
+                    .trim();
+                return RecordListCard(
+                  leading: Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: scheme.primary.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(13),
                     ),
-                    leading: Icon(spellTagsPageIcon, color: scheme.primary),
-                    title: Text(item.name),
-                    trailing: IconButton(
-                      tooltip: 'Delete',
-                      onPressed: () => _delete(item),
-                      icon: Icon(
-                        Icons.delete_outline,
-                        color: scheme.onSurfaceVariant,
-                      ),
+                    child: Icon(
+                      spellTagsPageIcon,
+                      size: 22,
+                      color: scheme.primary,
                     ),
-                    onTap: () => _openDetail(item),
                   ),
+                  title:
+                      tag.name.trim().isEmpty ? 'Spell tag' : tag.name.trim(),
+                  subtitle: 'Spell tag',
+                  trailing: IconButton(
+                    tooltip: 'Delete',
+                    onPressed: () => _delete(item),
+                    icon: Icon(
+                      Icons.delete_outline,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  onTap: () => _openDetail(item),
+                  children: [
+                    if (preview.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        preview,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ],
                 );
               },
             ),

@@ -18,6 +18,7 @@ class CatalogKind(StrEnum):
     feats = "feats"
     languages = "languages"
     races = "races"
+    transformations = "transformations"
     skills = "skills"
     spells = "spells"
     items = "items"

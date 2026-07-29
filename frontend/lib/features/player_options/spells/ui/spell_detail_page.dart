@@ -8,6 +8,7 @@ import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
+import '../../../catalog/ui/open_catalog_detail.dart';
 import '../../../dm_tools/resources/data/resource_models.dart';
 import '../../../dm_tools/resources/data/resources_api.dart';
 import '../../../export/card_export_pdf.dart';
@@ -384,6 +385,12 @@ class _SpellDetailPageState extends State<SpellDetailPage> {
                         onTagTap: _openTag,
                         cardScale: desktopScale,
                         maxFontSize: kMtgCardRulesMaxFontSize * desktopScale,
+                        onWikiLinkTap: (kind, name) => openCatalogWikiLink(
+                          context: context,
+                          auth: widget.auth,
+                          kindApiValue: kind,
+                          name: name,
+                        ),
                       ),
                       scaleFactor: desktopScale,
                     ),

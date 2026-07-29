@@ -1,53 +1,83 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../markdown/wiki_link.dart';
-
-/// Lightweight markdown-ish body for MTG cards: bold/italic, lists, headings,
-/// and wiki links rendered as display text (no navigation).
-class SimpleCardRichText extends StatelessWidget {
+/// Lightweight markdown-ish body: bold/italic, lists, headings, and wiki links.
+class SimpleCardRichText extends StatefulWidget {
   const SimpleCardRichText({
     super.key,
     required this.content,
     this.baseStyle,
     this.styleScale = 1.0,
     this.enableSelection = true,
+    this.onWikiLinkTap,
   });
 
   final String content;
   final TextStyle? baseStyle;
   final double styleScale;
   final bool enableSelection;
+  final void Function(String kind, String name)? onWikiLinkTap;
+
+  @override
+  State<SimpleCardRichText> createState() => _SimpleCardRichTextState();
+}
+
+class _SimpleCardRichTextState extends State<SimpleCardRichText> {
+  final List<TapGestureRecognizer> _recognizers = [];
 
   static final RegExp _bullet = RegExp(r'^(\s*)[-*]\s+(.*)$');
   static final RegExp _ordered = RegExp(r'^(\s*)(\d+)\.\s+(.*)$');
   static final RegExp _underline = RegExp(r'<u>(.+?)</u>', caseSensitive: false);
 
   @override
+  void dispose() {
+    for (final r in _recognizers) {
+      r.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant SimpleCardRichText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.content != widget.content ||
+        oldWidget.onWikiLinkTap != widget.onWikiLinkTap) {
+      for (final r in _recognizers) {
+        r.dispose();
+      }
+      _recognizers.clear();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bodyStyle =
-        baseStyle ?? theme.textTheme.bodyLarge ?? const TextStyle();
+        widget.baseStyle ?? theme.textTheme.bodyLarge ?? const TextStyle();
     final linkStyle = bodyStyle.copyWith(
       color: theme.colorScheme.primary,
       fontWeight: FontWeight.w600,
+      decoration: widget.onWikiLinkTap == null ? null : TextDecoration.underline,
+      decorationColor: theme.colorScheme.primary,
     );
 
-    final normalized = content.trim();
+    final normalized = widget.content.trim();
     if (normalized.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    final lines = content.split('\n');
+    final lines = widget.content.split('\n');
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (var i = 0; i < lines.length; i++) ...[
           _lineBlock(context, lines[i], bodyStyle, linkStyle),
-          if (i != lines.length - 1) SizedBox(height: 6 * styleScale),
+          if (i != lines.length - 1) SizedBox(height: 6 * widget.styleScale),
         ],
       ],
     );
-    if (enableSelection) {
+    if (widget.enableSelection && widget.onWikiLinkTap == null) {
       return SelectionArea(child: body);
     }
     return body;
@@ -80,7 +110,9 @@ class SimpleCardRichText extends StatelessWidget {
                   : textTheme.titleLarge) ??
           bodyStyle;
       final headingStyle = rawHeading.fontSize != null
-          ? rawHeading.copyWith(fontSize: rawHeading.fontSize! * styleScale)
+          ? rawHeading.copyWith(
+              fontSize: rawHeading.fontSize! * widget.styleScale,
+            )
           : rawHeading;
       return Text.rich(
         TextSpan(
@@ -162,7 +194,20 @@ class SimpleCardRichText extends StatelessWidget {
           _markdownSpans(segment.substring(offset, link.start), baseStyle),
         );
       }
-      out.add(TextSpan(text: link.displayText, style: linkStyle));
+      if (widget.onWikiLinkTap != null) {
+        final recognizer = TapGestureRecognizer()
+          ..onTap = () => widget.onWikiLinkTap!(link.kind, link.name);
+        _recognizers.add(recognizer);
+        out.add(
+          TextSpan(
+            text: link.displayText,
+            style: linkStyle,
+            recognizer: recognizer,
+          ),
+        );
+      } else {
+        out.add(TextSpan(text: link.displayText, style: linkStyle));
+      }
       offset = link.end;
     }
     if (offset < segment.length) {
@@ -173,7 +218,6 @@ class SimpleCardRichText extends StatelessWidget {
 
   List<InlineSpan> _markdownSpans(String text, TextStyle base) {
     if (text.isEmpty) return const [];
-    // Apply underline first by splitting, then bold/italic on remaining.
     final out = <InlineSpan>[];
     var cursor = 0;
     for (final match in _underline.allMatches(text)) {

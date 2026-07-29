@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/offline/offline_marker.dart';
+import '../../../core/ui/simple_card_rich_text.dart';
 import '../../auth/data/auth_api.dart';
 import '../../auth/state/auth_controller.dart';
-import '../../../core/ui/simple_card_rich_text.dart';
 import '../../mechanics/item_properties/data/item_property_model.dart';
 import '../../mechanics/item_properties/ui/item_property_form_sheet.dart';
 import '../../player_options/classes/data/class_model.dart';
@@ -13,6 +14,7 @@ import '../../player_options/skills/ui/skill_form_sheet.dart';
 import '../../settings/generators/data/generator_model.dart';
 import '../../settings/generators/ui/generator_form_sheet.dart';
 import '../data/catalog_api.dart';
+import '../data/catalog_auto_link.dart';
 import '../data/catalog_kind.dart';
 import '../data/catalog_kind_icons.dart';
 import '../data/catalog_models.dart';
@@ -111,7 +113,8 @@ class _CatalogRecordDetailPageState extends State<CatalogRecordDetailPage> {
               payload: _item.payload,
             ),
             searchLinks: (query) async => _api.search(token, query: query),
-            loadAutoLinkTargets: () async => const [],
+            loadAutoLinkTargets: () =>
+                loadConditionDamageAutoLinkTargets(_api, token),
           );
           if (property == null || !mounted) return;
           final updated = await _api.update(
@@ -222,6 +225,7 @@ class _CatalogRecordDetailPageState extends State<CatalogRecordDetailPage> {
               onPressed: _delete,
             ),
           ],
+          const OfflineAppBarMarker(),
         ],
       ),
 
@@ -309,7 +313,15 @@ class _CatalogRecordDetailPageState extends State<CatalogRecordDetailPage> {
                           style: Theme.of(context).textTheme.titleSmall,
                         ),
                         const SizedBox(height: 8),
-                        SimpleCardRichText(content: property.description),
+                        SimpleCardRichText(
+                          content: property.description,
+                          onWikiLinkTap: (kind, name) => openCatalogWikiLink(
+                            context: context,
+                            auth: widget.auth,
+                            kindApiValue: kind,
+                            name: name,
+                          ),
+                        ),
                       ],
                     );
                   },

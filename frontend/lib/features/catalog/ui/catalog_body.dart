@@ -10,6 +10,7 @@ import '../../player_options/skills/data/default_skills.dart';
 import '../../player_options/skills/data/skill_model.dart';
 import '../../player_options/skills/ui/skill_form_sheet.dart';
 import '../data/catalog_api.dart';
+import '../data/catalog_auto_link.dart';
 import '../data/catalog_kind.dart';
 import '../data/catalog_models.dart';
 import 'name_record_form_sheet.dart';
@@ -120,7 +121,8 @@ class _CatalogBodyState extends State<CatalogBody> {
         context,
         siblingRules: _items,
         searchLinks: (query) async => _api.search(token, query: query),
-        loadAutoLinkTargets: () async => const [],
+        loadAutoLinkTargets: () =>
+            loadConditionDamageAutoLinkTargets(_api, token),
       );
       if (rule == null || !mounted) return;
       try {
@@ -151,7 +153,8 @@ class _CatalogBodyState extends State<CatalogBody> {
       final property = await showItemPropertyFormSheet(
         context,
         searchLinks: (query) async => _api.search(token, query: query),
-        loadAutoLinkTargets: () async => const [],
+        loadAutoLinkTargets: () =>
+            loadConditionDamageAutoLinkTargets(_api, token),
       );
       if (property == null || !mounted) return;
       try {
@@ -268,7 +271,8 @@ class _CatalogBodyState extends State<CatalogBody> {
           payload: item.payload,
         ),
         searchLinks: (query) async => _api.search(token, query: query),
-        loadAutoLinkTargets: () async => const [],
+        loadAutoLinkTargets: () =>
+            loadConditionDamageAutoLinkTargets(_api, token),
       );
       if (property == null || !mounted) return;
       try {

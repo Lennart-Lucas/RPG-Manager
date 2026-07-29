@@ -10,6 +10,8 @@ import '../catalog/ui/catalog_body.dart';
 import '../dm_tools/resources/resources_icons.dart';
 import '../dm_tools/resources/ui/resources_body.dart';
 import '../dm_tools/ui/dm_tool_placeholder_body.dart';
+import '../mechanics/conditions/ui/conditions_body.dart';
+import '../mechanics/damage_types/ui/damage_types_body.dart';
 import '../mechanics/mechanics_icons.dart';
 import '../mechanics/features/ui/features_body.dart';
 import '../mechanics/spell_tags/ui/spell_tags_body.dart';
@@ -17,11 +19,16 @@ import '../player_options/classes/ui/classes_body.dart';
 import '../player_options/feats/ui/feats_body.dart';
 import '../player_options/items/ui/items_body.dart';
 import '../player_options/player_options_icons.dart';
+import '../player_options/races/ui/races_body.dart';
+import '../player_options/transformations/ui/transformations_body.dart';
 import '../player_options/spells/ui/spells_body.dart';
 import '../settings/generators/ui/generators_body.dart';
 import '../settings/preferences_page.dart';
+import '../world/campaigns/ui/campaigns_body.dart';
+import '../world/characters/ui/characters_body.dart';
 import '../world/creatures/ui/creatures_body.dart';
-import '../world/world_icons.dart';
+import '../world/locations/ui/locations_body.dart';
+import '../world/organisations/ui/organisations_body.dart';
 import 'app_page.dart';
 import 'app_sidebar.dart';
 import 'shell_page_app_bar.dart';
@@ -57,6 +64,7 @@ class _AppShellState extends State<AppShell> {
         AppPage.items => 'Items',
         AppPage.languages => 'Languages',
         AppPage.races => 'Races',
+        AppPage.transformations => 'Transformations',
         AppPage.skills => 'Skills',
         AppPage.spells => 'Spells',
         AppPage.conditions => 'Conditions',
@@ -148,25 +156,22 @@ class _AppShellState extends State<AppShell> {
         AppPage.items => ItemsBody(auth: widget.auth),
         AppPage.languages =>
           _catalog(CatalogKind.languages, languagesPageIcon),
-        AppPage.races => _catalog(CatalogKind.races, racesPageIcon),
+        AppPage.races => RacesBody(auth: widget.auth),
+        AppPage.transformations => TransformationsBody(auth: widget.auth),
         AppPage.skills => _catalog(CatalogKind.skills, skillsPageIcon),
         AppPage.spells => SpellsBody(auth: widget.auth),
-        AppPage.conditions =>
-          _catalog(CatalogKind.conditions, conditionsPageIcon),
-        AppPage.damageTypes =>
-          _catalog(CatalogKind.damageTypes, damageTypesPageIcon),
+        AppPage.conditions => ConditionsBody(auth: widget.auth),
+        AppPage.damageTypes => DamageTypesBody(auth: widget.auth),
         AppPage.itemProperties =>
           _catalog(CatalogKind.itemProperties, itemPropertiesPageIcon),
         AppPage.rules => _catalog(CatalogKind.rules, rulesPageIcon),
         AppPage.spellTags => SpellTagsBody(auth: widget.auth),
         AppPage.features => FeaturesBody(auth: widget.auth),
         AppPage.creatures => CreaturesBody(auth: widget.auth),
-        AppPage.atlas => _catalog(CatalogKind.locations, atlasPageIcon),
-        AppPage.characters =>
-          _catalog(CatalogKind.characters, charactersPageIcon),
-        AppPage.organisations =>
-          _catalog(CatalogKind.organisations, organisationsPageIcon),
-        AppPage.story => _catalog(CatalogKind.campaigns, storyPageIcon),
+        AppPage.atlas => LocationsBody(auth: widget.auth),
+        AppPage.characters => CharactersBody(auth: widget.auth),
+        AppPage.organisations => OrganisationsBody(auth: widget.auth),
+        AppPage.story => CampaignsBody(auth: widget.auth),
       },
     );
   }

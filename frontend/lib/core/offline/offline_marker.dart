@@ -49,7 +49,7 @@ class OfflineStatusOverlay extends StatelessWidget {
             ?child,
             if (sync.isOffline)
               Positioned(
-                top: MediaQuery.paddingOf(context).top + 6,
+                top: MediaQuery.paddingOf(context).top + kToolbarHeight + 8,
                 right: 12,
                 child: IgnorePointer(
                   child: Material(
