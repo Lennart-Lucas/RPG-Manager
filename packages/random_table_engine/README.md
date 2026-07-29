@@ -2,6 +2,8 @@
 
 JSON-driven random table generation for Dart. Pure Dart — no Flutter dependency.
 
+For a full handoff guide (catalog payload, tables, process ops, examples) see [GENERATOR_CONFIG.md](./GENERATOR_CONFIG.md).
+
 ## Usage
 
 ```dart
