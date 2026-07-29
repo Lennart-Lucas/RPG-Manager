@@ -69,6 +69,10 @@ Future<void> startExtraction({
   final kindLabels = kinds.map((k) => k.label.toLowerCase()).join(' & ');
 
   if (!context.mounted) return;
+  final progressMessage = ValueNotifier<String>(
+    'Extracting $kindLabels from pages '
+    '${options.startPage}–${options.endPage}…',
+  );
   showDialog<void>(
     context: context,
     barrierDismissible: false,
@@ -78,9 +82,9 @@ Future<void> startExtraction({
           const CircularProgressIndicator(),
           const SizedBox(width: 20),
           Expanded(
-            child: Text(
-              'Extracting $kindLabels from pages '
-              '${options.startPage}–${options.endPage}…',
+            child: ValueListenableBuilder<String>(
+              valueListenable: progressMessage,
+              builder: (context, message, _) => Text(message),
             ),
           ),
         ],
@@ -93,11 +97,16 @@ Future<void> startExtraction({
       localPath,
       startPage: options.startPage,
       endPage: options.endPage,
+      onProgress: ({required page, required endPage, required usedOcr}) {
+        final mode = usedOcr ? 'OCR' : 'text';
+        progressMessage.value =
+            'Reading page $page of $endPage ($mode)…';
+      },
     );
-    if (text.trim().isEmpty) {
+    if (!pdfExportHasBodyText(text)) {
       if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
       messenger.showSnackBar(
-        const SnackBar(content: Text('No text found in this page range')),
+        const SnackBar(content: Text(kPdfNoExtractableTextMessage)),
       );
       return;
     }

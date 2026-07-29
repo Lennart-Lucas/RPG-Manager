@@ -56,6 +56,9 @@ Future<void> startPdfTextExport({
   );
   if (range == null || !context.mounted) return;
 
+  final progressMessage = ValueNotifier<String>(
+    'Exporting text from pages ${range.startPage}–${range.endPage}…',
+  );
   showDialog<void>(
     context: context,
     barrierDismissible: false,
@@ -65,9 +68,9 @@ Future<void> startPdfTextExport({
           const CircularProgressIndicator(),
           const SizedBox(width: 20),
           Expanded(
-            child: Text(
-              'Exporting text from pages '
-              '${range.startPage}–${range.endPage}…',
+            child: ValueListenableBuilder<String>(
+              valueListenable: progressMessage,
+              builder: (context, message, _) => Text(message),
             ),
           ),
         ],
@@ -80,13 +83,18 @@ Future<void> startPdfTextExport({
       localPath,
       startPage: range.startPage,
       endPage: range.endPage,
+      onProgress: ({required page, required endPage, required usedOcr}) {
+        final mode = usedOcr ? 'OCR' : 'text';
+        progressMessage.value =
+            'Reading page $page of $endPage ($mode)…';
+      },
     );
     if (!context.mounted) return;
     Navigator.of(context, rootNavigator: true).pop();
 
-    if (text.trim().isEmpty) {
+    if (!pdfExportHasBodyText(text)) {
       messenger.showSnackBar(
-        const SnackBar(content: Text('No text found in this page range')),
+        const SnackBar(content: Text(kPdfNoExtractableTextMessage)),
       );
       return;
     }
