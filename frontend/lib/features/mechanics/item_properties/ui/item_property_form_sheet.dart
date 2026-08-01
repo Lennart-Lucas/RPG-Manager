@@ -54,10 +54,12 @@ class _ItemPropertyFormState extends State<_ItemPropertyForm> {
   void _submit() {
     final form = _formKey.currentState;
     if (form == null || !form.validate()) return;
+    final name = _nameController.text.trim();
     Navigator.pop(
       context,
       ItemPropertyRecord(
-        name: _nameController.text.trim(),
+        id: widget.initial?.id ?? ItemPropertyRecord.slugify(name),
+        name: name,
         description: _descriptionController.text,
       ),
     );

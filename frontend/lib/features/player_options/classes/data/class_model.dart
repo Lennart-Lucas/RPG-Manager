@@ -329,7 +329,8 @@ class ClassRecord {
     this.skillChoiceCount = 0,
     this.skillChoices = const [],
     this.featuresByLevel = const {},
-    this.subclasses = const [],
+    this.subclassChosenAtLevel = 3,
+    this.legacySubclasses = const [],
     this.spellcasting,
     bool? isCaster,
   }) : _legacyIsCaster = isCaster;
@@ -344,7 +345,10 @@ class ClassRecord {
   final int skillChoiceCount;
   final List<String> skillChoices;
   final Map<int, List<ClassFeature>> featuresByLevel;
-  final List<ClassSubclass> subclasses;
+  /// Level at which a subclass is chosen for this class.
+  final int subclassChosenAtLevel;
+  /// Nested subclasses from older payloads (migrated to catalog records).
+  final List<ClassSubclass> legacySubclasses;
   final SpellcastingInfo? spellcasting;
   final bool? _legacyIsCaster;
 
@@ -401,17 +405,25 @@ class ClassRecord {
       spellcasting = const SpellcastingInfo(type: SpellcastingType.full);
     }
 
-    final subclasses = <ClassSubclass>[];
+    final legacySubclasses = <ClassSubclass>[];
     final rawSubs = payload['subclasses'];
     if (rawSubs is List) {
       for (final e in rawSubs) {
         if (e is Map<String, dynamic>) {
-          subclasses.add(ClassSubclass.fromJson(e));
+          legacySubclasses.add(ClassSubclass.fromJson(e));
         } else if (e is Map) {
-          subclasses.add(ClassSubclass.fromJson(Map<String, dynamic>.from(e)));
+          legacySubclasses
+              .add(ClassSubclass.fromJson(Map<String, dynamic>.from(e)));
         }
       }
     }
+
+    var subclassChosenAtLevel =
+        (payload['subclassChosenAtLevel'] as num?)?.toInt();
+    if (subclassChosenAtLevel == null && legacySubclasses.isNotEmpty) {
+      subclassChosenAtLevel = legacySubclasses.first.chosenAtLevel;
+    }
+    subclassChosenAtLevel = (subclassChosenAtLevel ?? 3).clamp(1, 20);
 
     return ClassRecord(
       name: payload['name'] as String? ?? name,
@@ -428,7 +440,8 @@ class ClassRecord {
       skillChoiceCount: (payload['skillChoiceCount'] as num?)?.toInt() ?? 0,
       skillChoices: _stringList(payload['skillChoices']),
       featuresByLevel: _featuresByLevelFromJson(payload['featuresByLevel']),
-      subclasses: subclasses,
+      subclassChosenAtLevel: subclassChosenAtLevel,
+      legacySubclasses: legacySubclasses,
       spellcasting: spellcasting,
       isCaster: legacyCaster,
     );
@@ -449,9 +462,47 @@ class ClassRecord {
       'skillChoiceCount': skillChoiceCount,
       'skillChoices': skillChoices,
       'featuresByLevel': _featuresByLevelToJson(featuresByLevel),
-      'subclasses': [for (final s in subclasses) s.toJson()],
+      'subclassChosenAtLevel': subclassChosenAtLevel,
       if (casting != null) 'spellcasting': casting.toJson(),
     };
+  }
+
+  ClassRecord copyWith({
+    String? name,
+    String? hitDie,
+    List<String>? primaryAbilities,
+    List<String>? savingThrowProficiencies,
+    List<String>? armorProficiencies,
+    List<String>? weaponProficiencies,
+    List<String>? toolProficiencies,
+    int? skillChoiceCount,
+    List<String>? skillChoices,
+    Map<int, List<ClassFeature>>? featuresByLevel,
+    int? subclassChosenAtLevel,
+    List<ClassSubclass>? legacySubclasses,
+    SpellcastingInfo? spellcasting,
+    bool? isCaster,
+    bool clearSpellcasting = false,
+  }) {
+    return ClassRecord(
+      name: name ?? this.name,
+      hitDie: hitDie ?? this.hitDie,
+      primaryAbilities: primaryAbilities ?? this.primaryAbilities,
+      savingThrowProficiencies:
+          savingThrowProficiencies ?? this.savingThrowProficiencies,
+      armorProficiencies: armorProficiencies ?? this.armorProficiencies,
+      weaponProficiencies: weaponProficiencies ?? this.weaponProficiencies,
+      toolProficiencies: toolProficiencies ?? this.toolProficiencies,
+      skillChoiceCount: skillChoiceCount ?? this.skillChoiceCount,
+      skillChoices: skillChoices ?? this.skillChoices,
+      featuresByLevel: featuresByLevel ?? this.featuresByLevel,
+      subclassChosenAtLevel:
+          subclassChosenAtLevel ?? this.subclassChosenAtLevel,
+      legacySubclasses: legacySubclasses ?? this.legacySubclasses,
+      spellcasting:
+          clearSpellcasting ? null : (spellcasting ?? this.spellcasting),
+      isCaster: isCaster ?? _legacyIsCaster,
+    );
   }
 }
 
@@ -469,7 +520,7 @@ List<String> _stringList(dynamic value) {
   ];
 }
 
-Map<int, List<ClassFeature>> _featuresByLevelFromJson(dynamic raw) {
+Map<int, List<ClassFeature>> featuresByLevelFromJson(dynamic raw) {
   final result = <int, List<ClassFeature>>{};
   if (raw is! Map) return result;
   for (final entry in raw.entries) {
@@ -493,7 +544,7 @@ Map<int, List<ClassFeature>> _featuresByLevelFromJson(dynamic raw) {
   return result;
 }
 
-Map<String, dynamic> _featuresByLevelToJson(
+Map<String, dynamic> featuresByLevelToJson(
   Map<int, List<ClassFeature>> features,
 ) {
   final sorted = features.keys.toList()..sort();
@@ -505,3 +556,11 @@ Map<String, dynamic> _featuresByLevelToJson(
       ],
   };
 }
+
+Map<int, List<ClassFeature>> _featuresByLevelFromJson(dynamic raw) =>
+    featuresByLevelFromJson(raw);
+
+Map<String, dynamic> _featuresByLevelToJson(
+  Map<int, List<ClassFeature>> features,
+) =>
+    featuresByLevelToJson(features);

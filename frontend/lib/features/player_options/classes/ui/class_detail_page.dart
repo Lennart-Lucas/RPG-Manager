@@ -11,7 +11,10 @@ import '../../../catalog/data/catalog_models.dart';
 import '../../../catalog/ui/open_catalog_detail.dart';
 import '../../player_options_icons.dart';
 import '../data/class_model.dart';
+import '../data/subclass_model.dart';
 import 'class_form_sheet.dart';
+import 'subclass_detail_page.dart';
+import 'subclass_form_sheet.dart';
 
 class ClassDetailPage extends StatefulWidget {
   const ClassDetailPage({
@@ -31,6 +34,7 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
   final _api = CatalogApi();
   late CatalogItem _item = widget.item;
   List<String> _skillNames = const [];
+  List<CatalogItem> _subclasses = const [];
 
   Future<String?> _token() => widget.auth.requireAccessToken();
 
@@ -42,26 +46,115 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
   @override
   void initState() {
     super.initState();
-    _loadSkills();
+    _loadLookups();
   }
 
-  Future<void> _loadSkills() async {
+  Future<void> _loadLookups() async {
     try {
       final token = await _token();
       if (token == null) return;
-      final skills = await _api.list(token, CatalogKind.skills);
+      final results = await Future.wait([
+        _api.list(token, CatalogKind.skills),
+        _api.list(token, CatalogKind.subclasses),
+      ]);
       if (!mounted) return;
       setState(() {
-        _skillNames = [for (final s in skills) s.name]..sort();
+        _skillNames = [for (final s in results[0]) s.name]..sort();
+        _subclasses = [
+          for (final item in results[1])
+            if (SubclassRecord.fromCatalogPayload(
+                  name: item.name,
+                  payload: item.payload,
+                ).parentClassId ==
+                _item.id)
+              item,
+        ]..sort(
+            (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+          );
       });
+      await _migrateLegacySubclassesIfNeeded(token);
     } catch (_) {}
+  }
+
+  Future<void> _migrateLegacySubclassesIfNeeded(String token) async {
+    final record = _record;
+    if (record.legacySubclasses.isEmpty) return;
+    for (final legacy in record.legacySubclasses) {
+      if (legacy.name.trim().isEmpty) continue;
+      final created = await _api.create(
+        accessToken: token,
+        kind: CatalogKind.subclasses,
+        name: legacy.name.trim(),
+        payload: SubclassRecord(
+          name: legacy.name.trim(),
+          parentClassId: _item.id,
+          featuresByLevel: legacy.featuresByLevel,
+        ).toJson(),
+      );
+      _subclasses = [..._subclasses, created];
+    }
+    final cleaned = record.copyWith(legacySubclasses: const []);
+    final updated = await _api.update(
+      accessToken: token,
+      kind: CatalogKind.classes,
+      itemId: _item.id,
+      name: cleaned.name,
+      payload: cleaned.toJson(),
+    );
+    if (!mounted) return;
+    setState(() {
+      _item = updated;
+      _subclasses = [..._subclasses]
+        ..sort(
+          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        );
+    });
+  }
+
+  Future<void> _addSubclass() async {
+    try {
+      final token = await _token();
+      if (token == null || !mounted) return;
+      final record = await showSubclassFormSheet(
+        context,
+        parentClasses: [_item],
+        preferredParentClassId: _item.id,
+        searchLinks: (q) => searchCatalogLinkTargets(_api, token, q),
+        loadAutoLinkTargets: () =>
+            loadConditionDamageAutoLinkTargets(_api, token),
+      );
+      if (record == null || !mounted) return;
+      final created = await _api.create(
+        accessToken: token,
+        kind: CatalogKind.subclasses,
+        name: record.name,
+        payload: record.copyWith(parentClassId: _item.id).toJson(),
+      );
+      if (!mounted) return;
+      setState(() {
+        _subclasses = [..._subclasses, created]
+          ..sort(
+            (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+          );
+      });
+    } on AuthApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not create subclass')),
+      );
+    }
   }
 
   Future<void> _edit() async {
     try {
       final token = await _token();
       if (token == null || !mounted) return;
-      if (_skillNames.isEmpty) await _loadSkills();
+      if (_skillNames.isEmpty) await _loadLookups();
       if (!mounted) return;
       final updatedRecord = await showClassFormSheet(
         context,
@@ -327,20 +420,62 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
               const SizedBox(height: 24),
               Text('Features', style: textTheme.titleMedium),
               _featureSection(context, record.featuresByLevel),
-              if (record.subclasses.isNotEmpty) ...[
-                const SizedBox(height: 28),
-                Text('Subclasses', style: textTheme.titleMedium),
-                for (final subclass in record.subclasses) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    '${subclass.name} (chosen at ${subclass.chosenAtLevel})',
-                    style: textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
+              const SizedBox(height: 28),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Subclasses (chosen at ${record.subclassChosenAtLevel})',
+                      style: textTheme.titleMedium,
                     ),
                   ),
-                  _featureSection(context, subclass.featuresByLevel),
+                  TextButton.icon(
+                    onPressed: _addSubclass,
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Add'),
+                  ),
                 ],
-              ],
+              ),
+              if (_subclasses.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    'No subclasses linked to this class yet.',
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                )
+              else
+                for (final subclassItem in _subclasses)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      subclassItem.name,
+                      style: textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: scheme.primary,
+                      ),
+                    ),
+                    trailing: Icon(
+                      Icons.chevron_right,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                    onTap: () async {
+                      final deleted = await Navigator.of(context).push<bool>(
+                        MaterialPageRoute(
+                          builder: (context) => SubclassDetailPage(
+                            auth: widget.auth,
+                            item: subclassItem,
+                            parentClasses: [_item],
+                          ),
+                        ),
+                      );
+                      if (deleted == true || mounted) {
+                        await _loadLookups();
+                      }
+                    },
+                  ),
             ],
           ),
         ],

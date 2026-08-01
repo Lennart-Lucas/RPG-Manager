@@ -12,6 +12,7 @@ import '../dm_tools/resources/ui/resources_body.dart';
 import '../dm_tools/ui/dm_tool_placeholder_body.dart';
 import '../mechanics/conditions/ui/conditions_body.dart';
 import '../mechanics/damage_types/ui/damage_types_body.dart';
+import '../mechanics/item_properties/ui/item_properties_body.dart';
 import '../mechanics/mechanics_icons.dart';
 import '../mechanics/features/ui/features_body.dart';
 import '../mechanics/spell_tags/ui/spell_tags_body.dart';
@@ -162,8 +163,7 @@ class _AppShellState extends State<AppShell> {
         AppPage.spells => SpellsBody(auth: widget.auth),
         AppPage.conditions => ConditionsBody(auth: widget.auth),
         AppPage.damageTypes => DamageTypesBody(auth: widget.auth),
-        AppPage.itemProperties =>
-          _catalog(CatalogKind.itemProperties, itemPropertiesPageIcon),
+        AppPage.itemProperties => ItemPropertiesBody(auth: widget.auth),
         AppPage.rules => _catalog(CatalogKind.rules, rulesPageIcon),
         AppPage.spellTags => SpellTagsBody(auth: widget.auth),
         AppPage.features => FeaturesBody(auth: widget.auth),

@@ -32,7 +32,56 @@ List<String> paginateCardBodyText(
   return chunks.where((c) => c.isNotEmpty).toList(growable: false);
 }
 
+bool _looksLikeTableLine(String line) {
+  final trimmed = line.trim();
+  if (trimmed.isEmpty || !trimmed.contains('|')) return false;
+  var working = trimmed;
+  if (working.startsWith('|')) working = working.substring(1);
+  if (working.endsWith('|')) {
+    working = working.substring(0, working.length - 1);
+  }
+  return working.split('|').length >= 2;
+}
+
+/// Prefer not to split inside a contiguous markdown table.
+int? _tableAwareBreak(String text, int start, int idealEnd, int hardEnd) {
+  final region = text.substring(start, hardEnd);
+  final lines = region.split('\n');
+  var offset = start;
+  var tableStart = -1;
+  var tableEnd = -1;
+
+  for (final line in lines) {
+    final lineStart = offset;
+    final lineEnd = offset + line.length;
+    final isTable = _looksLikeTableLine(line);
+    if (isTable) {
+      if (tableStart < 0) tableStart = lineStart;
+      tableEnd = (lineEnd < hardEnd && text[lineEnd] == '\n')
+          ? lineEnd + 1
+          : lineEnd;
+    } else if (tableStart >= 0) {
+      // Finished a table block that intersects the candidate window.
+      if (tableStart < idealEnd && tableEnd > idealEnd) {
+        if (tableEnd <= hardEnd && tableEnd > start) return tableEnd;
+        if (tableStart > start) return tableStart;
+      }
+      tableStart = -1;
+      tableEnd = -1;
+    }
+    offset = lineEnd + 1;
+  }
+  if (tableStart >= 0 && tableStart < idealEnd && tableEnd > idealEnd) {
+    if (tableEnd <= hardEnd && tableEnd > start) return tableEnd;
+    if (tableStart > start) return tableStart;
+  }
+  return null;
+}
+
 int _findBestBreak(String text, int start, int idealEnd, int hardEnd) {
+  final tableBreak = _tableAwareBreak(text, start, idealEnd, hardEnd);
+  if (tableBreak != null) return tableBreak;
+
   int scoreAt(int i) {
     final ch = text[i];
     if (ch == '\n') return 5;

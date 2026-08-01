@@ -132,7 +132,13 @@ class _MarkdownFormFieldState extends State<MarkdownFormField> {
 
   void _onFocusChanged() {
     if (!_focusNode.hasFocus) {
-      _removeOverlay();
+      // Defer so suggestion pointer-down/tap can insert before overlay is torn down.
+      Future<void>.delayed(const Duration(milliseconds: 120), () {
+        if (!mounted) return;
+        if (!_focusNode.hasFocus) {
+          _removeOverlay();
+        }
+      });
     }
   }
 
@@ -207,11 +213,15 @@ class _MarkdownFormFieldState extends State<MarkdownFormField> {
                   itemCount: _suggestions.length,
                   itemBuilder: (context, index) {
                     final item = _suggestions[index];
-                    return ListTile(
-                      dense: true,
-                      title: Text(item.name),
-                      subtitle: Text(item.kind),
-                      onTap: () => _insertLink(item),
+                    return Listener(
+                      behavior: HitTestBehavior.opaque,
+                      onPointerDown: (_) => _insertLink(item),
+                      child: ListTile(
+                        dense: true,
+                        title: Text(item.name),
+                        subtitle: Text(item.kind),
+                        onTap: () => _insertLink(item),
+                      ),
                     );
                   },
                 ),
@@ -234,8 +244,14 @@ class _MarkdownFormFieldState extends State<MarkdownFormField> {
     if (incomplete == null) return;
 
     final text = _controller.text;
-    final cursor = _controller.selection.baseOffset;
+    var cursor = _controller.selection.baseOffset;
+    // After overlay tap, selection can collapse to -1; use end of incomplete query.
+    if (cursor < incomplete.start) {
+      cursor = incomplete.start + incomplete.query.length;
+    }
     if (cursor < incomplete.start) return;
+    // Clamp to text length in case focus already mutated selection.
+    if (cursor > text.length) cursor = text.length;
 
     final insertion = formatWikiLink(kind: target.kind, name: target.name);
     final newText = text.replaceRange(incomplete.start, cursor, insertion);
@@ -244,6 +260,7 @@ class _MarkdownFormFieldState extends State<MarkdownFormField> {
       text: newText,
       selection: TextSelection.collapsed(offset: newOffset),
     );
+    _incomplete = null;
     _removeOverlay();
     _focusNode.requestFocus();
   }

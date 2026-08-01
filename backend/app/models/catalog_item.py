@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 
 class CatalogKind(StrEnum):
     classes = "classes"
+    subclasses = "subclasses"
     feats = "feats"
     languages = "languages"
     races = "races"

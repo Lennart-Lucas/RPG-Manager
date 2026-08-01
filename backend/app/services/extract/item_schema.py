@@ -28,6 +28,7 @@ ITEM_RARITIES = (
     "very_rare",
     "legendary",
     "artifact",
+    "variable",
 )
 
 _ITEM_TYPE_ALIASES: dict[str, str] = {
@@ -61,6 +62,8 @@ _RARITY_ALIASES: dict[str, str] = {
     "legendary": "legendary",
     "ledgendary": "legendary",
     "artifact": "artifact",
+    "variable": "variable",
+    "varies": "variable",
 }
 
 

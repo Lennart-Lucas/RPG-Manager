@@ -1,5 +1,6 @@
 enum CatalogKind {
   classes,
+  subclasses,
   feats,
   languages,
   races,
@@ -32,6 +33,7 @@ enum CatalogKind {
 extension CatalogKindApi on CatalogKind {
   String get apiValue => switch (this) {
         CatalogKind.classes => 'classes',
+        CatalogKind.subclasses => 'subclasses',
         CatalogKind.feats => 'feats',
         CatalogKind.languages => 'languages',
         CatalogKind.races => 'races',
@@ -56,6 +58,7 @@ extension CatalogKindApi on CatalogKind {
 
   String get singularLabel => switch (this) {
         CatalogKind.classes => 'class',
+        CatalogKind.subclasses => 'subclass',
         CatalogKind.feats => 'feat',
         CatalogKind.languages => 'language',
         CatalogKind.races => 'race',
@@ -63,8 +66,8 @@ extension CatalogKindApi on CatalogKind {
         CatalogKind.skills => 'skill',
         CatalogKind.spells => 'spell',
         CatalogKind.items => 'item',
-        CatalogKind.creatures => 'creature',
-        CatalogKind.creatureTypes => 'creature type',
+        CatalogKind.creatures => 'monster',
+        CatalogKind.creatureTypes => 'monster type',
         CatalogKind.conditions => 'condition',
         CatalogKind.damageTypes => 'damage type',
         CatalogKind.itemProperties => 'item property',
@@ -80,6 +83,7 @@ extension CatalogKindApi on CatalogKind {
 
   String get pluralLabel => switch (this) {
         CatalogKind.classes => 'classes',
+        CatalogKind.subclasses => 'subclasses',
         CatalogKind.feats => 'feats',
         CatalogKind.languages => 'languages',
         CatalogKind.races => 'races',
@@ -88,7 +92,7 @@ extension CatalogKindApi on CatalogKind {
         CatalogKind.spells => 'spells',
         CatalogKind.items => 'items',
         CatalogKind.creatures => 'creatures',
-        CatalogKind.creatureTypes => 'creature types',
+        CatalogKind.creatureTypes => 'monster types',
         CatalogKind.conditions => 'conditions',
         CatalogKind.damageTypes => 'damage types',
         CatalogKind.itemProperties => 'item properties',

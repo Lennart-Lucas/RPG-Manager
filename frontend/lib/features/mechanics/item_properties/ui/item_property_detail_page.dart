@@ -9,72 +9,35 @@ import '../../../catalog/data/catalog_api.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../../catalog/ui/open_catalog_detail.dart';
-import '../../../dm_tools/resources/data/resource_models.dart';
-import '../../../dm_tools/resources/data/resources_api.dart';
 import '../../../export/card_export_pdf.dart';
 import '../../../export/card_png_export_present.dart';
-import '../../player_options_icons.dart';
-import '../data/item_model.dart';
-import 'item_form_sheet.dart';
-import 'item_sheet.dart';
+import '../../mechanics_icons.dart';
+import '../data/item_property_model.dart';
+import 'item_property_form_sheet.dart';
+import 'item_property_sheet.dart';
 
-class ItemDetailPage extends StatefulWidget {
-  const ItemDetailPage({
+class ItemPropertyDetailPage extends StatefulWidget {
+  const ItemPropertyDetailPage({
     super.key,
     required this.auth,
     required this.item,
     required this.entry,
-    this.sourceFileName,
-    this.itemProperties = const [],
   });
 
   final AuthController auth;
   final CatalogItem item;
-  final Item entry;
-  final String? sourceFileName;
-  final List<CatalogItem> itemProperties;
+  final ItemPropertyRecord entry;
 
   @override
-  State<ItemDetailPage> createState() => _ItemDetailPageState();
+  State<ItemPropertyDetailPage> createState() => _ItemPropertyDetailPageState();
 }
 
-class _ItemDetailPageState extends State<ItemDetailPage> {
+class _ItemPropertyDetailPageState extends State<ItemPropertyDetailPage> {
   final _api = CatalogApi();
-  final _resourcesApi = ResourcesApi();
 
   late CatalogItem _item = widget.item;
-  late Item _entry = widget.entry;
-  late String? _sourceFileName = widget.sourceFileName;
-  late List<CatalogItem> _itemProperties = widget.itemProperties;
+  late ItemPropertyRecord _entry = widget.entry;
   bool _exportingPng = false;
-
-  @override
-  void initState() {
-    super.initState();
-    if (_itemProperties.isEmpty && _entry.propertyIds.isNotEmpty) {
-      _ensureItemPropertiesLoaded();
-    }
-  }
-
-  Future<void> _ensureItemPropertiesLoaded() async {
-    try {
-      final token = await _token();
-      if (token == null) return;
-      final properties = await _api.list(token, CatalogKind.itemProperties);
-      if (!mounted) return;
-      setState(() => _itemProperties = properties);
-    } catch (_) {}
-  }
-
-  List<({int id, String name})> get _resolvedProperties {
-    final byId = {
-      for (final p in _itemProperties) p.id: p.name,
-    };
-    return [
-      for (final id in _entry.propertyIds)
-        if (byId.containsKey(id)) (id: id, name: byId[id]!),
-    ];
-  }
 
   Future<String?> _token() => widget.auth.requireAccessToken();
 
@@ -85,29 +48,16 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
         platform == TargetPlatform.linux;
   }
 
-  Item? _itemFromCatalog(CatalogItem item) {
-    final payload = item.payload;
-    if (payload == null) return null;
+  ItemPropertyRecord? _propertyFromCatalog(CatalogItem item) {
     try {
-      return Item.fromJson(payload);
+      return ItemPropertyRecord.fromCatalogPayload(
+        name: item.name,
+        payload: item.payload,
+        id: ItemPropertyRecord.slugify(item.name),
+      );
     } catch (_) {
       return null;
     }
-  }
-
-  Future<({List<ResourceFile> files, List<CatalogItem> itemProperties})>
-      _loadFormLookups(String token) async {
-    var files = const <ResourceFile>[];
-    var itemProperties = const <CatalogItem>[];
-    try {
-      files = await _resourcesApi.listFiles(token);
-    } on AuthApiException {
-      // Non-DM users cannot list resources.
-    } catch (_) {}
-    try {
-      itemProperties = await _api.list(token, CatalogKind.itemProperties);
-    } catch (_) {}
-    return (files: files, itemProperties: itemProperties);
   }
 
   Future<List<CatalogLinkTarget>> _searchLinks(
@@ -160,45 +110,27 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
   Future<void> _edit() async {
     try {
       final token = await _token();
-      if (token == null) return;
-      final lookups = await _loadFormLookups(token);
-      if (!mounted) return;
-      final updatedEntry = await showItemFormSheet(
+      if (token == null || !mounted) return;
+      final updatedEntry = await showItemPropertyFormSheet(
         context,
         initial: _entry,
-        resourceFiles: lookups.files,
-        itemProperties: lookups.itemProperties,
         searchLinks: (query) => _searchLinks(token, query),
         loadAutoLinkTargets: () => _loadAutoLinkTargets(token),
       );
       if (updatedEntry == null || !mounted) return;
       final updated = await _api.update(
         accessToken: token,
-        kind: CatalogKind.items,
+        kind: CatalogKind.itemProperties,
         itemId: _item.id,
         name: updatedEntry.name,
         payload: updatedEntry.toJson(),
       );
-      final parsed = _itemFromCatalog(updated) ?? updatedEntry;
-
-      String? sourceName = _sourceFileName;
-      if (parsed.sourceFileId != null) {
-        for (final f in lookups.files) {
-          if (f.id == parsed.sourceFileId) {
-            sourceName = f.name;
-            break;
-          }
-        }
-      } else {
-        sourceName = null;
-      }
+      final parsed = _propertyFromCatalog(updated) ?? updatedEntry;
 
       if (!mounted) return;
       setState(() {
         _item = updated;
         _entry = parsed.copyWith(name: updated.name);
-        _sourceFileName = sourceName;
-        _itemProperties = lookups.itemProperties;
       });
     } on AuthApiException catch (e) {
       if (!mounted) return;
@@ -208,7 +140,7 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not update item')),
+        const SnackBar(content: Text('Could not update item property')),
       );
     }
   }
@@ -217,9 +149,9 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
     if (_exportingPng) return;
     setState(() => _exportingPng = true);
     try {
-      final bytes = await rasterizeItemCard(
+      final bytes = await rasterizeItemPropertyCard(
         context: context,
-        item: _entry,
+        property: _entry,
         theme: Theme.of(context),
       );
       if (!mounted) return;
@@ -243,7 +175,7 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete item?'),
+        title: const Text('Delete item property?'),
         content: Text('Delete “${_item.name}”? This cannot be undone.'),
         actions: [
           TextButton(
@@ -263,7 +195,7 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
       if (token == null) return;
       await _api.delete(
         accessToken: token,
-        kind: CatalogKind.items,
+        kind: CatalogKind.itemProperties,
         itemId: _item.id,
       );
       if (!mounted) return;
@@ -276,7 +208,7 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not delete item')),
+        const SnackBar(content: Text('Could not delete item property')),
       );
     }
   }
@@ -286,12 +218,12 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
     final scheme = Theme.of(context).colorScheme;
     final desktopScale = _isDesktopPlatform() ? 1.25 : 1.0;
     final topSpacing = _isDesktopPlatform() ? 48.0 : 0.0;
-    final hasSource =
-        _entry.sourceFileId != null || (_sourceFileName?.isNotEmpty ?? false);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_entry.name.trim().isEmpty ? 'Item' : _entry.name),
+        title: Text(
+          _entry.name.trim().isEmpty ? 'Item property' : _entry.name,
+        ),
         actions: [
           IconButton(
             tooltip: 'Edit',
@@ -318,7 +250,7 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                 child: Opacity(
                   opacity: 0.08,
                   child: Icon(
-                    itemsPageIcon,
+                    itemPropertiesPageIcon,
                     size: 440,
                     color: scheme.onSurface,
                   ),
@@ -332,61 +264,19 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
               alignment: Alignment.topCenter,
               child: Padding(
                 padding: EdgeInsets.only(top: topSpacing),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _CardPagesWrap(
-                      cards: buildItemSheets(
-                        _entry,
-                        properties: _resolvedProperties,
-                        cardScale: desktopScale,
-                        maxFontSize: kMtgCardRulesMaxFontSize * desktopScale,
-                        onWikiLinkTap: (kind, name) => openCatalogWikiLink(
-                          context: context,
-                          auth: widget.auth,
-                          kindApiValue: kind,
-                          name: name,
-                        ),
-                        onPropertyTap: (name) => openCatalogWikiLink(
-                          context: context,
-                          auth: widget.auth,
-                          kindApiValue: CatalogKind.itemProperties.apiValue,
-                          name: name,
-                        ),
-                      ),
-                      scaleFactor: desktopScale,
+                child: _CardPagesWrap(
+                  cards: buildItemPropertySheets(
+                    _entry,
+                    cardScale: desktopScale,
+                    maxFontSize: kMtgCardRulesMaxFontSize * desktopScale,
+                    onWikiLinkTap: (kind, name) => openCatalogWikiLink(
+                      context: context,
+                      auth: widget.auth,
+                      kindApiValue: kind,
+                      name: name,
                     ),
-                    if (hasSource) ...[
-                      const SizedBox(height: 12),
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 760),
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: scheme.surfaceContainerLow,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: scheme.outlineVariant),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Sources',
-                                  style: Theme.of(context).textTheme.titleMedium,
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  '${_sourceFileName ?? 'Resource ${_entry.sourceFileId}'}'
-                                  '${_entry.sourcePage != null ? ' · p. ${_entry.sourcePage}' : ''}',
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
+                  ),
+                  scaleFactor: desktopScale,
                 ),
               ),
             ),

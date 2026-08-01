@@ -8,6 +8,8 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../../core/ui/mtg_card_layout.dart';
+import '../mechanics/item_properties/data/item_property_model.dart';
+import '../mechanics/item_properties/ui/item_property_sheet.dart';
 import '../player_options/feats/data/feat_model.dart';
 import '../player_options/feats/ui/feat_sheet.dart';
 import '../player_options/items/data/item_model.dart';
@@ -209,6 +211,39 @@ Future<List<Uint8List>> rasterizeFeatCards({
   final key = GlobalKey();
   final out = <Uint8List>[];
   for (final sheet in buildFeatSheets(feat)) {
+    out.add(
+      await _captureCardWidget(
+        context: context,
+        boundaryKey: key,
+        theme: theme,
+        card: sheet,
+      ),
+    );
+  }
+  return out;
+}
+
+Future<Uint8List> rasterizeItemPropertyCard({
+  required BuildContext context,
+  required ItemPropertyRecord property,
+  required ThemeData theme,
+}) async {
+  final pages = await rasterizeItemPropertyCards(
+    context: context,
+    property: property,
+    theme: theme,
+  );
+  return pages.first;
+}
+
+Future<List<Uint8List>> rasterizeItemPropertyCards({
+  required BuildContext context,
+  required ItemPropertyRecord property,
+  required ThemeData theme,
+}) async {
+  final key = GlobalKey();
+  final out = <Uint8List>[];
+  for (final sheet in buildItemPropertySheets(property)) {
     out.add(
       await _captureCardWidget(
         context: context,

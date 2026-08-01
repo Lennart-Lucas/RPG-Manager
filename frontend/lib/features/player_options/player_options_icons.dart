@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 const playerOptionsMenuIcon = Icons.person_outline;
 
 const classesPageIcon = Icons.shield_outlined;
+const subclassesPageIcon = Icons.account_tree_outlined;
 const featsPageIcon = Icons.auto_awesome_outlined;
 const itemsPageIcon = Icons.backpack_outlined;
 const languagesPageIcon = Icons.translate_outlined;

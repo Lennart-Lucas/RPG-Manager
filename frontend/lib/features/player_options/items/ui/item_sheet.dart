@@ -5,6 +5,12 @@ import '../../../../core/ui/mtg_card_layout.dart';
 import '../../../../core/ui/mtg_card_rules_text_fit.dart';
 import '../data/item_model.dart';
 
+Color _lighterVariant(Color base, {double amount = 0.08}) {
+  final hsl = HSLColor.fromColor(base);
+  final adjusted = (hsl.lightness + amount).clamp(0.0, 1.0);
+  return hsl.withLightness(adjusted).toColor();
+}
+
 Color _darkerVariant(Color base, {double amount = 0.08}) {
   final hsl = HSLColor.fromColor(base);
   final adjusted = (hsl.lightness - amount).clamp(0.0, 1.0);
@@ -38,11 +44,22 @@ String suggestedGoldRangeForRarity(ItemRarity rarity) {
     case ItemRarity.legendary:
     case ItemRarity.artifact:
       return '${_formatGpAmount(50001)}+ gp';
+    case ItemRarity.variable:
+      return '—';
   }
+}
+
+String goldDisplayForItem(Item item) {
+  final override = item.valueCostOverride;
+  if (override != null) {
+    return '${_formatGpAmount(override)} gp';
+  }
+  return suggestedGoldRangeForRarity(item.rarity);
 }
 
 class ItemSheet extends StatelessWidget {
   final Item item;
+  final List<({int id, String name})> properties;
   final EdgeInsetsGeometry padding;
   final String? descriptionOverride;
   final int? continuationIndex;
@@ -50,9 +67,12 @@ class ItemSheet extends StatelessWidget {
   final MtgCardRulesScaleController? rulesScaleController;
   final double maxFontSize;
   final double cardScale;
+  final void Function(String kind, String name)? onWikiLinkTap;
+  final ValueChanged<String>? onPropertyTap;
 
   const ItemSheet({
     required this.item,
+    this.properties = const [],
     this.padding = EdgeInsets.zero,
     this.maxFontSize = kMtgCardRulesMaxFontSize,
     this.descriptionOverride,
@@ -60,6 +80,8 @@ class ItemSheet extends StatelessWidget {
     this.continuationTotal,
     this.rulesScaleController,
     this.cardScale = 1.0,
+    this.onWikiLinkTap,
+    this.onPropertyTap,
     super.key,
   });
 
@@ -69,6 +91,9 @@ class ItemSheet extends StatelessWidget {
     final headerName = item.name.trim().isEmpty ? 'Item' : item.name.trim();
     final effectiveDescription = descriptionOverride ?? item.description;
     final hasDescription = effectiveDescription.trim().isNotEmpty;
+    final showProperties =
+        properties.isNotEmpty &&
+        (continuationIndex == null || continuationIndex == 1);
 
     const radius = 14.0;
 
@@ -126,29 +151,55 @@ class ItemSheet extends StatelessWidget {
                                       ),
                                     ),
                                   ),
-                                  if (hasDescription)
-                                    Padding(
-                                      padding: const EdgeInsets.fromLTRB(
-                                        10,
-                                        8,
-                                        10,
-                                        10,
-                                      ),
-                                      child: MtgCardRulesTextFit(
-                                        content: effectiveDescription,
-                                        onSurface: colors.onSurface,
-                                        maxFontSize: maxFontSize,
-                                        scaleController: rulesScaleController,
-                                      ),
-                                    ),
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      if (showProperties)
+                                        Padding(
+                                          padding: const EdgeInsets.fromLTRB(
+                                            8,
+                                            8,
+                                            8,
+                                            0,
+                                          ),
+                                          child: _ItemPropertiesSection(
+                                            properties: properties,
+                                            colors: colors,
+                                            maxFontSize: maxFontSize,
+                                            onPropertyTap: onPropertyTap,
+                                          ),
+                                        ),
+                                      if (hasDescription)
+                                        Expanded(
+                                          child: Padding(
+                                            padding: const EdgeInsets.fromLTRB(
+                                              10,
+                                              8,
+                                              10,
+                                              10,
+                                            ),
+                                            child: MtgCardRulesTextFit(
+                                              content: effectiveDescription,
+                                              onSurface: colors.onSurface,
+                                              maxFontSize: maxFontSize,
+                                              scaleController:
+                                                  rulesScaleController,
+                                              onWikiLinkTap: onWikiLinkTap,
+                                            ),
+                                          ),
+                                        )
+                                      else
+                                        const Spacer(),
+                                    ],
+                                  ),
                                 ],
                               ),
                             ),
                           ),
                           _ItemFooterBand(
                             rarityLabel: item.rarity.label,
-                            goldRangeText:
-                                suggestedGoldRangeForRarity(item.rarity),
+                            goldRangeText: goldDisplayForItem(item),
                             colors: colors,
                             bottomRadius: radius,
                             maxFontSize: maxFontSize,
@@ -169,9 +220,12 @@ class ItemSheet extends StatelessWidget {
 
 List<ItemSheet> buildItemSheets(
   Item item, {
+  List<({int id, String name})> properties = const [],
   EdgeInsetsGeometry padding = EdgeInsets.zero,
   double maxFontSize = kMtgCardRulesMaxFontSize,
   double cardScale = 1.0,
+  void Function(String kind, String name)? onWikiLinkTap,
+  ValueChanged<String>? onPropertyTap,
 }) {
   final pages = paginateCardBodyText(item.description);
   final sharedScaleController =
@@ -180,15 +234,19 @@ List<ItemSheet> buildItemSheets(
     return [
       ItemSheet(
         item: item,
+        properties: properties,
         padding: padding,
         maxFontSize: maxFontSize,
         cardScale: cardScale,
+        onWikiLinkTap: onWikiLinkTap,
+        onPropertyTap: onPropertyTap,
       ),
     ];
   }
   return List<ItemSheet>.generate(pages.length, (i) {
     return ItemSheet(
       item: item,
+      properties: properties,
       padding: padding,
       maxFontSize: maxFontSize,
       cardScale: cardScale,
@@ -196,8 +254,113 @@ List<ItemSheet> buildItemSheets(
       continuationIndex: i + 1,
       continuationTotal: pages.length,
       rulesScaleController: sharedScaleController,
+      onWikiLinkTap: onWikiLinkTap,
+      onPropertyTap: onPropertyTap,
     );
   });
+}
+
+class _ItemPropertiesSection extends StatelessWidget {
+  final List<({int id, String name})> properties;
+  final ColorScheme colors;
+  final double maxFontSize;
+  final ValueChanged<String>? onPropertyTap;
+
+  const _ItemPropertiesSection({
+    required this.properties,
+    required this.colors,
+    required this.maxFontSize,
+    this.onPropertyTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final blockColor = _lighterVariant(
+      colors.surfaceContainerHigh,
+      amount: 0.07,
+    );
+    final valueColor = _lighterVariant(
+      colors.surfaceContainerLowest,
+      amount: 0.1,
+    );
+    final labelFontSize = (maxFontSize * 0.92).clamp(10.5, 14.0);
+    final linkStyle = TextStyle(
+      fontSize: maxFontSize,
+      color: colors.primary,
+      height: 1.2,
+      fontWeight: FontWeight.w600,
+      decoration: onPropertyTap == null ? null : TextDecoration.underline,
+      decorationColor: colors.primary,
+    );
+    final plainStyle = TextStyle(
+      fontSize: maxFontSize,
+      color: colors.onSurface,
+      height: 1.2,
+      fontWeight: FontWeight.w500,
+    );
+
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        color: _lighterVariant(colors.surface, amount: 0.06),
+      ),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              color: blockColor,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              alignment: Alignment.centerRight,
+              constraints: const BoxConstraints(minWidth: 72),
+              child: Text(
+                'Properties',
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  color: colors.primary,
+                  fontSize: labelFontSize,
+                  fontWeight: FontWeight.w700,
+                  height: 1.15,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Container(
+                color: valueColor,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                child: Text.rich(
+                  TextSpan(
+                    style: plainStyle,
+                    children: [
+                      for (var i = 0; i < properties.length; i++) ...[
+                        if (i > 0) const TextSpan(text: ', '),
+                        if (onPropertyTap != null)
+                          WidgetSpan(
+                            alignment: PlaceholderAlignment.baseline,
+                            baseline: TextBaseline.alphabetic,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () => onPropertyTap!(properties[i].name),
+                              child: Text(
+                                properties[i].name,
+                                style: linkStyle,
+                              ),
+                            ),
+                          )
+                        else
+                          TextSpan(text: properties[i].name, style: linkStyle),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _ItemHeaderBand extends StatelessWidget {

@@ -9,12 +9,15 @@ import '../../mechanics/damage_types/ui/damage_types_body.dart';
 import '../../mechanics/features/data/feature_model.dart';
 import '../../mechanics/features/ui/feature_detail_page.dart';
 import '../../mechanics/item_properties/data/item_property_model.dart';
+import '../../mechanics/item_properties/ui/item_property_detail_page.dart';
 import '../../mechanics/rules/data/rule_model.dart';
 import '../../mechanics/rules/ui/rule_detail_page.dart';
 import '../../mechanics/spell_tags/data/spell_tag_model.dart';
 import '../../mechanics/spell_tags/ui/spell_tag_detail_page.dart';
 import '../../player_options/classes/data/class_model.dart';
+import '../../player_options/classes/data/subclass_model.dart';
 import '../../player_options/classes/ui/class_detail_page.dart';
+import '../../player_options/classes/ui/subclass_detail_page.dart';
 import '../../player_options/feats/data/feat_model.dart';
 import '../../player_options/feats/ui/feat_detail_page.dart';
 import '../../player_options/items/data/item_model.dart';
@@ -71,12 +74,16 @@ Future<void> openCatalogRecordDetail({
         await _openItemDetail(context, auth, item);
       case CatalogKind.feats:
         await _openFeatDetail(context, auth, item);
+      case CatalogKind.itemProperties:
+        await _openItemPropertyDetail(context, auth, item);
       case CatalogKind.classes:
         await Navigator.of(context).push<void>(
           MaterialPageRoute(
             builder: (context) => ClassDetailPage(auth: auth, item: item),
           ),
         );
+      case CatalogKind.subclasses:
+        await _openSubclassDetail(context, auth, item);
       case CatalogKind.rules:
         await _openRuleDetail(context, auth, item);
       case CatalogKind.spellTags:
@@ -347,9 +354,10 @@ Future<void> _openItemDetail(
   }
 
   String? sourceFileName;
-  if (entry.sourceFileId != null) {
-    final token = await auth.requireAccessToken();
-    if (token != null) {
+  var itemProperties = const <CatalogItem>[];
+  final token = await auth.requireAccessToken();
+  if (token != null) {
+    if (entry.sourceFileId != null) {
       try {
         final files = await ResourcesApi().listFiles(token);
         for (final f in files) {
@@ -362,6 +370,9 @@ Future<void> _openItemDetail(
         // Non-DM users cannot list resources.
       } catch (_) {}
     }
+    try {
+      itemProperties = await CatalogApi().list(token, CatalogKind.itemProperties);
+    } catch (_) {}
   }
 
   if (!context.mounted) return;
@@ -372,6 +383,7 @@ Future<void> _openItemDetail(
         item: item,
         entry: entry.copyWith(name: item.name),
         sourceFileName: sourceFileName,
+        itemProperties: itemProperties,
       ),
     ),
   );
@@ -395,6 +407,53 @@ Future<void> _openFeatDetail(
         auth: auth,
         item: item,
         entry: entry.copyWith(name: item.name),
+      ),
+    ),
+  );
+}
+
+Future<void> _openItemPropertyDetail(
+  BuildContext context,
+  AuthController auth,
+  CatalogItem item,
+) async {
+  final entry = ItemPropertyRecord.fromCatalogPayload(
+    name: item.name,
+    payload: item.payload,
+    id: ItemPropertyRecord.slugify(item.name),
+  );
+
+  if (!context.mounted) return;
+  await Navigator.of(context).push<void>(
+    MaterialPageRoute(
+      builder: (context) => ItemPropertyDetailPage(
+        auth: auth,
+        item: item,
+        entry: entry.copyWith(name: item.name),
+      ),
+    ),
+  );
+}
+
+Future<void> _openSubclassDetail(
+  BuildContext context,
+  AuthController auth,
+  CatalogItem item,
+) async {
+  List<CatalogItem> parentClasses = const [];
+  final token = await auth.requireAccessToken();
+  if (token != null) {
+    try {
+      parentClasses = await CatalogApi().list(token, CatalogKind.classes);
+    } catch (_) {}
+  }
+  if (!context.mounted) return;
+  await Navigator.of(context).push<void>(
+    MaterialPageRoute(
+      builder: (context) => SubclassDetailPage(
+        auth: auth,
+        item: item,
+        parentClasses: parentClasses,
       ),
     ),
   );
@@ -615,8 +674,18 @@ String? catalogRecordSubtitle(CatalogItem item) {
       final parts = <String>[
         record.hitDie,
         if (record.isCaster) 'Spellcaster' else 'Non-caster',
+        'Subclass at ${record.subclassChosenAtLevel}',
       ];
       return parts.join(' · ');
+    case CatalogKind.subclasses:
+      final record = SubclassRecord.fromCatalogPayload(
+        name: item.name,
+        payload: item.payload,
+      );
+      final featureCount = record.allFeatures.length;
+      return featureCount == 0
+          ? 'No features'
+          : '$featureCount feature${featureCount == 1 ? '' : 's'}';
     case CatalogKind.spellTags:
       final tag = SpellTag.fromCatalogPayload(
         name: item.name,

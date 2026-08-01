@@ -9,6 +9,7 @@ import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../player_options_icons.dart';
 import '../data/class_model.dart';
+import '../data/subclass_model.dart';
 import 'class_detail_page.dart';
 import 'class_form_sheet.dart';
 
@@ -27,6 +28,7 @@ class _ClassesBodyState extends State<ClassesBody> {
   bool _loading = true;
   String? _error;
   List<CatalogItem> _items = const [];
+  List<CatalogItem> _subclasses = const [];
   List<String> _skillNames = const [];
 
   @override
@@ -57,11 +59,16 @@ class _ClassesBodyState extends State<ClassesBody> {
       final results = await Future.wait([
         _api.list(token, CatalogKind.classes),
         _api.list(token, CatalogKind.skills),
+        _api.list(token, CatalogKind.subclasses),
       ]);
+      var classes = results[0];
+      final subclasses = List<CatalogItem>.from(results[2]);
+      classes = await _migrateLegacySubclasses(token, classes, subclasses);
       if (!mounted) return;
       setState(() {
-        _items = results[0];
+        _items = classes;
         _skillNames = [for (final s in results[1]) s.name]..sort();
+        _subclasses = subclasses;
         _loading = false;
       });
     } on AuthApiException catch (e) {
@@ -77,6 +84,57 @@ class _ClassesBodyState extends State<ClassesBody> {
         _loading = false;
       });
     }
+  }
+
+  Future<List<CatalogItem>> _migrateLegacySubclasses(
+    String token,
+    List<CatalogItem> classes,
+    List<CatalogItem> subclassesOut,
+  ) async {
+    final updated = <CatalogItem>[];
+    for (final item in classes) {
+      final record = _recordFromItem(item);
+      if (record.legacySubclasses.isEmpty) {
+        updated.add(item);
+        continue;
+      }
+      for (final legacy in record.legacySubclasses) {
+        if (legacy.name.trim().isEmpty) continue;
+        final created = await _api.create(
+          accessToken: token,
+          kind: CatalogKind.subclasses,
+          name: legacy.name.trim(),
+          payload: SubclassRecord(
+            name: legacy.name.trim(),
+            parentClassId: item.id,
+            featuresByLevel: legacy.featuresByLevel,
+          ).toJson(),
+        );
+        subclassesOut.add(created);
+      }
+      final cleaned = record.copyWith(legacySubclasses: const []);
+      final next = await _api.update(
+        accessToken: token,
+        kind: CatalogKind.classes,
+        itemId: item.id,
+        name: cleaned.name,
+        payload: cleaned.toJson(),
+      );
+      updated.add(next);
+    }
+    return updated;
+  }
+
+  int _subclassCountFor(int classId) {
+    var count = 0;
+    for (final item in _subclasses) {
+      final record = SubclassRecord.fromCatalogPayload(
+        name: item.name,
+        payload: item.payload,
+      );
+      if (record.parentClassId == classId) count++;
+    }
+    return count;
   }
 
   Future<void> _create() async {
@@ -250,10 +308,11 @@ class _ClassesBodyState extends State<ClassesBody> {
               itemBuilder: (context, index) {
                 final item = _items[index];
                 final record = _recordFromItem(item);
-                final subclassCount = record.subclasses.length;
+                final subclassCount = _subclassCountFor(item.id);
                 final parts = <String>[
                   record.hitDie,
                   if (record.isCaster) 'Spellcaster' else 'Non-caster',
+                  'Subclass at ${record.subclassChosenAtLevel}',
                   if (subclassCount > 0)
                     '$subclassCount subclass${subclassCount == 1 ? '' : 'es'}',
                 ];

@@ -9,6 +9,7 @@ import 'catalog_kind.dart';
 extension CatalogKindIcons on CatalogKind {
   IconData get pageIcon => switch (this) {
         CatalogKind.classes => classesPageIcon,
+        CatalogKind.subclasses => subclassesPageIcon,
         CatalogKind.feats => featsPageIcon,
         CatalogKind.languages => languagesPageIcon,
         CatalogKind.races => racesPageIcon,

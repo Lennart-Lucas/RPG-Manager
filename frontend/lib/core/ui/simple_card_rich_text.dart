@@ -2,7 +2,9 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../markdown/wiki_link.dart';
-/// Lightweight markdown-ish body: bold/italic, lists, headings, and wiki links.
+
+/// Lightweight markdown-ish body: bold/italic, lists, headings, tables, and
+/// wiki links.
 class SimpleCardRichText extends StatefulWidget {
   const SimpleCardRichText({
     super.key,
@@ -28,7 +30,9 @@ class _SimpleCardRichTextState extends State<SimpleCardRichText> {
 
   static final RegExp _bullet = RegExp(r'^(\s*)[-*]\s+(.*)$');
   static final RegExp _ordered = RegExp(r'^(\s*)(\d+)\.\s+(.*)$');
-  static final RegExp _underline = RegExp(r'<u>(.+?)</u>', caseSensitive: false);
+  static final RegExp _underline =
+      RegExp(r'<u>(.+?)</u>', caseSensitive: false);
+  static final RegExp _tableSepCell = RegExp(r'^:?-{3,}:?$');
 
   @override
   void dispose() {
@@ -68,12 +72,13 @@ class _SimpleCardRichTextState extends State<SimpleCardRichText> {
     }
 
     final lines = widget.content.split('\n');
+    final blocks = _parseBlocks(lines);
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (var i = 0; i < lines.length; i++) ...[
-          _lineBlock(context, lines[i], bodyStyle, linkStyle),
-          if (i != lines.length - 1) SizedBox(height: 6 * widget.styleScale),
+        for (var i = 0; i < blocks.length; i++) ...[
+          _blockWidget(context, blocks[i], bodyStyle, linkStyle),
+          if (i != blocks.length - 1) SizedBox(height: 6 * widget.styleScale),
         ],
       ],
     );
@@ -81,6 +86,191 @@ class _SimpleCardRichTextState extends State<SimpleCardRichText> {
       return SelectionArea(child: body);
     }
     return body;
+  }
+
+  List<_RichBlock> _parseBlocks(List<String> lines) {
+    final blocks = <_RichBlock>[];
+    var i = 0;
+    while (i < lines.length) {
+      final line = lines[i].replaceAll('\r', '');
+      if (_looksLikeTableRow(line)) {
+        final tableLines = <String>[];
+        while (i < lines.length &&
+            _looksLikeTableRow(lines[i].replaceAll('\r', ''))) {
+          tableLines.add(lines[i].replaceAll('\r', ''));
+          i++;
+        }
+        final table = _tryParseTable(tableLines);
+        if (table != null) {
+          blocks.add(table);
+        } else {
+          for (final raw in tableLines) {
+            blocks.add(_RichBlock.line(raw));
+          }
+        }
+        continue;
+      }
+      blocks.add(_RichBlock.line(line));
+      i++;
+    }
+    return blocks;
+  }
+
+  bool _looksLikeTableRow(String line) {
+    final trimmed = line.trim();
+    if (trimmed.isEmpty) return false;
+    if (!trimmed.contains('|')) return false;
+    // Avoid treating plain prose that happens to include a pipe as a table.
+    final cells = _splitTableCells(trimmed);
+    return cells.length >= 2;
+  }
+
+  bool _isSeparatorRow(List<String> cells) {
+    if (cells.isEmpty) return false;
+    return cells.every((cell) => _tableSepCell.hasMatch(cell.trim()));
+  }
+
+  List<String> _splitTableCells(String line) {
+    var trimmed = line.trim();
+    if (trimmed.startsWith('|')) trimmed = trimmed.substring(1);
+    if (trimmed.endsWith('|')) trimmed = trimmed.substring(0, trimmed.length - 1);
+    return trimmed.split('|').map((c) => c.trim()).toList();
+  }
+
+  _RichBlock? _tryParseTable(List<String> tableLines) {
+    if (tableLines.length < 2) return null;
+    final rows = tableLines.map(_splitTableCells).toList();
+    var headerIndex = 0;
+    var separatorIndex = -1;
+    for (var i = 0; i < rows.length; i++) {
+      if (_isSeparatorRow(rows[i])) {
+        separatorIndex = i;
+        break;
+      }
+    }
+    if (separatorIndex <= 0) {
+      // Allow a body-only pipe grid without a markdown separator.
+      final colCount = rows.map((r) => r.length).reduce((a, b) => a > b ? a : b);
+      if (colCount < 2) return null;
+      return _RichBlock.table(
+        headers: const [],
+        rows: [
+          for (final row in rows) _padRow(row, colCount),
+        ],
+      );
+    }
+    headerIndex = separatorIndex - 1;
+    final headers = rows[headerIndex];
+    final colCount = headers.length;
+    if (colCount < 1) return null;
+    final body = <List<String>>[];
+    for (var i = separatorIndex + 1; i < rows.length; i++) {
+      if (_isSeparatorRow(rows[i])) continue;
+      body.add(_padRow(rows[i], colCount));
+    }
+    return _RichBlock.table(
+      headers: _padRow(headers, colCount),
+      rows: body,
+    );
+  }
+
+  List<String> _padRow(List<String> row, int colCount) {
+    if (row.length == colCount) return row;
+    if (row.length > colCount) return row.sublist(0, colCount);
+    return [...row, for (var i = row.length; i < colCount; i++) ''];
+  }
+
+  Widget _blockWidget(
+    BuildContext context,
+    _RichBlock block,
+    TextStyle bodyStyle,
+    TextStyle linkStyle,
+  ) {
+    if (block.isTable) {
+      return _tableWidget(context, block, bodyStyle, linkStyle);
+    }
+    return _lineBlock(context, block.line!, bodyStyle, linkStyle);
+  }
+
+  Widget _tableWidget(
+    BuildContext context,
+    _RichBlock block,
+    TextStyle bodyStyle,
+    TextStyle linkStyle,
+  ) {
+    final colors = Theme.of(context).colorScheme;
+    final headers = block.headers!;
+    final rows = block.rows!;
+    final colCount = headers.isNotEmpty
+        ? headers.length
+        : (rows.isEmpty ? 0 : rows.first.length);
+    if (colCount == 0) return const SizedBox.shrink();
+
+    final cellPad = EdgeInsets.symmetric(
+      horizontal: 6 * widget.styleScale,
+      vertical: 4 * widget.styleScale,
+    );
+    final borderColor = colors.outlineVariant.withValues(alpha: 0.85);
+    final headerBg = colors.surfaceContainerHigh;
+    // Opaque zebra fills blended onto the card body surface so both bands
+    // stay visible and distinct on light and dark themes.
+    final rowBase = colors.surfaceContainerLowest;
+    final rowEvenBg = Color.alphaBlend(
+      colors.onSurface.withValues(alpha: 0.06),
+      rowBase,
+    );
+    final rowOddBg = Color.alphaBlend(
+      colors.onSurface.withValues(alpha: 0.14),
+      rowBase,
+    );
+    final headerStyle = bodyStyle.copyWith(fontWeight: FontWeight.w700);
+
+    Widget cellText(String text, TextStyle style) {
+      return Text.rich(
+        TextSpan(
+          style: style,
+          children: _inlineSpans(text, style, linkStyle),
+        ),
+      );
+    }
+
+    Widget paddedCell(String text, TextStyle style, Color bg) {
+      return ColoredBox(
+        color: bg,
+        child: Padding(
+          padding: cellPad,
+          child: cellText(text, style),
+        ),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(6 * widget.styleScale),
+      child: Table(
+        border: TableBorder.all(color: borderColor, width: 1),
+        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+        children: [
+          if (headers.isNotEmpty)
+            TableRow(
+              children: [
+                for (final header in headers)
+                  paddedCell(header, headerStyle, headerBg),
+              ],
+            ),
+          for (var r = 0; r < rows.length; r++)
+            TableRow(
+              children: [
+                for (final cell in rows[r])
+                  paddedCell(
+                    cell,
+                    bodyStyle,
+                    r.isEven ? rowEvenBg : rowOddBg,
+                  ),
+              ],
+            ),
+        ],
+      ),
+    );
   }
 
   Widget _lineBlock(
@@ -281,4 +471,26 @@ class _SimpleCardRichTextState extends State<SimpleCardRichText> {
     }
     return out;
   }
+}
+
+class _RichBlock {
+  const _RichBlock._({
+    this.line,
+    this.headers,
+    this.rows,
+  });
+
+  const _RichBlock.line(String value)
+      : this._(line: value);
+
+  const _RichBlock.table({
+    required List<String> headers,
+    required List<List<String>> rows,
+  }) : this._(headers: headers, rows: rows);
+
+  final String? line;
+  final List<String>? headers;
+  final List<List<String>>? rows;
+
+  bool get isTable => headers != null && rows != null;
 }

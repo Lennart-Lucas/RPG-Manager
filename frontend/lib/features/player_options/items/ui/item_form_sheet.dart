@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../../core/ui/markdown_form_field.dart';
 import '../../../catalog/data/catalog_kind.dart';
+import '../../../catalog/data/catalog_models.dart';
 import '../../../dm_tools/resources/data/resource_models.dart';
 import '../../../dm_tools/resources/ui/resource_form_helpers.dart';
 import '../data/item_model.dart';
@@ -11,6 +12,7 @@ Future<Item?> showItemFormSheet(
   BuildContext context, {
   Item? initial,
   required List<ResourceFile> resourceFiles,
+  List<CatalogItem> itemProperties = const [],
   CatalogLinkSearch? searchLinks,
   CatalogAutoLinkLoader? loadAutoLinkTargets,
 }) {
@@ -21,6 +23,7 @@ Future<Item?> showItemFormSheet(
     child: _ItemForm(
       initial: initial,
       resourceFiles: resourceFiles,
+      itemProperties: itemProperties,
       searchLinks: searchLinks,
       loadAutoLinkTargets: loadAutoLinkTargets,
     ),
@@ -31,12 +34,14 @@ class _ItemForm extends StatefulWidget {
   const _ItemForm({
     this.initial,
     required this.resourceFiles,
+    this.itemProperties = const [],
     this.searchLinks,
     this.loadAutoLinkTargets,
   });
 
   final Item? initial;
   final List<ResourceFile> resourceFiles;
+  final List<CatalogItem> itemProperties;
   final CatalogLinkSearch? searchLinks;
   final CatalogAutoLinkLoader? loadAutoLinkTargets;
 
@@ -56,12 +61,18 @@ class _ItemFormState extends State<_ItemForm> {
   late final _sourcePageController = TextEditingController(
     text: widget.initial?.sourcePage?.toString() ?? '',
   );
+  late final _valueCostOverrideController = TextEditingController(
+    text: widget.initial?.valueCostOverride?.toString() ?? '',
+  );
 
   late ItemType _itemType = widget.initial?.itemType ?? ItemType.equipment;
   late ItemRarity _rarity = widget.initial?.rarity ?? ItemRarity.common;
   late bool _magic = widget.initial?.magic ?? false;
   late bool _consumable = widget.initial?.consumable ?? false;
   late bool _requiresAttunement = widget.initial?.requiresAttunement ?? false;
+  late final Set<int> _propertyIds = {
+    ...?widget.initial?.propertyIds,
+  };
   late int? _sourceFileId = widget.initial?.sourceFileId;
 
   bool get _showTypeReference =>
@@ -73,6 +84,7 @@ class _ItemFormState extends State<_ItemForm> {
     _descriptionController.dispose();
     _typeReferenceController.dispose();
     _sourcePageController.dispose();
+    _valueCostOverrideController.dispose();
     super.dispose();
   }
 
@@ -97,10 +109,12 @@ class _ItemFormState extends State<_ItemForm> {
       description: _descriptionController.text.trim(),
       itemType: _itemType,
       rarity: _rarity,
+      valueCostOverride: _parseInt(_valueCostOverrideController.text),
       magic: _magic,
       consumable: _consumable,
       requiresAttunement: _magic && _requiresAttunement,
       typeReference: typeReference,
+      propertyIds: _propertyIds.toList()..sort(),
       sourceFileId: _sourceFileId,
       sourcePage: _parseInt(_sourcePageController.text),
     );
@@ -193,6 +207,21 @@ class _ItemFormState extends State<_ItemForm> {
                   },
                 ),
               ),
+              const SizedBox(width: ResourceFormStyles.fieldSpacing),
+              Expanded(
+                child: TextFormField(
+                  controller: _valueCostOverrideController,
+                  decoration: ResourceFormStyles.inputDecoration(
+                    context,
+                    label: 'Cost override',
+                    hintText: 'gp',
+                  ),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                  ],
+                ),
+              ),
             ],
           ),
           if (_showTypeReference) ...[
@@ -234,6 +263,35 @@ class _ItemFormState extends State<_ItemForm> {
             value: _consumable,
             onChanged: (value) => setState(() => _consumable = value),
           ),
+          _section('Item properties'),
+          if (widget.itemProperties.isEmpty)
+            Text(
+              'Add item properties first',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                for (final property in widget.itemProperties)
+                  FilterChip(
+                    label: Text(property.name),
+                    selected: _propertyIds.contains(property.id),
+                    onSelected: (selected) {
+                      setState(() {
+                        if (selected) {
+                          _propertyIds.add(property.id);
+                        } else {
+                          _propertyIds.remove(property.id);
+                        }
+                      });
+                    },
+                  ),
+              ],
+            ),
           _section('Description'),
           MarkdownFormField(
             controller: _descriptionController,

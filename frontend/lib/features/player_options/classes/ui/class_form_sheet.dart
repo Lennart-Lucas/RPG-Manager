@@ -6,6 +6,7 @@ import '../../../../core/ui/multi_picklist_sheet.dart';
 import '../../../dm_tools/resources/ui/resource_form_helpers.dart';
 import '../../../world/ui/world_form_helpers.dart';
 import '../data/class_model.dart';
+import 'class_features_editor.dart';
 
 Future<ClassRecord?> showClassFormSheet(
   BuildContext context, {
@@ -69,7 +70,8 @@ class _ClassFormState extends State<_ClassForm> {
         const <MapEntry<int, List<ClassFeature>>>[])
       ...entry.value.map((f) => f.copyWith(level: entry.key)),
   ];
-  late List<ClassSubclass> _subclasses = [...?widget.initial?.subclasses];
+  late int _subclassChosenAtLevel =
+      widget.initial?.subclassChosenAtLevel.clamp(1, 20) ?? 3;
   late bool _hasSpellcasting = widget.initial?.isCaster ?? false;
   late String _castAbility =
       widget.initial?.spellcasting?.ability ?? 'INT';
@@ -90,21 +92,7 @@ class _ClassFormState extends State<_ClassForm> {
   }
 
   Map<int, List<ClassFeature>> _groupFeatures(List<ClassFeature> features) {
-    final map = <int, List<ClassFeature>>{};
-    for (final f in features) {
-      if (f.name.trim().isEmpty && f.description.trim().isEmpty) continue;
-      final level = f.level.clamp(1, 20);
-      final cleaned = f.copyWith(
-        id: f.id.trim().isEmpty
-            ? slugifyClassPart(f.name)
-            : f.id,
-        name: f.name.trim(),
-        level: level,
-        description: f.description.trim(),
-      );
-      map.putIfAbsent(level, () => []).add(cleaned);
-    }
-    return map;
+    return groupClassFeaturesByLevel(features);
   }
 
   void _submit() {
@@ -140,17 +128,7 @@ class _ClassFormState extends State<_ClassForm> {
         skillChoiceCount: skillCount.clamp(0, 20),
         skillChoices: _skillChoices,
         featuresByLevel: _groupFeatures(_features),
-        subclasses: [
-          for (final s in _subclasses)
-            if (s.name.trim().isNotEmpty)
-              s.copyWith(
-                id: s.id.trim().isEmpty
-                    ? slugifyClassPart(s.name, fallback: 'subclass')
-                    : s.id,
-                name: s.name.trim(),
-                featuresByLevel: s.featuresByLevel,
-              ),
-        ],
+        subclassChosenAtLevel: _subclassChosenAtLevel,
         spellcasting: casting,
         isCaster: _hasSpellcasting,
       ),
@@ -274,7 +252,7 @@ class _ClassFormState extends State<_ClassForm> {
             onTap: _pickSkills,
           ),
           const SizedBox(height: ResourceFormStyles.sectionSpacing),
-          _FeaturesEditor(
+          ClassFeaturesEditor(
             title: 'Class features',
             features: _features,
             searchLinks: widget.searchLinks,
@@ -283,38 +261,25 @@ class _ClassFormState extends State<_ClassForm> {
           ),
           const SizedBox(height: ResourceFormStyles.sectionSpacing),
           Text(
-            'Subclasses',
+            'Subclass selection',
             style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
           ),
-          for (var i = 0; i < _subclasses.length; i++)
-            _SubclassEditor(
-              key: ValueKey('subclass-$i-${_subclasses[i].id}'),
-              subclass: _subclasses[i],
-              searchLinks: widget.searchLinks,
-              loadAutoLinkTargets: widget.loadAutoLinkTargets,
-              onChanged: (next) {
-                final list = [..._subclasses];
-                list[i] = next;
-                setState(() => _subclasses = list);
-              },
-              onDelete: () {
-                setState(() => _subclasses = [..._subclasses]..removeAt(i));
-              },
+          const SizedBox(height: 8),
+          DropdownButtonFormField<int>(
+            initialValue: _subclassChosenAtLevel,
+            decoration: ResourceFormStyles.inputDecoration(
+              context,
+              label: 'Subclass chosen at level',
+              helperText: 'Subclasses are managed as their own records',
             ),
-          TextButton.icon(
-            onPressed: () {
-              setState(() {
-                _subclasses = [
-                  ..._subclasses,
-                  ClassSubclass(
-                    id: 'subclass-${_subclasses.length + 1}',
-                    name: '',
-                  ),
-                ];
-              });
+            items: [
+              for (var level = 1; level <= 20; level++)
+                DropdownMenuItem(value: level, child: Text('$level')),
+            ],
+            onChanged: (value) {
+              if (value == null) return;
+              setState(() => _subclassChosenAtLevel = value);
             },
-            icon: const Icon(Icons.add),
-            label: const Text('Add subclass'),
           ),
           const SizedBox(height: ResourceFormStyles.sectionSpacing),
           SwitchListTile(
@@ -499,293 +464,6 @@ class _StringListEditorState extends State<_StringListEditor> {
           ],
         ),
       ],
-    );
-  }
-}
-
-class _FeaturesEditor extends StatelessWidget {
-  const _FeaturesEditor({
-    required this.title,
-    required this.features,
-    required this.onChanged,
-    this.searchLinks,
-    this.loadAutoLinkTargets,
-  });
-
-  final String title;
-  final List<ClassFeature> features;
-  final ValueChanged<List<ClassFeature>> onChanged;
-  final CatalogLinkSearch? searchLinks;
-  final CatalogAutoLinkLoader? loadAutoLinkTargets;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-        ),
-        for (var i = 0; i < features.length; i++)
-          Card(
-            margin: const EdgeInsets.only(top: 8),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          initialValue: features[i].name,
-                          decoration: ResourceFormStyles.inputDecoration(
-                            context,
-                            label: 'Feature name',
-                          ),
-                          onChanged: (value) {
-                            final next = [...features];
-                            next[i] = next[i].copyWith(name: value);
-                            onChanged(next);
-                          },
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () {
-                          onChanged([...features]..removeAt(i));
-                        },
-                        icon: const Icon(Icons.delete_outline),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DropdownButtonFormField<int>(
-                          initialValue: features[i].level.clamp(1, 20),
-                          decoration: ResourceFormStyles.inputDecoration(
-                            context,
-                            label: 'Level',
-                          ),
-                          items: [
-                            for (var level = 1; level <= 20; level++)
-                              DropdownMenuItem(
-                                value: level,
-                                child: Text('$level'),
-                              ),
-                          ],
-                          onChanged: (value) {
-                            if (value == null) return;
-                            final next = [...features];
-                            next[i] = next[i].copyWith(level: value);
-                            onChanged(next);
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: DropdownButtonFormField<ClassFeatureType>(
-                          initialValue: features[i].type,
-                          decoration: ResourceFormStyles.inputDecoration(
-                            context,
-                            label: 'Type',
-                          ),
-                          items: [
-                            for (final t in ClassFeatureType.values)
-                              DropdownMenuItem(
-                                value: t,
-                                child: Text(t.label),
-                              ),
-                          ],
-                          onChanged: (value) {
-                            if (value == null) return;
-                            final next = [...features];
-                            next[i] = next[i].copyWith(type: value);
-                            onChanged(next);
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  MarkdownFormField(
-                    key: ValueKey('feat-desc-$i-${features[i].id}'),
-                    initialValue: features[i].description,
-                    label: 'Description',
-                    minLines: 2,
-                    maxLines: 6,
-                    searchLinks: searchLinks,
-                    loadAutoLinkTargets: loadAutoLinkTargets,
-                    onChanged: (value) {
-                      final next = [...features];
-                      next[i] = next[i].copyWith(description: value);
-                      onChanged(next);
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    initialValue: features[i].mechanics == null
-                        ? ''
-                        : features[i]
-                            .mechanics!
-                            .entries
-                            .map((e) => '${e.key}=${e.value}')
-                            .join(', '),
-                    decoration: ResourceFormStyles.inputDecoration(
-                      context,
-                      label: 'Mechanics (key=value, …)',
-                      hintText: 'usesPerRest=2, resetOn=long',
-                    ),
-                    onChanged: (value) {
-                      final next = [...features];
-                      final parsed = _parseMechanics(value);
-                      next[i] = next[i].copyWith(
-                        mechanics: parsed,
-                        clearMechanics: parsed == null,
-                      );
-                      onChanged(next);
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-        TextButton.icon(
-          onPressed: () {
-            onChanged([
-              ...features,
-              ClassFeature(
-                id: 'feature-${features.length + 1}',
-                name: '',
-                level: 1,
-              ),
-            ]);
-          },
-          icon: const Icon(Icons.add),
-          label: const Text('Add feature'),
-        ),
-      ],
-    );
-  }
-}
-
-Map<String, dynamic>? _parseMechanics(String raw) {
-  final text = raw.trim();
-  if (text.isEmpty) return null;
-  final map = <String, dynamic>{};
-  for (final part in text.split(',')) {
-    final piece = part.trim();
-    if (piece.isEmpty) continue;
-    final eq = piece.indexOf('=');
-    if (eq <= 0) {
-      map[piece] = true;
-      continue;
-    }
-    final key = piece.substring(0, eq).trim();
-    final value = piece.substring(eq + 1).trim();
-    if (key.isEmpty) continue;
-    final asInt = int.tryParse(value);
-    if (asInt != null) {
-      map[key] = asInt;
-    } else if (value == 'true' || value == 'false') {
-      map[key] = value == 'true';
-    } else {
-      map[key] = value;
-    }
-  }
-  return map.isEmpty ? null : map;
-}
-
-class _SubclassEditor extends StatelessWidget {
-  const _SubclassEditor({
-    super.key,
-    required this.subclass,
-    required this.onChanged,
-    required this.onDelete,
-    this.searchLinks,
-    this.loadAutoLinkTargets,
-  });
-
-  final ClassSubclass subclass;
-  final ValueChanged<ClassSubclass> onChanged;
-  final VoidCallback onDelete;
-  final CatalogLinkSearch? searchLinks;
-  final CatalogAutoLinkLoader? loadAutoLinkTargets;
-
-  @override
-  Widget build(BuildContext context) {
-    final features = [
-      for (final e in subclass.featuresByLevel.entries)
-        ...e.value.map((f) => f.copyWith(level: e.key)),
-    ];
-    return Card(
-      margin: const EdgeInsets.only(top: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    initialValue: subclass.name,
-                    decoration: ResourceFormStyles.inputDecoration(
-                      context,
-                      label: 'Subclass name',
-                    ),
-                    onChanged: (value) => onChanged(
-                      subclass.copyWith(name: value),
-                    ),
-                  ),
-                ),
-                IconButton(
-                  onPressed: onDelete,
-                  icon: const Icon(Icons.delete_outline),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<int>(
-              initialValue: subclass.chosenAtLevel.clamp(1, 20),
-              decoration: ResourceFormStyles.inputDecoration(
-                context,
-                label: 'Chosen at level',
-              ),
-              items: [
-                for (var level = 1; level <= 20; level++)
-                  DropdownMenuItem(value: level, child: Text('$level')),
-              ],
-              onChanged: (value) {
-                if (value == null) return;
-                onChanged(subclass.copyWith(chosenAtLevel: value));
-              },
-            ),
-            const SizedBox(height: 8),
-            _FeaturesEditor(
-              title: 'Subclass features',
-              features: features,
-              searchLinks: searchLinks,
-              loadAutoLinkTargets: loadAutoLinkTargets,
-              onChanged: (next) {
-                final map = <int, List<ClassFeature>>{};
-                for (final f in next) {
-                  if (f.name.trim().isEmpty && f.description.trim().isEmpty) {
-                    continue;
-                  }
-                  final level = f.level.clamp(1, 20);
-                  map.putIfAbsent(level, () => []).add(f.copyWith(level: level));
-                }
-                onChanged(subclass.copyWith(featuresByLevel: map));
-              },
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

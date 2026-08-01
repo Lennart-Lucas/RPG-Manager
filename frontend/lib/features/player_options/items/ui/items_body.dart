@@ -45,6 +45,7 @@ class _ItemsBodyState extends State<ItemsBody>
   bool _loading = true;
   String? _error;
   List<CatalogItem> _items = const [];
+  List<CatalogItem> _itemProperties = const [];
   List<ResourceFile> _files = const [];
 
   ItemsListFilter _filter = ItemsListFilter.empty;
@@ -351,7 +352,12 @@ class _ItemsBodyState extends State<ItemsBody>
       if (token == null) {
         throw AuthApiException('Not authenticated');
       }
-      final items = await _api.list(token, CatalogKind.items);
+      final results = await Future.wait([
+        _api.list(token, CatalogKind.items),
+        _api.list(token, CatalogKind.itemProperties),
+      ]);
+      final items = results[0];
+      final itemProperties = results[1];
 
       var files = const <ResourceFile>[];
       try {
@@ -363,6 +369,7 @@ class _ItemsBodyState extends State<ItemsBody>
       if (!mounted) return;
       setState(() {
         _items = items;
+        _itemProperties = itemProperties;
         _files = files;
         _loading = false;
       });
@@ -436,6 +443,7 @@ class _ItemsBodyState extends State<ItemsBody>
       final entry = await showItemFormSheet(
         context,
         resourceFiles: _files,
+        itemProperties: _itemProperties,
         searchLinks: (query) => _searchLinks(token, query),
         loadAutoLinkTargets: () => _loadAutoLinkTargets(token),
       );
@@ -470,6 +478,7 @@ class _ItemsBodyState extends State<ItemsBody>
         context,
         initial: existing,
         resourceFiles: _files,
+        itemProperties: _itemProperties,
         searchLinks: (query) => _searchLinks(token, query),
         loadAutoLinkTargets: () => _loadAutoLinkTargets(token),
       );
@@ -514,6 +523,7 @@ class _ItemsBodyState extends State<ItemsBody>
           item: entry.item,
           entry: entry.entry,
           sourceFileName: sourceName,
+          itemProperties: _itemProperties,
         ),
       ),
     );
@@ -631,7 +641,7 @@ class _ItemsBodyState extends State<ItemsBody>
           children: [
             SizeTransition(
               sizeFactor: _filterPanelAnimation,
-              alignment: Alignment.topCenter,
+              axisAlignment: -1.0,
               child: ItemsFilterStrip(
                 sectionBottomPadding: 12,
                 searchController: _searchController,

@@ -100,6 +100,7 @@ int _raritySortIndex(ItemRarity rarity) {
     ItemRarity.veryRare => 3,
     ItemRarity.legendary => 4,
     ItemRarity.artifact => 5,
+    ItemRarity.variable => 6,
   };
 }
 

@@ -54,7 +54,8 @@ enum ItemRarity {
   rare('rare', 'Rare'),
   veryRare('very_rare', 'Very Rare'),
   legendary('legendary', 'Legendary'),
-  artifact('artifact', 'Artifact');
+  artifact('artifact', 'Artifact'),
+  variable('variable', 'Variable');
 
   const ItemRarity(this.jsonValue, this.label);
 
@@ -78,10 +79,14 @@ class Item {
   final String description;
   final ItemType itemType;
   final ItemRarity rarity;
+  /// Optional gold-piece cost that overrides the rarity-based suggestion.
+  final int? valueCostOverride;
   final bool magic;
   final bool consumable;
   final bool requiresAttunement;
   final String typeReference;
+  /// Catalog item IDs for item properties.
+  final List<int> propertyIds;
   final int? sourceFileId;
   final int? sourcePage;
 
@@ -91,10 +96,12 @@ class Item {
     required this.description,
     required this.itemType,
     required this.rarity,
+    this.valueCostOverride,
     this.magic = false,
     this.consumable = false,
     this.requiresAttunement = false,
     this.typeReference = '',
+    this.propertyIds = const [],
     this.sourceFileId,
     this.sourcePage,
   });
@@ -108,6 +115,31 @@ class Item {
     return slug.isEmpty ? 'item' : slug;
   }
 
+  static List<int> _parseIdList(dynamic raw) {
+    if (raw is! List) return const [];
+    final ids = <int>[];
+    for (final item in raw) {
+      if (item is int) {
+        ids.add(item);
+      } else if (item is num) {
+        ids.add(item.toInt());
+      }
+    }
+    return ids;
+  }
+
+  static int? _parseOptionalInt(dynamic raw) {
+    if (raw == null) return null;
+    if (raw is int) return raw;
+    if (raw is num) return raw.toInt();
+    if (raw is String) {
+      final trimmed = raw.trim();
+      if (trimmed.isEmpty) return null;
+      return int.tryParse(trimmed);
+    }
+    return null;
+  }
+
   factory Item.fromJson(Map<String, dynamic> json) {
     final magic = json['magic'] == true;
     return Item(
@@ -116,10 +148,14 @@ class Item {
       description: json['description'] as String? ?? '',
       itemType: ItemType.fromJson(json['itemType'] as String? ?? 'equipment'),
       rarity: ItemRarity.fromJson(json['rarity'] as String? ?? 'common'),
+      valueCostOverride: _parseOptionalInt(
+        json['valueCostOverride'] ?? json['value_cost_override'],
+      ),
       magic: magic,
       consumable: json['consumable'] == true,
       requiresAttunement: magic && json['requiresAttunement'] == true,
       typeReference: json['typeReference'] as String? ?? '',
+      propertyIds: _parseIdList(json['propertyIds'] ?? json['properties']),
       sourceFileId: json['sourceFileId'] as int? ??
           (json['source_file_id'] as int?),
       sourcePage: json['sourcePage'] as int?,
@@ -132,10 +168,12 @@ class Item {
         'description': description,
         'itemType': itemType.toJson(),
         'rarity': rarity.toJson(),
+        if (valueCostOverride != null) 'valueCostOverride': valueCostOverride,
         'magic': magic,
         'consumable': consumable,
         if (magic) 'requiresAttunement': requiresAttunement,
         'typeReference': typeReference,
+        'propertyIds': propertyIds,
         if (sourceFileId != null) 'sourceFileId': sourceFileId,
         if (sourcePage != null) 'sourcePage': sourcePage,
       };
@@ -146,10 +184,13 @@ class Item {
     String? description,
     ItemType? itemType,
     ItemRarity? rarity,
+    int? valueCostOverride,
+    bool clearValueCostOverride = false,
     bool? magic,
     bool? consumable,
     bool? requiresAttunement,
     String? typeReference,
+    List<int>? propertyIds,
     int? sourceFileId,
     int? sourcePage,
   }) {
@@ -160,11 +201,15 @@ class Item {
       description: description ?? this.description,
       itemType: itemType ?? this.itemType,
       rarity: rarity ?? this.rarity,
+      valueCostOverride: clearValueCostOverride
+          ? null
+          : (valueCostOverride ?? this.valueCostOverride),
       magic: nextMagic,
       consumable: consumable ?? this.consumable,
       requiresAttunement:
           nextMagic && (requiresAttunement ?? this.requiresAttunement),
       typeReference: typeReference ?? this.typeReference,
+      propertyIds: propertyIds ?? this.propertyIds,
       sourceFileId: sourceFileId ?? this.sourceFileId,
       sourcePage: sourcePage ?? this.sourcePage,
     );

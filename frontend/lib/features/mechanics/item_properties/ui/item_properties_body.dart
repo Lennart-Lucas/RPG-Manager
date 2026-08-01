@@ -13,25 +13,23 @@ import '../../../export/card_export_theme.dart';
 import '../../../export/card_pdf_export_sheet.dart';
 import '../../../shell/app_page.dart';
 import '../../../shell/shell_page_app_bar.dart';
-import '../../player_options_icons.dart';
-import '../data/feat_list_derived_data.dart';
-import '../data/feat_list_filters.dart';
-import '../data/feat_model.dart';
-import 'feat_detail_page.dart';
-import 'feat_form_sheet.dart';
-import 'feat_record_list_view.dart';
-import 'feats_filter_strip.dart';
+import '../../mechanics_icons.dart';
+import '../data/item_property_list_derived_data.dart';
+import '../data/item_property_model.dart';
+import 'item_property_detail_page.dart';
+import 'item_property_form_sheet.dart';
+import 'item_property_record_list_view.dart';
 
-class FeatsBody extends StatefulWidget {
-  const FeatsBody({super.key, required this.auth});
+class ItemPropertiesBody extends StatefulWidget {
+  const ItemPropertiesBody({super.key, required this.auth});
 
   final AuthController auth;
 
   @override
-  State<FeatsBody> createState() => _FeatsBodyState();
+  State<ItemPropertiesBody> createState() => _ItemPropertiesBodyState();
 }
 
-class _FeatsBodyState extends State<FeatsBody>
+class _ItemPropertiesBodyState extends State<ItemPropertiesBody>
     with SingleTickerProviderStateMixin {
   final _api = CatalogApi();
   final _searchController = TextEditingController();
@@ -42,12 +40,10 @@ class _FeatsBodyState extends State<FeatsBody>
   String? _error;
   List<CatalogItem> _items = const [];
 
-  FeatsListFilter _filter = FeatsListFilter.empty;
-  FeatsSortMode _sortMode = FeatsSortMode.alphabetical;
   bool _selectionMode = false;
   final Set<String> _selectedItemIds = <String>{};
 
-  static String get _pageKey => AppPage.feats.name;
+  static String get _pageKey => AppPage.itemProperties.name;
 
   @override
   void initState() {
@@ -82,8 +78,7 @@ class _FeatsBodyState extends State<FeatsBody>
     _installShellAppBar();
   }
 
-  bool get _hasActiveFilters =>
-      _filter.hasAny || _searchController.text.trim().isNotEmpty;
+  bool get _hasActiveFilters => _searchController.text.trim().isNotEmpty;
 
   void _installShellAppBar() {
     if (!mounted) return;
@@ -97,7 +92,7 @@ class _FeatsBodyState extends State<FeatsBody>
       ShellPageAppBarData(
         actions: [
           IconButton(
-            tooltip: 'Clear filters',
+            tooltip: 'Clear search',
             icon: Icon(
               Icons.filter_list_off,
               color: active ? scheme.primary : null,
@@ -105,15 +100,17 @@ class _FeatsBodyState extends State<FeatsBody>
             onPressed: active ? _clearFilters : null,
           ),
           IconButton(
-            tooltip: 'Filters',
+            tooltip: 'Search',
             icon: Icon(
-              filtersOpen ? Icons.filter_list : Icons.filter_list_outlined,
+              filtersOpen ? Icons.search : Icons.search_outlined,
               color: active || filtersOpen ? scheme.primary : null,
             ),
             onPressed: _toggleFilters,
           ),
           IconButton(
-            tooltip: _selectionMode ? 'Exit selection mode' : 'Select feats',
+            tooltip: _selectionMode
+                ? 'Exit selection mode'
+                : 'Select item properties',
             icon: Icon(
               _selectionMode
                   ? Icons.checklist_rtl_rounded
@@ -145,7 +142,7 @@ class _FeatsBodyState extends State<FeatsBody>
     });
   }
 
-  void _selectAllFilteredItems(List<FeatListEntry> displayEntries) {
+  void _selectAllFilteredItems(List<ItemPropertyListEntry> displayEntries) {
     final ids = <String>{};
     for (final e in displayEntries) {
       final entry = e.catalogEntry;
@@ -154,7 +151,7 @@ class _FeatsBodyState extends State<FeatsBody>
     if (ids.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('No feats match the current filters or search.'),
+          content: Text('No item properties match the current search.'),
         ),
       );
       return;
@@ -166,7 +163,7 @@ class _FeatsBodyState extends State<FeatsBody>
     setState(_selectedItemIds.clear);
   }
 
-  Future<Uint8List?> _composeSelectedFeatsPdfBytes({
+  Future<Uint8List?> _composeSelectedPdfBytes({
     required CardExportThemeSelection cardExportTheme,
     required int cardsPerRow,
     required int cardsPerColumn,
@@ -188,9 +185,9 @@ class _FeatsBodyState extends State<FeatsBody>
     for (final entry in selected) {
       if (!mounted) return null;
       images.addAll(
-        await rasterizeFeatCards(
+        await rasterizeItemPropertyCards(
           context: context,
-          feat: entry.entry,
+          property: entry.entry,
           theme: theme,
         ),
       );
@@ -198,7 +195,7 @@ class _FeatsBodyState extends State<FeatsBody>
     if (!mounted) return null;
     return buildCardsPdf(
       pngBytesList: images,
-      title: 'Selected feat cards',
+      title: 'Selected item property cards',
       includeCoverPage: false,
       cardsPerRow: cardsPerRow,
       cardsPerColumn: cardsPerColumn,
@@ -207,7 +204,7 @@ class _FeatsBodyState extends State<FeatsBody>
     );
   }
 
-  Future<void> _exportSelectedFeatsToPdf({
+  Future<void> _exportSelectedToPdf({
     required CardExportThemeSelection cardExportTheme,
     required int cardsPerRow,
     required int cardsPerColumn,
@@ -215,7 +212,7 @@ class _FeatsBodyState extends State<FeatsBody>
     required double cardGap,
   }) async {
     try {
-      final pdf = await _composeSelectedFeatsPdfBytes(
+      final pdf = await _composeSelectedPdfBytes(
         cardExportTheme: cardExportTheme,
         cardsPerRow: cardsPerRow,
         cardsPerColumn: cardsPerColumn,
@@ -225,14 +222,16 @@ class _FeatsBodyState extends State<FeatsBody>
       if (pdf == null) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No feats selected to export.')),
+          const SnackBar(
+            content: Text('No item properties selected to export.'),
+          ),
         );
         return;
       }
       if (!mounted) return;
       await presentCardExportPdf(pdf);
     } catch (e, st) {
-      debugPrint('Feat export failed: $e\n$st');
+      debugPrint('Item property export failed: $e\n$st');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Export failed: $e')),
@@ -240,7 +239,7 @@ class _FeatsBodyState extends State<FeatsBody>
     }
   }
 
-  Future<void> _openFeatCardExportSheet() async {
+  Future<void> _openCardExportSheet() async {
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -253,8 +252,8 @@ class _FeatsBodyState extends State<FeatsBody>
           child: ConstrainedBox(
             constraints: BoxConstraints(maxHeight: maxH),
             child: CardPdfExportSheet(
-              key: const ValueKey('feat_card_pdf_export_sheet'),
-              sheetTitle: 'Export feat cards',
+              key: const ValueKey('item_property_card_pdf_export_sheet'),
+              sheetTitle: 'Export item property cards',
               hasSelection: _selectedItemIds.isNotEmpty,
               composePdf: ({
                 required CardExportThemeSelection cardExportTheme,
@@ -263,7 +262,7 @@ class _FeatsBodyState extends State<FeatsBody>
                 required double pageMargin,
                 required double cardGap,
               }) =>
-                  _composeSelectedFeatsPdfBytes(
+                  _composeSelectedPdfBytes(
                 cardExportTheme: cardExportTheme,
                 cardsPerRow: cardsPerRow,
                 cardsPerColumn: cardsPerColumn,
@@ -278,7 +277,7 @@ class _FeatsBodyState extends State<FeatsBody>
                 required double cardGap,
               }) {
                 Navigator.of(sheetContext).pop();
-                _exportSelectedFeatsToPdf(
+                _exportSelectedToPdf(
                   cardExportTheme: cardExportTheme,
                   cardsPerRow: cardsPerRow,
                   cardsPerColumn: cardsPerColumn,
@@ -295,25 +294,25 @@ class _FeatsBodyState extends State<FeatsBody>
 
   Future<String?> _token() => widget.auth.requireAccessToken();
 
-  FeatRecord? _featFromCatalog(CatalogItem item) {
+  ItemPropertyRecord? _propertyFromCatalog(CatalogItem item) {
     try {
-      return FeatRecord.fromCatalogPayload(
+      return ItemPropertyRecord.fromCatalogPayload(
         name: item.name,
         payload: item.payload,
-        id: FeatRecord.slugify(item.name),
+        id: ItemPropertyRecord.slugify(item.name),
       );
     } catch (_) {
       return null;
     }
   }
 
-  List<FeatCatalogEntry> get _featEntries {
-    final out = <FeatCatalogEntry>[];
+  List<ItemPropertyCatalogEntry> get _propertyEntries {
+    final out = <ItemPropertyCatalogEntry>[];
     for (final item in _items) {
-      final entry = _featFromCatalog(item);
+      final entry = _propertyFromCatalog(item);
       if (entry == null) continue;
       out.add(
-        FeatCatalogEntry(
+        ItemPropertyCatalogEntry(
           item: item,
           entry: entry.copyWith(name: item.name),
         ),
@@ -322,12 +321,8 @@ class _FeatsBodyState extends State<FeatsBody>
     return out;
   }
 
-  FeatsDerivedViewData get _derived {
-    return deriveFeatsViewData(
-      featEntries: _featEntries,
-      filter: _filter,
-      sortMode: _sortMode,
-    );
+  ItemPropertiesDerivedViewData get _derived {
+    return deriveItemPropertiesViewData(propertyEntries: _propertyEntries);
   }
 
   Future<void> _reload() async {
@@ -340,7 +335,7 @@ class _FeatsBodyState extends State<FeatsBody>
       if (token == null) {
         throw AuthApiException('Not authenticated');
       }
-      final items = await _api.list(token, CatalogKind.feats);
+      final items = await _api.list(token, CatalogKind.itemProperties);
       if (!mounted) return;
       setState(() {
         _items = items;
@@ -355,7 +350,7 @@ class _FeatsBodyState extends State<FeatsBody>
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _error = 'Could not load feats';
+        _error = 'Could not load item properties';
         _loading = false;
       });
     }
@@ -412,7 +407,7 @@ class _FeatsBodyState extends State<FeatsBody>
     try {
       final token = await _token();
       if (token == null || !mounted) return;
-      final entry = await showFeatFormSheet(
+      final entry = await showItemPropertyFormSheet(
         context,
         searchLinks: (query) => _searchLinks(token, query),
         loadAutoLinkTargets: () => _loadAutoLinkTargets(token),
@@ -420,7 +415,7 @@ class _FeatsBodyState extends State<FeatsBody>
       if (entry == null || !mounted) return;
       await _api.create(
         accessToken: token,
-        kind: CatalogKind.feats,
+        kind: CatalogKind.itemProperties,
         name: entry.name,
         payload: entry.toJson(),
       );
@@ -433,7 +428,7 @@ class _FeatsBodyState extends State<FeatsBody>
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not create feat')),
+        const SnackBar(content: Text('Could not create item property')),
       );
     }
   }
@@ -442,8 +437,8 @@ class _FeatsBodyState extends State<FeatsBody>
     try {
       final token = await _token();
       if (token == null || !mounted) return;
-      final existing = _featFromCatalog(item);
-      final entry = await showFeatFormSheet(
+      final existing = _propertyFromCatalog(item);
+      final entry = await showItemPropertyFormSheet(
         context,
         initial: existing,
         searchLinks: (query) => _searchLinks(token, query),
@@ -452,7 +447,7 @@ class _FeatsBodyState extends State<FeatsBody>
       if (entry == null || !mounted) return;
       await _api.update(
         accessToken: token,
-        kind: CatalogKind.feats,
+        kind: CatalogKind.itemProperties,
         itemId: item.id,
         name: entry.name,
         payload: entry.toJson(),
@@ -466,15 +461,15 @@ class _FeatsBodyState extends State<FeatsBody>
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not update feat')),
+        const SnackBar(content: Text('Could not update item property')),
       );
     }
   }
 
-  Future<void> _openDetail(FeatCatalogEntry entry) async {
+  Future<void> _openDetail(ItemPropertyCatalogEntry entry) async {
     final deleted = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (context) => FeatDetailPage(
+        builder: (context) => ItemPropertyDetailPage(
           auth: widget.auth,
           item: entry.item,
           entry: entry.entry,
@@ -498,62 +493,7 @@ class _FeatsBodyState extends State<FeatsBody>
 
   void _clearFilters() {
     setState(() {
-      _filter = FeatsListFilter.empty;
-      _sortMode = FeatsSortMode.alphabetical;
       _searchController.clear();
-    });
-    _installShellAppBar();
-  }
-
-  Future<void> _pickSortMode() async {
-    final result = await showModalBottomSheet<FeatsSortMode>(
-      context: context,
-      showDragHandle: true,
-      builder: (ctx) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final mode in FeatsSortMode.values)
-                ListTile(
-                  leading: Icon(mode.icon),
-                  title: Text(mode.label),
-                  selected: mode == _sortMode,
-                  onTap: () => Navigator.pop(ctx, mode),
-                ),
-            ],
-          ),
-        );
-      },
-    );
-    if (result == null || !mounted) return;
-    setState(() => _sortMode = result);
-    _installShellAppBar();
-  }
-
-  Future<void> _pickHasRequirement() async {
-    final result = await showModalBottomSheet<FeatRequirementFilter>(
-      context: context,
-      showDragHandle: true,
-      builder: (ctx) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final option in FeatRequirementFilter.values)
-                ListTile(
-                  title: Text(option.label),
-                  selected: option == _filter.hasRequirement,
-                  onTap: () => Navigator.pop(ctx, option),
-                ),
-            ],
-          ),
-        );
-      },
-    );
-    if (result == null || !mounted) return;
-    setState(() {
-      _filter = _filter.copyWith(hasRequirement: result);
     });
     _installShellAppBar();
   }
@@ -561,13 +501,17 @@ class _FeatsBodyState extends State<FeatsBody>
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
     final derived = _loading || _error != null ? null : _derived;
     final displayEntries = derived == null
-        ? const <FeatListEntry>[]
-        : filterFeatListEntriesBySearch(
+        ? const <ItemPropertyListEntry>[]
+        : filterItemPropertyListEntriesBySearch(
             derived.entries,
             _searchController.text,
           );
+    final hasSearch = _searchController.text.trim().isNotEmpty;
+    final barColor =
+        theme.appBarTheme.backgroundColor ?? theme.scaffoldBackgroundColor;
 
     return Stack(
       children: [
@@ -577,7 +521,7 @@ class _FeatsBodyState extends State<FeatsBody>
               child: Opacity(
                 opacity: 0.08,
                 child: Icon(
-                  featsPageIcon,
+                  itemPropertiesPageIcon,
                   size: 440,
                   color: scheme.onSurface,
                 ),
@@ -590,13 +534,30 @@ class _FeatsBodyState extends State<FeatsBody>
             SizeTransition(
               sizeFactor: _filterPanelAnimation,
               axisAlignment: -1.0,
-              child: FeatsFilterStrip(
-                sectionBottomPadding: 12,
-                searchController: _searchController,
-                sortModeSummary: _sortMode.label,
-                hasRequirementSummary: _filter.hasRequirement.label,
-                onSortModeTap: _pickSortMode,
-                onHasRequirementTap: _pickHasRequirement,
+              child: Material(
+                color: barColor,
+                elevation: 1,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      labelText: 'Search',
+                      hintText: 'Name or description',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: hasSearch
+                          ? IconButton(
+                              tooltip: 'Clear search',
+                              icon: const Icon(Icons.close),
+                              onPressed: _searchController.clear,
+                            )
+                          : null,
+                      border: const OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    textInputAction: TextInputAction.search,
+                  ),
+                ),
               ),
             ),
             Expanded(
@@ -643,7 +604,7 @@ class _FeatsBodyState extends State<FeatsBody>
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               Text(
-                                                'No feats yet',
+                                                'No item properties yet',
                                                 textAlign: TextAlign.center,
                                                 style: Theme.of(context)
                                                     .textTheme
@@ -651,7 +612,7 @@ class _FeatsBodyState extends State<FeatsBody>
                                               ),
                                               const SizedBox(height: 8),
                                               Text(
-                                                'Tap + to add your first feat.',
+                                                'Tap + to add your first item property.',
                                                 textAlign: TextAlign.center,
                                                 style: Theme.of(context)
                                                     .textTheme
@@ -670,13 +631,12 @@ class _FeatsBodyState extends State<FeatsBody>
                                 },
                               ),
                             )
-                          : FeatRecordListView(
+                          : ItemPropertyRecordListView(
                               totalItems: derived.allEntries.length,
                               entries: displayEntries,
                               selectedItemIds: _selectedItemIds,
                               selectionEmphasis: _selectionMode,
-                              hasActiveSearch:
-                                  _searchController.text.trim().isNotEmpty,
+                              hasActiveSearch: hasSearch,
                               bottomPadding: _selectionMode ? 16 : 88,
                               onRefresh: _reload,
                               onItemPrimaryTap: (entry) {
@@ -709,7 +669,7 @@ class _FeatsBodyState extends State<FeatsBody>
                           ),
                         ),
                         IconButton(
-                          tooltip: 'Select all filtered feats',
+                          tooltip: 'Select all filtered item properties',
                           onPressed: () =>
                               _selectAllFilteredItems(displayEntries),
                           icon: const Icon(Icons.playlist_add_check),
@@ -720,7 +680,7 @@ class _FeatsBodyState extends State<FeatsBody>
                           icon: const Icon(Icons.clear_all),
                         ),
                         FilledButton.icon(
-                          onPressed: _openFeatCardExportSheet,
+                          onPressed: _openCardExportSheet,
                           icon: const Icon(
                             Icons.picture_as_pdf_outlined,
                             size: 18,

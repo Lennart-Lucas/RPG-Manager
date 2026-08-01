@@ -777,7 +777,7 @@ class _SpellsBodyState extends State<SpellsBody>
           children: [
             SizeTransition(
               sizeFactor: _filterPanelAnimation,
-              alignment: Alignment.topCenter,
+              axisAlignment: -1.0,
               child: SpellsFilterStrip(
                 sectionBottomPadding: 12,
                 spellSearchController: _searchController,
