@@ -178,6 +178,61 @@ class OfflineSyncController extends ChangeNotifier {
     }
   }
 
+  /// Re-queue offline creates still in GET cache (temp ids), then drain the queue.
+  Future<String> recoverTempCreatesAndSync() async {
+    if (!_enabled) return 'Offline sync is desktop-only.';
+    final userId = _userId;
+    if (userId == null) return 'Not signed in.';
+
+    final temps = await cache.findTempCatalogItems(userId: userId);
+    final alreadyQueuedTemps = <int>{
+      for (final op in queue.ops)
+        if (op.method == 'POST' && op.tempEntityId != null) op.tempEntityId!,
+    };
+
+    var requeued = 0;
+    for (final item in temps) {
+      final tempId = item['tempId'] as int;
+      if (alreadyQueuedTemps.contains(tempId)) continue;
+      final kind = item['kind'] as String;
+      final name = item['name'] as String;
+      final payload = item['payload'];
+      final listUri =
+          '${AppConfig.apiBaseUrl}${AppConfig.apiPrefix}/catalog/$kind';
+      final body = jsonEncode({
+        'name': name,
+        if (payload != null) 'payload': payload,
+      });
+      await queue.enqueue(
+        QueuedMutation(
+          id: 'recover_${DateTime.now().microsecondsSinceEpoch}_$tempId',
+          method: 'POST',
+          uri: listUri,
+          body: body,
+          createdAt: DateTime.now().toUtc(),
+          tempEntityId: tempId,
+          listCacheUri: listUri,
+          entityCacheUri: '$listUri/$tempId',
+        ),
+      );
+      requeued++;
+    }
+    await onQueueChanged();
+
+    if (queue.length == 0) {
+      return 'Nothing to sync (no pending queue ops or temp-id cache items).';
+    }
+
+    markOnline();
+    await syncNow();
+    final pending = queue.length;
+    if (pending > 0) {
+      return 'Synced with $requeued recovered create(s); $pending still pending. '
+          '${_lastSyncError ?? ''}';
+    }
+    return 'Synced. Recovered $requeued create(s) from local cache.';
+  }
+
   // --- User profile soft-offline cache ---
 
   Future<File> _profileFile(int userId) async {

@@ -138,4 +138,43 @@ class MutationQueue {
     _ops.clear();
     await _persist();
   }
+
+  /// Rewrites temp entity ids embedded in pending mutation URIs after a create syncs.
+  Future<int> rewriteTempIdsInUris({
+    required int tempId,
+    required int realId,
+  }) async {
+    if (tempId >= 0 || tempId == realId) return 0;
+    final from = '/$tempId';
+    final to = '/$realId';
+    var changed = 0;
+    for (var i = 0; i < _ops.length; i++) {
+      final op = _ops[i];
+      final uri = op.uri.contains(from) ? op.uri.replaceAll(from, to) : op.uri;
+      final listUri = op.listCacheUri?.contains(from) == true
+          ? op.listCacheUri!.replaceAll(from, to)
+          : op.listCacheUri;
+      final entityUri = op.entityCacheUri?.contains(from) == true
+          ? op.entityCacheUri!.replaceAll(from, to)
+          : op.entityCacheUri;
+      if (uri == op.uri &&
+          listUri == op.listCacheUri &&
+          entityUri == op.entityCacheUri) {
+        continue;
+      }
+      _ops[i] = QueuedMutation(
+        id: op.id,
+        method: op.method,
+        uri: uri,
+        body: op.body,
+        createdAt: op.createdAt,
+        tempEntityId: op.tempEntityId,
+        listCacheUri: listUri,
+        entityCacheUri: entityUri,
+      );
+      changed++;
+    }
+    if (changed > 0) await _persist();
+    return changed;
+  }
 }

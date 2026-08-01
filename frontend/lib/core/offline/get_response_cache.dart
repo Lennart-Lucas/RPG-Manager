@@ -145,4 +145,49 @@ class GetResponseCache {
   }) async {
     await put(userId: userId, uri: uri, body: jsonEncode(json));
   }
+
+  /// Finds catalog records still held under negative (offline) temp ids.
+  Future<List<Map<String, dynamic>>> findTempCatalogItems({
+    required int userId,
+  }) async {
+    if (!isEnabled) return const [];
+    final root = await _ensureRoot();
+    final byTempId = <int, Map<String, dynamic>>{};
+    await for (final entity in root.list()) {
+      if (entity is! File || !entity.path.endsWith('.json')) continue;
+      try {
+        final decoded = jsonDecode(await entity.readAsString());
+        if (decoded is! Map || decoded['body'] is! String) continue;
+        final cachedUri = decoded['uri'] as String? ?? '';
+        if (!cachedUri.contains('/catalog/')) continue;
+        final parsed = jsonDecode(decoded['body'] as String);
+        void consider(Map map, {required bool fromEntity}) {
+          final id = map['id'];
+          if (id is! int || id >= 0) return;
+          final kind = map['kind'];
+          final name = map['name'];
+          if (kind is! String || kind.isEmpty) return;
+          if (name is! String || name.trim().isEmpty) return;
+          final existing = byTempId[id];
+          if (existing != null && !fromEntity) return;
+          byTempId[id] = {
+            'tempId': id,
+            'kind': kind,
+            'name': name,
+            'payload': map['payload'],
+            'fromEntity': fromEntity,
+          };
+        }
+
+        if (parsed is List) {
+          for (final item in parsed) {
+            if (item is Map) consider(item, fromEntity: false);
+          }
+        } else if (parsed is Map) {
+          consider(parsed, fromEntity: true);
+        }
+      } catch (_) {}
+    }
+    return byTempId.values.toList();
+  }
 }
