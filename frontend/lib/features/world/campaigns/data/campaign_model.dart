@@ -1,5 +1,7 @@
-class CampaignSession {
-  const CampaignSession({
+/// Legacy embedded session shape kept for one-time migration into catalog
+/// [SessionRecord]s.
+class LegacyCampaignSession {
+  const LegacyCampaignSession({
     required this.dateTime,
     this.title = '',
   });
@@ -8,37 +10,14 @@ class CampaignSession {
   final String dateTime;
   final String title;
 
-  factory CampaignSession.fromJson(Map<String, dynamic> json) {
-    return CampaignSession(
+  factory LegacyCampaignSession.fromJson(Map<String, dynamic> json) {
+    return LegacyCampaignSession(
       dateTime: json['dateTime'] as String? ?? '',
       title: json['title'] as String? ?? '',
     );
   }
 
-  Map<String, dynamic> toJson() => {
-        'dateTime': dateTime,
-        'title': title,
-      };
-
   DateTime? get parsedDateTime => DateTime.tryParse(dateTime);
-
-  static String displayName({
-    required String campaignName,
-    required int index1Based,
-    required String title,
-  }) {
-    final base = '$campaignName s$index1Based';
-    final t = title.trim();
-    if (t.isEmpty) return base;
-    return '$base - $t';
-  }
-
-  CampaignSession copyWith({String? dateTime, String? title}) {
-    return CampaignSession(
-      dateTime: dateTime ?? this.dateTime,
-      title: title ?? this.title,
-    );
-  }
 }
 
 class CampaignRecord {
@@ -47,14 +26,17 @@ class CampaignRecord {
     this.description = '',
     this.playerCharacterIds = const [],
     this.houseRuleIds = const [],
-    this.sessions = const [],
+    this.legacySessions = const [],
   });
 
   final String name;
   final String description;
   final List<int> playerCharacterIds;
   final List<int> houseRuleIds;
-  final List<CampaignSession> sessions;
+
+  /// Sessions formerly embedded in the campaign payload. Migrated once into
+  /// catalog `sessions` records, then cleared.
+  final List<LegacyCampaignSession> legacySessions;
 
   factory CampaignRecord.fromCatalogPayload({
     required String name,
@@ -77,14 +59,16 @@ class CampaignRecord {
         if (id != null) rules.add(id);
       }
     }
-    final sessions = <CampaignSession>[];
+    final sessions = <LegacyCampaignSession>[];
     final rawSessions = payload['sessions'];
     if (rawSessions is List) {
       for (final e in rawSessions) {
         if (e is Map<String, dynamic>) {
-          sessions.add(CampaignSession.fromJson(e));
+          sessions.add(LegacyCampaignSession.fromJson(e));
         } else if (e is Map) {
-          sessions.add(CampaignSession.fromJson(Map<String, dynamic>.from(e)));
+          sessions.add(
+            LegacyCampaignSession.fromJson(Map<String, dynamic>.from(e)),
+          );
         }
       }
     }
@@ -93,7 +77,7 @@ class CampaignRecord {
       description: payload['description'] as String? ?? '',
       playerCharacterIds: players,
       houseRuleIds: rules,
-      sessions: sortSessions(sessions),
+      legacySessions: sessions,
     );
   }
 
@@ -102,27 +86,26 @@ class CampaignRecord {
         'description': description,
         'playerCharacterIds': playerCharacterIds,
         'houseRuleIds': houseRuleIds,
-        'sessions': [for (final s in sortSessions(sessions)) s.toJson()],
+        // Keep embedded sessions until migration clears [legacySessions].
+        'sessions': [
+          for (final s in legacySessions)
+            {'dateTime': s.dateTime, 'title': s.title},
+        ],
       };
 
-  static List<CampaignSession> sortSessions(List<CampaignSession> sessions) {
-    final copy = [...sessions];
-    copy.sort((a, b) {
-      final da = a.parsedDateTime;
-      final db = b.parsedDateTime;
-      if (da == null && db == null) return 0;
-      if (da == null) return 1;
-      if (db == null) return -1;
-      return da.compareTo(db);
-    });
-    return copy;
-  }
-
-  String sessionDisplayNameAt(int index1Based, CampaignSession session) {
-    return CampaignSession.displayName(
-      campaignName: name,
-      index1Based: index1Based,
-      title: session.title,
+  CampaignRecord copyWith({
+    String? name,
+    String? description,
+    List<int>? playerCharacterIds,
+    List<int>? houseRuleIds,
+    List<LegacyCampaignSession>? legacySessions,
+  }) {
+    return CampaignRecord(
+      name: name ?? this.name,
+      description: description ?? this.description,
+      playerCharacterIds: playerCharacterIds ?? this.playerCharacterIds,
+      houseRuleIds: houseRuleIds ?? this.houseRuleIds,
+      legacySessions: legacySessions ?? this.legacySessions,
     );
   }
 

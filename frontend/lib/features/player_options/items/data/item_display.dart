@@ -1,9 +1,10 @@
 import '../../../../core/markdown/wiki_link.dart';
+import '../../../../core/ui/card_text_pagination.dart';
 import 'item_model.dart';
 
 /// Plain-text preview of item description markdown for list cards.
 String itemDescriptionPreview(String description) {
-  var t = description.trim();
+  var t = stripCardBreakMarkers(description);
   if (t.isEmpty) return '';
 
   t = t.replaceAllMapped(wikiLinkPattern, (match) {

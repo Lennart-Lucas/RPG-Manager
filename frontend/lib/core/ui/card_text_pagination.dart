@@ -1,3 +1,23 @@
+/// Explicit card page break inserted by the markdown toolbar.
+const kCardBreakMarker = '{{card-break}}';
+
+final _cardBreakSplitPattern = RegExp(
+  r'[ \t]*\{\{card-break\}\}[ \t]*(?:\r?\n)?',
+  caseSensitive: false,
+);
+
+final _cardBreakTokenPattern = RegExp(
+  r'[ \t]*\{\{card-break\}\}[ \t]*',
+  caseSensitive: false,
+);
+
+/// Removes card-break markers for display / previews.
+String stripCardBreakMarkers(String input) {
+  var text = input.replaceAll(_cardBreakTokenPattern, '');
+  text = text.replaceAll(RegExp(r'\n{3,}'), '\n\n');
+  return text.trim();
+}
+
 List<String> paginateCardBodyText(
   String input, {
   int preferredCharsPerCard = 900,
@@ -5,6 +25,34 @@ List<String> paginateCardBodyText(
 }) {
   final normalized = input.trim();
   if (normalized.isEmpty) return const [''];
+
+  // Forced breaks first: each segment starts a new card.
+  final segments = normalized
+      .split(_cardBreakSplitPattern)
+      .map((segment) => segment.trim())
+      .where((segment) => segment.isNotEmpty)
+      .toList(growable: false);
+
+  if (segments.isEmpty) return const [''];
+
+  final pages = <String>[
+    for (final segment in segments)
+      ..._paginateSegment(
+        segment,
+        preferredCharsPerCard: preferredCharsPerCard,
+        maxCharsPerCard: maxCharsPerCard,
+      ),
+  ];
+  return pages.isEmpty ? const [''] : pages;
+}
+
+List<String> _paginateSegment(
+  String input, {
+  required int preferredCharsPerCard,
+  required int maxCharsPerCard,
+}) {
+  final normalized = input.trim();
+  if (normalized.isEmpty) return const [];
   final chunks = <String>[];
   var start = 0;
   final total = normalized.length;

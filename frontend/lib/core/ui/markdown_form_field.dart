@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../features/dm_tools/resources/ui/resource_form_helpers.dart';
 import '../markdown/wiki_link.dart';
+import 'card_text_pagination.dart';
 
 /// A catalog record that can be inserted as `[[kind/name]]`.
 class CatalogLinkTarget {
@@ -49,6 +50,7 @@ class MarkdownFormField extends StatefulWidget {
     this.validator,
     this.onChanged,
     this.autovalidateMode = AutovalidateMode.disabled,
+    this.enableCardBreak = false,
   }) : assert(
           controller == null || initialValue == null,
           'Provide either a controller or an initialValue, not both.',
@@ -67,6 +69,9 @@ class MarkdownFormField extends StatefulWidget {
   final FormFieldValidator<String>? validator;
   final ValueChanged<String>? onChanged;
   final AutovalidateMode autovalidateMode;
+
+  /// Shows a toolbar action that inserts an explicit printable-card page break.
+  final bool enableCardBreak;
 
   @override
   State<MarkdownFormField> createState() => _MarkdownFormFieldState();
@@ -349,6 +354,26 @@ class _MarkdownFormFieldState extends State<MarkdownFormField> {
     _focusNode.requestFocus();
   }
 
+  void _insertCardBreak() {
+    final text = _controller.text;
+    final selection = _controller.selection;
+    final start = selection.start < 0 ? text.length : selection.start;
+    final end = selection.end < 0 ? start : selection.end;
+
+    final needsLeadingNewline = start > 0 && text[start - 1] != '\n';
+    final needsTrailingNewline = end >= text.length || text[end] != '\n';
+    final inserted = '${needsLeadingNewline ? '\n' : ''}'
+        '$kCardBreakMarker'
+        '${needsTrailingNewline ? '\n' : ''}';
+    final newText = text.replaceRange(start, end, inserted);
+    final newOffset = start + inserted.length;
+    _controller.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: newOffset),
+    );
+    _focusNode.requestFocus();
+  }
+
   Future<void> _autoLink() async {
     final loader = widget.loadAutoLinkTargets;
     if (loader == null || _autoLinking) return;
@@ -399,6 +424,7 @@ class _MarkdownFormFieldState extends State<MarkdownFormField> {
             _Toolbar(
               autoLinkEnabled: widget.loadAutoLinkTargets != null,
               autoLinking: _autoLinking,
+              cardBreakEnabled: widget.enableCardBreak,
               onBold: () => _wrapSelection(prefix: '**', suffix: '**'),
               onItalic: () => _wrapSelection(prefix: '*', suffix: '*'),
               onUnderline: () =>
@@ -406,6 +432,7 @@ class _MarkdownFormFieldState extends State<MarkdownFormField> {
               onBullet: () => _toggleLinePrefix(numbered: false),
               onNumbered: () => _toggleLinePrefix(numbered: true),
               onTable: _insertTable,
+              onCardBreak: _insertCardBreak,
               onAutoLink: _autoLink,
             ),
             const SizedBox(height: 8),
@@ -439,9 +466,11 @@ class _Toolbar extends StatelessWidget {
     required this.onBullet,
     required this.onNumbered,
     required this.onTable,
+    required this.onCardBreak,
     required this.onAutoLink,
     required this.autoLinkEnabled,
     required this.autoLinking,
+    required this.cardBreakEnabled,
   });
 
   final VoidCallback onBold;
@@ -450,9 +479,11 @@ class _Toolbar extends StatelessWidget {
   final VoidCallback onBullet;
   final VoidCallback onNumbered;
   final VoidCallback onTable;
+  final VoidCallback onCardBreak;
   final VoidCallback onAutoLink;
   final bool autoLinkEnabled;
   final bool autoLinking;
+  final bool cardBreakEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -490,6 +521,12 @@ class _Toolbar extends StatelessWidget {
           icon: Icons.table_chart_outlined,
           onPressed: onTable,
         ),
+        if (cardBreakEnabled)
+          _ToolButton(
+            tooltip: 'Card break (new printed card)',
+            icon: Icons.insert_page_break_outlined,
+            onPressed: onCardBreak,
+          ),
         if (autoLinkEnabled)
           _ToolButton(
             tooltip: 'Auto-link conditions & damage types',

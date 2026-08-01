@@ -109,6 +109,7 @@ class _FeatFormState extends State<_FeatForm> {
             hintText: 'Markdown content for this feat',
             minLines: 12,
             maxLines: 40,
+            enableCardBreak: true,
             searchLinks: widget.searchLinks,
             loadAutoLinkTargets: widget.loadAutoLinkTargets,
           ),

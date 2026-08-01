@@ -36,4 +36,24 @@ void main() {
       expect(opens.isEven, isTrue, reason: 'page should not split a ** pair: $page');
     }
   });
+
+  test('explicit card-break marker forces a new card', () {
+    const text = 'First card body.\n$kCardBreakMarker\nSecond card body.';
+    final pages = paginateCardBodyText(
+      text,
+      preferredCharsPerCard: 900,
+      maxCharsPerCard: 1300,
+    );
+    expect(pages, ['First card body.', 'Second card body.']);
+    for (final page in pages) {
+      expect(page.contains(kCardBreakMarker), isFalse);
+    }
+  });
+
+  test('stripCardBreakMarkers removes markers for display', () {
+    expect(
+      stripCardBreakMarkers('Hello\n$kCardBreakMarker\nWorld'),
+      'Hello\n\nWorld',
+    );
+  });
 }

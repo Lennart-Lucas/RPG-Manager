@@ -30,5 +30,6 @@ extension CatalogKindIcons on CatalogKind {
         CatalogKind.organisations => organisationsPageIcon,
         CatalogKind.generators => generatorPageIcon,
         CatalogKind.campaigns => storyPageIcon,
+        CatalogKind.sessions => sessionsPageIcon,
       };
 }

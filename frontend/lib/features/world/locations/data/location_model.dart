@@ -1,8 +1,12 @@
 enum LocationType {
   plane,
   continent,
+  nation,
   region,
   settlement,
+  city,
+  village,
+  tradingpost,
   district,
   site;
 
@@ -11,24 +15,59 @@ enum LocationType {
   String get label => switch (this) {
         LocationType.plane => 'Plane',
         LocationType.continent => 'Continent',
+        LocationType.nation => 'Nation',
         LocationType.region => 'Region',
         LocationType.settlement => 'Settlement',
+        LocationType.city => 'City',
+        LocationType.village => 'Village',
+        LocationType.tradingpost => 'Trading post',
         LocationType.district => 'District',
         LocationType.site => 'Site',
       };
 
-  /// Allowed parent types for this location type. Empty = must have no parent.
+  /// Allowed parent types for this location type.
+  /// Empty = must have no parent (planes). Non-empty = optional parent,
+  /// constrained to these types when set.
   List<LocationType> get allowedParentTypes => switch (this) {
         LocationType.plane => const [],
         LocationType.continent => const [LocationType.plane],
-        LocationType.region => const [LocationType.continent, LocationType.region],
-        LocationType.settlement => const [LocationType.region],
-        LocationType.district => const [LocationType.settlement],
+        LocationType.nation => const [
+          LocationType.plane,
+          LocationType.continent,
+        ],
+        LocationType.region => const [
+          LocationType.continent,
+          LocationType.nation,
+          LocationType.region,
+        ],
+        LocationType.settlement => const [
+          LocationType.region,
+          LocationType.nation,
+        ],
+        LocationType.city => const [
+          LocationType.region,
+          LocationType.nation,
+        ],
+        LocationType.village => const [
+          LocationType.region,
+          LocationType.nation,
+        ],
+        LocationType.tradingpost => const [
+          LocationType.region,
+          LocationType.nation,
+        ],
+        LocationType.district => const [
+          LocationType.settlement,
+          LocationType.city,
+        ],
         LocationType.site => const [
-            LocationType.settlement,
-            LocationType.district,
-            LocationType.region,
-          ],
+          LocationType.settlement,
+          LocationType.city,
+          LocationType.village,
+          LocationType.tradingpost,
+          LocationType.district,
+          LocationType.region,
+        ],
       };
 
   static LocationType parse(String? value) {
@@ -120,35 +159,13 @@ class LocationRecord {
   String get descriptionPreview =>
       description.replaceAll(RegExp(r'\s+'), ' ').trim();
 
-  /// Non-empty infobox rows for the overview box.
-  List<(String, String)> get filledInfoboxFields {
-    final rows = <(String, String)>[
-      ('Type', type.label),
-      ('Population', population),
-      ('Government', government),
-      ('Ruler', ruler),
-      ('Alignment', alignment),
-      ('Religions', religions),
-      ('Languages', languages),
-      ('Exports', exports),
-      ('Imports', imports),
-      ('Defenses', defenses),
-      ('History', history),
-      ('Map notes', mapNotes),
-    ];
-    return [
-      for (final row in rows)
-        if (row.$2.trim().isNotEmpty) (row.$1, row.$2.trim()),
-    ];
-  }
-
   String? validateParent(LocationRecord? parent) {
     final allowed = type.allowedParentTypes;
     if (allowed.isEmpty) {
       if (parentId != null) return 'Planes cannot have a parent';
       return null;
     }
-    if (parentId == null) return 'Select a parent location';
+    if (parentId == null) return null;
     if (parent == null) return 'Parent location not found';
     if (!allowed.contains(parent.type)) {
       return '${type.label} parent must be ${allowed.map((t) => t.label).join(' or ')}';

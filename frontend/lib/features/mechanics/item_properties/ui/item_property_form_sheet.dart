@@ -95,6 +95,7 @@ class _ItemPropertyFormState extends State<_ItemPropertyForm> {
             hintText: 'Markdown content for this item property',
             minLines: 12,
             maxLines: 40,
+            enableCardBreak: true,
             searchLinks: widget.searchLinks,
             loadAutoLinkTargets: widget.loadAutoLinkTargets,
           ),

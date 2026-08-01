@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/ui/record_list_card.dart';
 import '../../../auth/data/auth_api.dart';
 import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
@@ -8,9 +7,9 @@ import '../../../catalog/data/catalog_auto_link.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../world_icons.dart';
-import '../data/location_model.dart';
 import 'location_detail_page.dart';
 import 'location_form_sheet.dart';
+import 'location_tree_view.dart';
 
 class LocationsBody extends StatefulWidget {
   const LocationsBody({super.key, required this.auth});
@@ -145,8 +144,6 @@ class _LocationsBodyState extends State<LocationsBody> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    final namesById = {for (final i in _items) i.id: i.name};
 
     return Stack(
       children: [
@@ -200,67 +197,22 @@ class _LocationsBodyState extends State<LocationsBody> {
         else
           RefreshIndicator(
             onRefresh: _reload,
-            child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-              itemCount: _items.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 10),
-              itemBuilder: (context, index) {
-                final item = _items[index];
-                final record = LocationRecord.fromCatalogPayload(
-                  name: item.name,
-                  payload: item.payload,
-                );
-                final parentName = record.parentId == null
-                    ? null
-                    : namesById[record.parentId];
-                return RecordListCard(
-                  leading: Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: scheme.primaryContainer.withValues(alpha: 0.88),
-                      borderRadius: BorderRadius.circular(13),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
                     ),
-                    child: Icon(
-                      atlasPageIcon,
-                      size: 22,
-                      color: scheme.onPrimaryContainer,
+                    child: LocationTreeView(
+                      locations: _items,
+                      emptyLabel: 'No locations yet\nTap + to add one.',
+                      onTap: _open,
+                      onDelete: _delete,
                     ),
                   ),
-                  title: item.name,
-                  subtitle: parentName == null
-                      ? record.type.label
-                      : '${record.type.label} · $parentName',
-                  trailing: IconButton(
-                    tooltip: 'Delete',
-                    onPressed: () => _delete(item),
-                    icon: Icon(
-                      Icons.delete_outline,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                  onTap: () => _open(item),
-                  children: [
-                    const SizedBox(height: 8),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Chip(
-                        label: Text(record.type.label),
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    ),
-                    if (record.descriptionPreview.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        record.descriptionPreview,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ],
                 );
               },
             ),

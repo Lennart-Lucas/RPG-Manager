@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../markdown/wiki_link.dart';
+import 'card_text_pagination.dart';
 
 /// Lightweight markdown-ish body: bold/italic, lists, headings, tables, and
 /// wiki links.
@@ -66,12 +67,12 @@ class _SimpleCardRichTextState extends State<SimpleCardRichText> {
       decorationColor: theme.colorScheme.primary,
     );
 
-    final normalized = widget.content.trim();
+    final normalized = stripCardBreakMarkers(widget.content);
     if (normalized.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    final lines = widget.content.split('\n');
+    final lines = normalized.split('\n');
     final blocks = _parseBlocks(lines);
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

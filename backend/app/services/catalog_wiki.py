@@ -29,6 +29,7 @@ LINKABLE_FIELDS: dict[str, tuple[str, ...]] = {
     "characters": ("description",),
     "organisations": ("description",),
     "campaigns": ("description",),
+    "sessions": ("description",),
 }
 
 WIKI_LINK_RE = re.compile(

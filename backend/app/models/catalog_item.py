@@ -36,6 +36,7 @@ class CatalogKind(StrEnum):
     organisations = "organisations"
     generators = "generators"
     campaigns = "campaigns"
+    sessions = "sessions"
 
 
 class CatalogItem(Base):

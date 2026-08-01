@@ -79,8 +79,8 @@ class Item {
   final String description;
   final ItemType itemType;
   final ItemRarity rarity;
-  /// Optional gold-piece cost that overrides the rarity-based suggestion.
-  final int? valueCostOverride;
+  /// Optional cost text that overrides the rarity-based suggestion.
+  final String? valueCostOverride;
   final bool magic;
   final bool consumable;
   final bool requiresAttunement;
@@ -140,6 +140,17 @@ class Item {
     return null;
   }
 
+  static String? _parseOptionalCostOverride(dynamic raw) {
+    if (raw == null) return null;
+    if (raw is String) {
+      final trimmed = raw.trim();
+      return trimmed.isEmpty ? null : trimmed;
+    }
+    if (raw is num) return raw.toString();
+    final asText = raw.toString().trim();
+    return asText.isEmpty ? null : asText;
+  }
+
   factory Item.fromJson(Map<String, dynamic> json) {
     final magic = json['magic'] == true;
     return Item(
@@ -148,7 +159,7 @@ class Item {
       description: json['description'] as String? ?? '',
       itemType: ItemType.fromJson(json['itemType'] as String? ?? 'equipment'),
       rarity: ItemRarity.fromJson(json['rarity'] as String? ?? 'common'),
-      valueCostOverride: _parseOptionalInt(
+      valueCostOverride: _parseOptionalCostOverride(
         json['valueCostOverride'] ?? json['value_cost_override'],
       ),
       magic: magic,
@@ -168,7 +179,8 @@ class Item {
         'description': description,
         'itemType': itemType.toJson(),
         'rarity': rarity.toJson(),
-        if (valueCostOverride != null) 'valueCostOverride': valueCostOverride,
+        if (valueCostOverride != null && valueCostOverride!.trim().isNotEmpty)
+          'valueCostOverride': valueCostOverride!.trim(),
         'magic': magic,
         'consumable': consumable,
         if (magic) 'requiresAttunement': requiresAttunement,
@@ -184,7 +196,7 @@ class Item {
     String? description,
     ItemType? itemType,
     ItemRarity? rarity,
-    int? valueCostOverride,
+    String? valueCostOverride,
     bool clearValueCostOverride = false,
     bool? magic,
     bool? consumable,

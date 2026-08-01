@@ -706,6 +706,7 @@ class _SpellFormState extends State<_SpellForm> {
             label: 'Description',
             minLines: 4,
             maxLines: 10,
+            enableCardBreak: true,
             searchLinks: widget.searchLinks,
             loadAutoLinkTargets: widget.loadAutoLinkTargets,
             validator: (value) {
@@ -721,6 +722,7 @@ class _SpellFormState extends State<_SpellForm> {
             label: 'Higher-level text',
             minLines: 2,
             maxLines: 6,
+            enableCardBreak: true,
             searchLinks: widget.searchLinks,
             loadAutoLinkTargets: widget.loadAutoLinkTargets,
           ),

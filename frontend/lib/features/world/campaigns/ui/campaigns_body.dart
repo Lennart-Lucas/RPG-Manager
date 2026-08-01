@@ -10,6 +10,7 @@ import '../../../catalog/data/catalog_models.dart';
 import '../../characters/data/character_model.dart';
 import '../../world_icons.dart';
 import '../data/campaign_model.dart';
+import '../data/session_model.dart';
 import 'campaign_detail_page.dart';
 import 'campaign_form_sheet.dart';
 
@@ -29,6 +30,7 @@ class _CampaignsBodyState extends State<CampaignsBody> {
   List<CatalogItem> _items = const [];
   Map<int, String> _characterNames = const {};
   Map<int, String> _ruleNames = const {};
+  Map<int, int> _sessionCounts = const {};
 
   @override
   void initState() {
@@ -50,6 +52,7 @@ class _CampaignsBodyState extends State<CampaignsBody> {
         _api.list(token, CatalogKind.campaigns),
         _api.list(token, CatalogKind.characters),
         _api.list(token, CatalogKind.rules),
+        _api.list(token, CatalogKind.sessions),
       ]);
       if (!mounted) return;
       final chars = results[1];
@@ -63,10 +66,30 @@ class _CampaignsBodyState extends State<CampaignsBody> {
             ? c.name
             : '${c.name} (${record.playerName})';
       }
+      final sessionCounts = <int, int>{};
+      for (final s in results[3]) {
+        final campaignId = SessionRecord.fromCatalogPayload(
+          name: s.name,
+          payload: s.payload,
+        ).campaignId;
+        if (campaignId <= 0) continue;
+        sessionCounts[campaignId] = (sessionCounts[campaignId] ?? 0) + 1;
+      }
+      for (final campaign in results[0]) {
+        final legacy = CampaignRecord.fromCatalogPayload(
+          name: campaign.name,
+          payload: campaign.payload,
+        ).legacySessions.length;
+        if (legacy > 0) {
+          sessionCounts[campaign.id] =
+              (sessionCounts[campaign.id] ?? 0) + legacy;
+        }
+      }
       setState(() {
         _items = results[0];
         _characterNames = names;
         _ruleNames = {for (final r in results[2]) r.id: r.name};
+        _sessionCounts = sessionCounts;
         _loading = false;
       });
     } on AuthApiException catch (e) {
@@ -230,7 +253,7 @@ class _CampaignsBodyState extends State<CampaignsBody> {
                   name: item.name,
                   payload: item.payload,
                 );
-                final sessionCount = record.sessions.length;
+                final sessionCount = _sessionCounts[item.id] ?? 0;
                 return RecordListCard(
                   leading: Container(
                     width: 42,

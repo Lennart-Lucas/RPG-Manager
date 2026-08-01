@@ -50,9 +50,9 @@ String suggestedGoldRangeForRarity(ItemRarity rarity) {
 }
 
 String goldDisplayForItem(Item item) {
-  final override = item.valueCostOverride;
-  if (override != null) {
-    return '${_formatGpAmount(override)} gp';
+  final override = item.valueCostOverride?.trim();
+  if (override != null && override.isNotEmpty) {
+    return override;
   }
   return suggestedGoldRangeForRarity(item.rarity);
 }

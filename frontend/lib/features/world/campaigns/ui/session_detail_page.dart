@@ -10,33 +10,33 @@ import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../../catalog/ui/open_catalog_detail.dart';
 import '../../world_icons.dart';
-import '../data/location_model.dart';
-import 'location_form_sheet.dart';
-import 'location_tree_view.dart';
+import '../data/session_model.dart';
+import 'session_form_sheet.dart';
 
-class LocationDetailPage extends StatefulWidget {
-  const LocationDetailPage({
+class SessionDetailPage extends StatefulWidget {
+  const SessionDetailPage({
     super.key,
     required this.auth,
     required this.item,
+    this.campaigns = const [],
   });
 
   final AuthController auth;
   final CatalogItem item;
+  final List<CatalogItem> campaigns;
 
   @override
-  State<LocationDetailPage> createState() => _LocationDetailPageState();
+  State<SessionDetailPage> createState() => _SessionDetailPageState();
 }
 
-class _LocationDetailPageState extends State<LocationDetailPage> {
+class _SessionDetailPageState extends State<SessionDetailPage> {
   final _api = CatalogApi();
   late CatalogItem _item = widget.item;
-  List<CatalogItem> _all = const [];
-  List<CatalogItem> _breadcrumb = const [];
+  late List<CatalogItem> _campaigns = widget.campaigns;
 
   Future<String?> _token() => widget.auth.requireAccessToken();
 
-  LocationRecord get _record => LocationRecord.fromCatalogPayload(
+  SessionRecord get _record => SessionRecord.fromCatalogPayload(
         name: _item.name,
         payload: _item.payload,
       );
@@ -44,53 +44,39 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
   @override
   void initState() {
     super.initState();
-    _loadLocations();
+    if (_campaigns.isEmpty) {
+      _loadCampaigns();
+    }
   }
 
-  Future<void> _loadLocations() async {
+  Future<void> _loadCampaigns() async {
     try {
       final token = await _token();
       if (token == null) return;
-      final all = await _api.list(token, CatalogKind.locations);
+      final campaigns = await _api.list(token, CatalogKind.campaigns);
       if (!mounted) return;
-      setState(() {
-        _all = all;
-        _breadcrumb = _buildBreadcrumb(all);
-      });
+      setState(() => _campaigns = campaigns);
     } catch (_) {}
   }
 
-  List<CatalogItem> _buildBreadcrumb(List<CatalogItem> all) {
-    final byId = {for (final i in all) i.id: i};
-    final chain = <CatalogItem>[];
-    var current = _record.parentId;
-    final seen = <int>{};
-    while (current != null && !seen.contains(current)) {
-      seen.add(current);
-      final parent = byId[current];
-      if (parent == null) break;
-      chain.insert(0, parent);
-      current = LocationRecord.fromCatalogPayload(
-        name: parent.name,
-        payload: parent.payload,
-      ).parentId;
+  CatalogItem? get _campaign {
+    final campaignId = _record.campaignId;
+    for (final c in _campaigns) {
+      if (c.id == campaignId) return c;
     }
-    return chain;
+    return null;
   }
 
   Future<void> _edit() async {
     try {
       final token = await _token();
       if (token == null || !mounted) return;
-      if (_all.isEmpty) {
-        _all = await _api.list(token, CatalogKind.locations);
-      }
+      if (_campaigns.isEmpty) await _loadCampaigns();
       if (!mounted) return;
-      final updatedRecord = await showLocationFormSheet(
+      final updatedRecord = await showSessionFormSheet(
         context,
         initial: _record,
-        allLocations: _all,
-        editingItemId: _item.id,
+        campaigns: _campaigns,
         searchLinks: (q) => searchCatalogLinkTargets(_api, token, q),
         loadAutoLinkTargets: () =>
             loadConditionDamageAutoLinkTargets(_api, token),
@@ -98,21 +84,22 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
       if (updatedRecord == null || !mounted) return;
       final updated = await _api.update(
         accessToken: token,
-        kind: CatalogKind.locations,
+        kind: CatalogKind.sessions,
         itemId: _item.id,
         name: updatedRecord.name,
         payload: updatedRecord.toJson(),
       );
       if (!mounted) return;
       setState(() => _item = updated);
-      await _loadLocations();
     } on AuthApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not update location')),
+        const SnackBar(content: Text('Could not update session')),
       );
     }
   }
@@ -121,7 +108,7 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete location?'),
+        title: const Text('Delete session?'),
         content: Text('Delete “${_item.name}”? This cannot be undone.'),
         actions: [
           TextButton(
@@ -141,30 +128,22 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
       if (token == null) return;
       await _api.delete(
         accessToken: token,
-        kind: CatalogKind.locations,
+        kind: CatalogKind.sessions,
         itemId: _item.id,
       );
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } on AuthApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not delete location')),
+        const SnackBar(content: Text('Could not delete session')),
       );
     }
-  }
-
-  Future<void> _openLocation(CatalogItem item) async {
-    await openCatalogRecordDetail(
-      context: context,
-      auth: widget.auth,
-      kindApiValue: CatalogKind.locations.apiValue,
-      itemId: item.id,
-    );
-    if (mounted) await _loadLocations();
   }
 
   @override
@@ -172,10 +151,15 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final record = _record;
+    final campaign = _campaign;
+    final local = record.parsedDateTime?.toLocal();
+    final dateLabel = local == null
+        ? (record.dateTime.isEmpty ? 'No date set' : record.dateTime)
+        : local.toString();
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_item.name.trim().isEmpty ? 'Location' : _item.name),
+        title: Text(_item.name.trim().isEmpty ? 'Session' : _item.name),
         actions: [
           const OfflineAppBarMarker(),
           IconButton(
@@ -197,7 +181,11 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
               child: Center(
                 child: Opacity(
                   opacity: 0.08,
-                  child: Icon(atlasPageIcon, size: 440, color: scheme.onSurface),
+                  child: Icon(
+                    sessionsPageIcon,
+                    size: 440,
+                    color: scheme.onSurface,
+                  ),
                 ),
               ),
             ),
@@ -205,52 +193,43 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
           ListView(
             padding: const EdgeInsets.all(24),
             children: [
-              if (_breadcrumb.isNotEmpty) ...[
-                Wrap(
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    for (var i = 0; i < _breadcrumb.length; i++) ...[
-                      if (i > 0)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: Icon(
-                            Icons.chevron_right,
-                            size: 16,
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
-                      InkWell(
-                        onTap: () => openCatalogRecordDetail(
-                          context: context,
-                          auth: widget.auth,
-                          kindApiValue: CatalogKind.locations.apiValue,
-                          itemId: _breadcrumb[i].id,
-                        ),
-                        child: Text(
-                          _breadcrumb[i].name,
-                          style: textTheme.bodyMedium?.copyWith(
-                            color: scheme.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 12),
-              ],
               Text(_item.name, style: textTheme.headlineSmall),
               const SizedBox(height: 4),
-              Chip(label: Text(record.type.label)),
-              const SizedBox(height: 16),
-              if (record.description.trim().isEmpty)
+              if (campaign == null)
                 Text(
-                  'No description yet.',
-                  style: textTheme.bodyLarge?.copyWith(
-                    color: scheme.onSurfaceVariant,
+                  'Campaign unknown',
+                  style: textTheme.titleMedium?.copyWith(
+                    color: scheme.primary,
+                    fontWeight: FontWeight.w600,
                   ),
                 )
               else
+                InkWell(
+                  onTap: () => openCatalogRecordDetail(
+                    context: context,
+                    auth: widget.auth,
+                    kindApiValue: CatalogKind.campaigns.apiValue,
+                    itemId: campaign.id,
+                  ),
+                  child: Text(
+                    campaign.name,
+                    style: textTheme.titleMedium?.copyWith(
+                      color: scheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 8),
+              Text(
+                dateLabel,
+                style: textTheme.bodyMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+              if (record.description.trim().isNotEmpty) ...[
+                const SizedBox(height: 20),
+                Text('Notes', style: textTheme.titleSmall),
+                const SizedBox(height: 8),
                 SimpleCardRichText(
                   content: record.description,
                   onWikiLinkTap: (kind, name) => openCatalogWikiLink(
@@ -260,14 +239,7 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
                     name: name,
                   ),
                 ),
-              const SizedBox(height: 28),
-              Text('Sub-locations', style: textTheme.titleMedium),
-              LocationTreeView(
-                locations: _all,
-                rootParentId: _item.id,
-                emptyLabel: 'No sub-locations.',
-                onTap: _openLocation,
-              ),
+              ],
             ],
           ),
         ],

@@ -227,7 +227,7 @@ class _CharacterDetailPageState extends State<CharacterDetailPage> {
                 ),
               if (record.mtgAlignment.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                Text('MTG alignment', style: textTheme.titleSmall),
+                Text('Alignment', style: textTheme.titleSmall),
                 const SizedBox(height: 8),
                 MtgAlignmentChips(colors: record.mtgAlignment),
               ],

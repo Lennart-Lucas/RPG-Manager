@@ -54,9 +54,6 @@ class _CampaignFormState extends State<_CampaignForm> {
       TextEditingController(text: widget.initial?.description ?? '');
   late List<int> _playerIds = [...?widget.initial?.playerCharacterIds];
   late List<int> _ruleIds = [...?widget.initial?.houseRuleIds];
-  late List<CampaignSession> _sessions = [
-    ...CampaignRecord.sortSessions([...?widget.initial?.sessions]),
-  ];
 
   @override
   void dispose() {
@@ -75,101 +72,14 @@ class _CampaignFormState extends State<_CampaignForm> {
         description: _descriptionController.text.trim(),
         playerCharacterIds: _playerIds,
         houseRuleIds: _ruleIds,
-        sessions: CampaignRecord.sortSessions(_sessions),
+        // Preserve unread legacy sessions until migration clears them.
+        legacySessions: widget.initial?.legacySessions ?? const [],
       ),
     );
   }
 
-  Future<void> _editSession(int? index) async {
-    final existing = index == null ? null : _sessions[index];
-    var date = existing?.parsedDateTime ?? DateTime.now();
-    final titleController = TextEditingController(text: existing?.title ?? '');
-    final result = await showDialog<CampaignSession>(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setLocal) {
-            return AlertDialog(
-              title: Text(index == null ? 'Add session' : 'Edit session'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Date & time'),
-                    subtitle: Text(date.toLocal().toString()),
-                    trailing: const Icon(Icons.calendar_today_outlined),
-                    onTap: () async {
-                      final d = await showDatePicker(
-                        context: context,
-                        initialDate: date,
-                        firstDate: DateTime(1970),
-                        lastDate: DateTime(2100),
-                      );
-                      if (d == null || !context.mounted) return;
-                      final t = await showTimePicker(
-                        context: context,
-                        initialTime: TimeOfDay.fromDateTime(date),
-                      );
-                      if (t == null) return;
-                      setLocal(() {
-                        date = DateTime(
-                          d.year,
-                          d.month,
-                          d.day,
-                          t.hour,
-                          t.minute,
-                        );
-                      });
-                    },
-                  ),
-                  TextField(
-                    controller: titleController,
-                    decoration: const InputDecoration(labelText: 'Title'),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
-                ),
-                FilledButton(
-                  onPressed: () {
-                    Navigator.pop(
-                      context,
-                      CampaignSession(
-                        dateTime: date.toUtc().toIso8601String(),
-                        title: titleController.text.trim(),
-                      ),
-                    );
-                  },
-                  child: const Text('Save'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-    titleController.dispose();
-    if (result == null) return;
-    setState(() {
-      final next = [..._sessions];
-      if (index == null) {
-        next.add(result);
-      } else {
-        next[index] = result;
-      }
-      _sessions = CampaignRecord.sortSessions(next);
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    final campaignName = _nameController.text.trim().isEmpty
-        ? 'Campaign'
-        : _nameController.text.trim();
     return Form(
       key: _formKey,
       child: Column(
@@ -184,7 +94,6 @@ class _CampaignFormState extends State<_CampaignForm> {
             ),
             textCapitalization: TextCapitalization.words,
             autofocus: true,
-            onChanged: (_) => setState(() {}),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
                 return 'Name is required';
@@ -233,44 +142,12 @@ class _CampaignFormState extends State<_CampaignForm> {
             searchLinks: widget.searchLinks,
             loadAutoLinkTargets: widget.loadAutoLinkTargets,
           ),
-          const SizedBox(height: ResourceFormStyles.sectionSpacing),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
           Text(
-            'Sessions',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
+            'Sessions are managed as their own records from the campaign page.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
-          ),
-          for (var i = 0; i < _sessions.length; i++)
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(
-                CampaignSession.displayName(
-                  campaignName: campaignName,
-                  index1Based: i + 1,
-                  title: _sessions[i].title,
-                ),
-              ),
-              subtitle: Text(_sessions[i].dateTime),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.edit_outlined),
-                    onPressed: () => _editSession(i),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: () {
-                      setState(() => _sessions = [..._sessions]..removeAt(i));
-                    },
-                  ),
-                ],
-              ),
-            ),
-          TextButton.icon(
-            onPressed: () => _editSession(null),
-            icon: const Icon(Icons.add),
-            label: const Text('Add session'),
           ),
           const SizedBox(height: ResourceFormStyles.sectionSpacing),
           FilledButton(

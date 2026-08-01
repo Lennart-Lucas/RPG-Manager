@@ -62,7 +62,7 @@ class _ItemFormState extends State<_ItemForm> {
     text: widget.initial?.sourcePage?.toString() ?? '',
   );
   late final _valueCostOverrideController = TextEditingController(
-    text: widget.initial?.valueCostOverride?.toString() ?? '',
+    text: widget.initial?.valueCostOverride ?? '',
   );
 
   late ItemType _itemType = widget.initial?.itemType ?? ItemType.equipment;
@@ -103,13 +103,14 @@ class _ItemFormState extends State<_ItemForm> {
         ? _typeReferenceController.text.trim()
         : '';
 
+    final costOverride = _valueCostOverrideController.text.trim();
     final item = Item(
       id: widget.initial?.id ?? Item.slugify(name),
       name: name,
       description: _descriptionController.text.trim(),
       itemType: _itemType,
       rarity: _rarity,
-      valueCostOverride: _parseInt(_valueCostOverrideController.text),
+      valueCostOverride: costOverride.isEmpty ? null : costOverride,
       magic: _magic,
       consumable: _consumable,
       requiresAttunement: _magic && _requiresAttunement,
@@ -214,12 +215,8 @@ class _ItemFormState extends State<_ItemForm> {
                   decoration: ResourceFormStyles.inputDecoration(
                     context,
                     label: 'Cost override',
-                    hintText: 'gp',
+                    hintText: 'e.g. 250 gp',
                   ),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                  ],
                 ),
               ),
             ],
@@ -300,6 +297,7 @@ class _ItemFormState extends State<_ItemForm> {
                 'Describe the item ([[${CatalogKind.items.apiValue}/name]])',
             minLines: 4,
             maxLines: 10,
+            enableCardBreak: true,
             searchLinks: widget.searchLinks,
             loadAutoLinkTargets: widget.loadAutoLinkTargets,
           ),

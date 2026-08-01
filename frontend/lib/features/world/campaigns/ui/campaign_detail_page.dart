@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/offline/offline_marker.dart';
+import '../../../../core/ui/record_list_card.dart';
 import '../../../../core/ui/simple_card_rich_text.dart';
 import '../../../auth/data/auth_api.dart';
 import '../../../auth/state/auth_controller.dart';
@@ -12,7 +13,10 @@ import '../../../catalog/ui/open_catalog_detail.dart';
 import '../../characters/data/character_model.dart';
 import '../../world_icons.dart';
 import '../data/campaign_model.dart';
+import '../data/session_model.dart';
 import 'campaign_form_sheet.dart';
+import 'session_detail_page.dart';
+import 'session_form_sheet.dart';
 
 class CampaignDetailPage extends StatefulWidget {
   const CampaignDetailPage({
@@ -33,6 +37,7 @@ class _CampaignDetailPageState extends State<CampaignDetailPage> {
   late CatalogItem _item = widget.item;
   Map<int, String> _characterNames = const {};
   Map<int, String> _ruleNames = const {};
+  List<CatalogItem> _sessions = const [];
 
   Future<String?> _token() => widget.auth.requireAccessToken();
 
@@ -54,6 +59,7 @@ class _CampaignDetailPageState extends State<CampaignDetailPage> {
       final results = await Future.wait([
         _api.list(token, CatalogKind.characters),
         _api.list(token, CatalogKind.rules),
+        _api.list(token, CatalogKind.sessions),
       ]);
       if (!mounted) return;
       final chars = results[0];
@@ -69,11 +75,133 @@ class _CampaignDetailPageState extends State<CampaignDetailPage> {
           preferred[c.id] = '${c.name} (${record.playerName})';
         }
       }
+      final sessions = [
+        for (final s in results[2])
+          if (SessionRecord.fromCatalogPayload(
+                name: s.name,
+                payload: s.payload,
+              ).campaignId ==
+              _item.id)
+            s,
+      ];
       setState(() {
         _characterNames = preferred.isEmpty ? all : {...all, ...preferred};
         _ruleNames = {for (final r in results[1]) r.id: r.name};
+        _sessions = SessionRecord.sortByDateTime(
+          items: sessions,
+          dateTimeOf: (item) => SessionRecord.fromCatalogPayload(
+            name: item.name,
+            payload: item.payload,
+          ).dateTime,
+        );
       });
+      await _migrateLegacySessionsIfNeeded(token);
     } catch (_) {}
+  }
+
+  Future<void> _migrateLegacySessionsIfNeeded(String token) async {
+    final record = _record;
+    if (record.legacySessions.isEmpty) return;
+
+    final existingNames = {
+      for (final s in _sessions) s.name.toLowerCase(),
+    };
+    final created = <CatalogItem>[];
+    final sorted = [...record.legacySessions]..sort((a, b) {
+        final da = a.parsedDateTime;
+        final db = b.parsedDateTime;
+        if (da == null && db == null) return 0;
+        if (da == null) return 1;
+        if (db == null) return -1;
+        return da.compareTo(db);
+      });
+
+    for (var i = 0; i < sorted.length; i++) {
+      final legacy = sorted[i];
+      var name = legacy.title.trim();
+      if (name.isEmpty) {
+        name = '${record.name} s${i + 1}';
+      }
+      var unique = name;
+      var suffix = 2;
+      while (existingNames.contains(unique.toLowerCase())) {
+        unique = '$name ($suffix)';
+        suffix++;
+      }
+      existingNames.add(unique.toLowerCase());
+      final item = await _api.create(
+        accessToken: token,
+        kind: CatalogKind.sessions,
+        name: unique,
+        payload: SessionRecord(
+          name: unique,
+          campaignId: _item.id,
+          dateTime: legacy.dateTime,
+        ).toJson(),
+      );
+      created.add(item);
+    }
+
+    final cleaned = await _api.update(
+      accessToken: token,
+      kind: CatalogKind.campaigns,
+      itemId: _item.id,
+      name: record.name,
+      payload: record.copyWith(legacySessions: const []).toJson(),
+    );
+    if (!mounted) return;
+    setState(() {
+      _item = cleaned;
+      _sessions = SessionRecord.sortByDateTime(
+        items: [..._sessions, ...created],
+        dateTimeOf: (item) => SessionRecord.fromCatalogPayload(
+          name: item.name,
+          payload: item.payload,
+        ).dateTime,
+      );
+    });
+  }
+
+  Future<void> _addSession() async {
+    try {
+      final token = await _token();
+      if (token == null || !mounted) return;
+      final record = await showSessionFormSheet(
+        context,
+        campaigns: [_item],
+        preferredCampaignId: _item.id,
+        searchLinks: (q) => searchCatalogLinkTargets(_api, token, q),
+        loadAutoLinkTargets: () =>
+            loadConditionDamageAutoLinkTargets(_api, token),
+      );
+      if (record == null || !mounted) return;
+      final created = await _api.create(
+        accessToken: token,
+        kind: CatalogKind.sessions,
+        name: record.name,
+        payload: record.copyWith(campaignId: _item.id).toJson(),
+      );
+      if (!mounted) return;
+      setState(() {
+        _sessions = SessionRecord.sortByDateTime(
+          items: [..._sessions, created],
+          dateTimeOf: (item) => SessionRecord.fromCatalogPayload(
+            name: item.name,
+            payload: item.payload,
+          ).dateTime,
+        );
+      });
+    } on AuthApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not create session')),
+      );
+    }
   }
 
   Future<void> _edit() async {
@@ -157,7 +285,6 @@ class _CampaignDetailPageState extends State<CampaignDetailPage> {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final record = _record;
-    final sessions = CampaignRecord.sortSessions(record.sessions);
 
     return Scaffold(
       appBar: AppBar(
@@ -256,30 +383,103 @@ class _CampaignDetailPageState extends State<CampaignDetailPage> {
                   ],
                 ),
               ],
-              const SizedBox(height: 24),
-              Text('Sessions', style: textTheme.titleSmall),
-              const SizedBox(height: 8),
-              if (sessions.isEmpty)
-                Text(
-                  'No sessions yet.',
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
+              const SizedBox(height: 28),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text('Sessions', style: textTheme.titleMedium),
+                  ),
+                  TextButton.icon(
+                    onPressed: _addSession,
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Add'),
+                  ),
+                ],
+              ),
+              if (_sessions.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    'No sessions linked to this campaign yet.',
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
                   ),
                 )
               else
-                for (var i = 0; i < sessions.length; i++)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: CircleAvatar(
-                      child: Text('s${i + 1}'),
-                    ),
-                    title: Text(
-                      record.sessionDisplayNameAt(i + 1, sessions[i]),
-                    ),
-                    subtitle: Text(
-                      sessions[i].parsedDateTime?.toLocal().toString() ??
-                          sessions[i].dateTime,
-                    ),
+                for (var i = 0; i < _sessions.length; i++)
+                  Builder(
+                    builder: (context) {
+                      final sessionItem = _sessions[i];
+                      final session = SessionRecord.fromCatalogPayload(
+                        name: sessionItem.name,
+                        payload: sessionItem.payload,
+                      );
+                      final local = session.parsedDateTime?.toLocal();
+                      final subtitle = local?.toString() ??
+                          (session.dateTime.isEmpty
+                              ? null
+                              : session.dateTime);
+                      final notes = session.descriptionPreview;
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: RecordListCard(
+                          leading: Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: scheme.primaryContainer.withValues(
+                                alpha: 0.88,
+                              ),
+                              borderRadius: BorderRadius.circular(13),
+                            ),
+                            child: Center(
+                              child: Text(
+                                's${i + 1}',
+                                style: textTheme.labelLarge?.copyWith(
+                                  color: scheme.onPrimaryContainer,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ),
+                          title: sessionItem.name,
+                          subtitle: subtitle ?? '',
+                          trailing: Icon(
+                            Icons.chevron_right,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                          onTap: () async {
+                            final deleted =
+                                await Navigator.of(context).push<bool>(
+                              MaterialPageRoute(
+                                builder: (context) => SessionDetailPage(
+                                  auth: widget.auth,
+                                  item: sessionItem,
+                                  campaigns: [_item],
+                                ),
+                              ),
+                            );
+                            if (deleted == true || mounted) {
+                              await _loadLookups();
+                            }
+                          },
+                          children: [
+                            if (notes.isNotEmpty) ...[
+                              const SizedBox(height: 10),
+                              Text(
+                                notes,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: textTheme.bodyMedium?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    },
                   ),
             ],
           ),

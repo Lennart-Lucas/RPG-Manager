@@ -4,6 +4,7 @@ import '../../../../core/ui/markdown_form_field.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../../dm_tools/resources/ui/resource_form_helpers.dart';
 import '../data/character_model.dart';
+import 'mtg_mana_symbol.dart';
 
 Future<CharacterRecord?> showCharacterFormSheet(
   BuildContext context, {
@@ -130,38 +131,43 @@ class _CharacterFormState extends State<_CharacterForm> {
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
           Text(
-            'MTG alignment',
+            'Alignment',
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
+          Text(
+            'Pick one or more mana colors',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+          const SizedBox(height: 10),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: 10,
+            runSpacing: 10,
             children: [
               for (final color in MtgColor.values)
-                FilterChip(
-                  label: Text(
-                    color.label,
-                    style: TextStyle(
-                      color: Color(color.onColorArgb),
-                      fontWeight: FontWeight.w800,
+                Tooltip(
+                  message: color.displayName,
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: () {
+                      setState(() {
+                        if (_alignment.contains(color)) {
+                          _alignment = {..._alignment}..remove(color);
+                        } else {
+                          _alignment = {..._alignment, color};
+                        }
+                      });
+                    },
+                    child: MtgManaSymbol(
+                      color: color,
+                      size: 40,
+                      selected: _alignment.contains(color),
                     ),
                   ),
-                  selected: _alignment.contains(color),
-                  backgroundColor: Color(color.colorArgb).withValues(alpha: 0.55),
-                  selectedColor: Color(color.colorArgb),
-                  checkmarkColor: Color(color.onColorArgb),
-                  onSelected: (selected) {
-                    setState(() {
-                      if (selected) {
-                        _alignment = {..._alignment, color};
-                      } else {
-                        _alignment = {..._alignment}..remove(color);
-                      }
-                    });
-                  },
                 ),
             ],
           ),

@@ -30,6 +30,7 @@ import '../../player_options/transformations/ui/transformation_detail_page.dart'
 import '../../settings/generators/data/generator_model.dart';
 import '../../settings/generators/ui/generator_detail_page.dart';
 import '../../world/campaigns/ui/campaign_detail_page.dart';
+import '../../world/campaigns/ui/session_detail_page.dart';
 import '../../world/characters/ui/character_detail_page.dart';
 import '../../world/creature_types/data/creature_type_model.dart';
 import '../../world/creature_types/ui/creature_type_detail_page.dart';
@@ -151,6 +152,12 @@ Future<void> openCatalogRecordDetail({
         await Navigator.of(context).push<void>(
           MaterialPageRoute(
             builder: (context) => CampaignDetailPage(auth: auth, item: item),
+          ),
+        );
+      case CatalogKind.sessions:
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            builder: (context) => SessionDetailPage(auth: auth, item: item),
           ),
         );
       default:

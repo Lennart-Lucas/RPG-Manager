@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/character_model.dart';
+import 'mtg_mana_symbol.dart';
 
 class MtgAlignmentChips extends StatelessWidget {
   const MtgAlignmentChips({
@@ -20,25 +21,9 @@ class MtgAlignmentChips extends StatelessWidget {
       runSpacing: 6,
       children: [
         for (final color in colors)
-          Container(
-            width: size,
-            height: size,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: Color(color.colorArgb),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Theme.of(context).colorScheme.outlineVariant,
-              ),
-            ),
-            child: Text(
-              color.label,
-              style: TextStyle(
-                color: Color(color.onColorArgb),
-                fontWeight: FontWeight.w800,
-                fontSize: size * 0.42,
-              ),
-            ),
+          Tooltip(
+            message: color.displayName,
+            child: MtgManaSymbol(color: color, size: size),
           ),
       ],
     );

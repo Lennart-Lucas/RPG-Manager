@@ -15,6 +15,14 @@ enum MtgColor {
 
   String get label => apiValue;
 
+  String get displayName => switch (this) {
+        MtgColor.white => 'White',
+        MtgColor.blue => 'Blue',
+        MtgColor.black => 'Black',
+        MtgColor.red => 'Red',
+        MtgColor.green => 'Green',
+      };
+
   int get colorArgb => switch (this) {
         MtgColor.white => 0xFFF8F6D8,
         MtgColor.blue => 0xFF0E68AB,

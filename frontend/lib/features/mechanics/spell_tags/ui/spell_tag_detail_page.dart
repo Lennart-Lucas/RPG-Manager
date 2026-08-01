@@ -242,8 +242,6 @@ class _SpellTagDetailPageState extends State<SpellTagDetailPage> {
               ),
               if (tag.description.trim().isNotEmpty) ...[
                 const SizedBox(height: 24),
-                Text('Description', style: textTheme.titleSmall),
-                const SizedBox(height: 8),
                 SimpleCardRichText(
                   content: tag.description,
                   onWikiLinkTap: (kind, name) => openCatalogWikiLink(
