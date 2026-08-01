@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/offline/offline_marker.dart';
+import '../../../../core/ui/record_list_card.dart';
 import '../../../../core/ui/simple_card_rich_text.dart';
 import '../../../auth/data/auth_api.dart';
 import '../../../auth/state/auth_controller.dart';
@@ -263,21 +264,11 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            feature.name,
-                            style: textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        Chip(
-                          label: Text(feature.type.label),
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      ],
+                    Text(
+                      feature.name,
+                      style: textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     if (feature.description.trim().isNotEmpty) ...[
                       const SizedBox(height: 8),
@@ -354,6 +345,20 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
+              if (record.description.trim().isNotEmpty) ...[
+                const SizedBox(height: 24),
+                Text('Description', style: textTheme.titleSmall),
+                const SizedBox(height: 8),
+                SimpleCardRichText(
+                  content: record.description,
+                  onWikiLinkTap: (kind, name) => openCatalogWikiLink(
+                    context: context,
+                    auth: widget.auth,
+                    kindApiValue: kind,
+                    name: name,
+                  ),
+                ),
+              ],
               if (record.primaryAbilities.isNotEmpty) ...[
                 const SizedBox(height: 20),
                 Text('Primary abilities', style: textTheme.titleSmall),
@@ -425,10 +430,18 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                 children: [
                   Expanded(
                     child: Text(
-                      'Subclasses (chosen at ${record.subclassChosenAtLevel})',
+                      'Subclasses',
                       style: textTheme.titleMedium,
                     ),
                   ),
+                  Text(
+                    'Chosen at ${record.subclassChosenAtLevel}',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   TextButton.icon(
                     onPressed: _addSubclass,
                     icon: const Icon(Icons.add, size: 18),
@@ -448,32 +461,66 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                 )
               else
                 for (final subclassItem in _subclasses)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      subclassItem.name,
-                      style: textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: scheme.primary,
-                      ),
-                    ),
-                    trailing: Icon(
-                      Icons.chevron_right,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                    onTap: () async {
-                      final deleted = await Navigator.of(context).push<bool>(
-                        MaterialPageRoute(
-                          builder: (context) => SubclassDetailPage(
-                            auth: widget.auth,
-                            item: subclassItem,
-                            parentClasses: [_item],
+                  Builder(
+                    builder: (context) {
+                      final subclass = SubclassRecord.fromCatalogPayload(
+                        name: subclassItem.name,
+                        payload: subclassItem.payload,
+                      );
+                      final description = subclass.description.trim();
+                      return RecordListCard(
+                        leading: Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: scheme.primaryContainer.withValues(
+                              alpha: 0.88,
+                            ),
+                            borderRadius: BorderRadius.circular(13),
+                          ),
+                          child: Icon(
+                            subclassesPageIcon,
+                            size: 22,
+                            color: scheme.onPrimaryContainer,
                           ),
                         ),
+                        title: subclassItem.name,
+                        subtitle: '',
+                        trailing: Icon(
+                          Icons.chevron_right,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                        onTap: () async {
+                          final deleted =
+                              await Navigator.of(context).push<bool>(
+                            MaterialPageRoute(
+                              builder: (context) => SubclassDetailPage(
+                                auth: widget.auth,
+                                item: subclassItem,
+                                parentClasses: [_item],
+                              ),
+                            ),
+                          );
+                          if (deleted == true || mounted) {
+                            await _loadLookups();
+                          }
+                        },
+                        children: [
+                          if (description.isNotEmpty) ...[
+                            const SizedBox(height: 10),
+                            SimpleCardRichText(
+                              content: description,
+                              onWikiLinkTap: (kind, name) =>
+                                  openCatalogWikiLink(
+                                context: context,
+                                auth: widget.auth,
+                                kindApiValue: kind,
+                                name: name,
+                              ),
+                            ),
+                          ],
+                        ],
                       );
-                      if (deleted == true || mounted) {
-                        await _loadLookups();
-                      }
                     },
                   ),
             ],

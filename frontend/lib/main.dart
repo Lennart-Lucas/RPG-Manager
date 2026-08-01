@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'core/offline/offline_marker.dart';
@@ -11,7 +12,14 @@ import 'features/shell/app_shell.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const RpgManagerApp());
+  Widget app = const RpgManagerApp();
+  // Flutter's Windows accessibility_bridge still fails on common semantics
+  // reparenting (ExpansionTile, Tooltip, …) and spams AXTree errors.
+  // See https://github.com/flutter/flutter/issues/182444
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
+    app = ExcludeSemantics(child: app);
+  }
+  runApp(app);
 }
 
 class RpgManagerApp extends StatefulWidget {

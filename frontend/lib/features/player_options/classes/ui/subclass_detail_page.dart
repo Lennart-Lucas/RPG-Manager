@@ -161,6 +161,7 @@ class _SubclassDetailPageState extends State<SubclassDetailPage> {
     Map<int, List<ClassFeature>> featuresByLevel,
   ) {
     final textTheme = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
     final levels = featuresByLevel.keys.toList()..sort();
     if (levels.isEmpty) {
       return Padding(
@@ -168,7 +169,7 @@ class _SubclassDetailPageState extends State<SubclassDetailPage> {
         child: Text(
           'No features yet',
           style: textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            color: scheme.onSurfaceVariant,
           ),
         ),
       );
@@ -179,31 +180,36 @@ class _SubclassDetailPageState extends State<SubclassDetailPage> {
         for (final level in levels) ...[
           const SizedBox(height: 12),
           Text('Level $level', style: textTheme.titleSmall),
-          for (final feature in featuresByLevel[level] ?? const []) ...[
-            const SizedBox(height: 8),
-            Text(
-              feature.name,
-              style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            Text(
-              feature.type.label,
-              style: textTheme.labelMedium?.copyWith(
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-            if (feature.description.trim().isNotEmpty) ...[
-              const SizedBox(height: 4),
-              SimpleCardRichText(
-                content: feature.description,
-                onWikiLinkTap: (kind, name) => openCatalogWikiLink(
-                  context: context,
-                  auth: widget.auth,
-                  kindApiValue: kind,
-                  name: name,
+          for (final feature in featuresByLevel[level] ?? const [])
+            Card(
+              margin: const EdgeInsets.only(top: 8),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      feature.name,
+                      style: textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    if (feature.description.trim().isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      SimpleCardRichText(
+                        content: feature.description,
+                        onWikiLinkTap: (kind, name) => openCatalogWikiLink(
+                          context: context,
+                          auth: widget.auth,
+                          kindApiValue: kind,
+                          name: name,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-            ],
-          ],
+            ),
         ],
       ],
     );
@@ -253,28 +259,75 @@ class _SubclassDetailPageState extends State<SubclassDetailPage> {
           ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Text(
-                parent == null
-                    ? 'Parent class unknown'
-                    : '${parent.name} · Chosen at level $chosenAt',
-                style: textTheme.titleMedium?.copyWith(
-                  color: scheme.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              if (parent != null) ...[
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    onPressed: () => openCatalogWikiLink(
-                      context: context,
-                      auth: widget.auth,
-                      kindApiValue: CatalogKind.classes.apiValue,
-                      name: parent.name,
+              if (parent == null)
+                Text(
+                  'Parent class unknown',
+                  style: textTheme.titleMedium?.copyWith(
+                    color: scheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                )
+              else
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 2,
+                  children: [
+                    IconButton(
+                      tooltip: 'Open ${parent.name}',
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 28,
+                        minHeight: 28,
+                      ),
+                      onPressed: () => openCatalogWikiLink(
+                        context: context,
+                        auth: widget.auth,
+                        kindApiValue: CatalogKind.classes.apiValue,
+                        name: parent.name,
+                      ),
+                      icon: Icon(
+                        classesPageIcon,
+                        size: 18,
+                        color: scheme.primary,
+                      ),
                     ),
-                    icon: const Icon(Icons.shield_outlined, size: 18),
-                    label: Text('Open ${parent.name}'),
+                    InkWell(
+                      onTap: () => openCatalogWikiLink(
+                        context: context,
+                        auth: widget.auth,
+                        kindApiValue: CatalogKind.classes.apiValue,
+                        name: parent.name,
+                      ),
+                      borderRadius: BorderRadius.circular(4),
+                      child: Text(
+                        parent.name,
+                        style: textTheme.titleMedium?.copyWith(
+                          color: scheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      ' · Chosen at level $chosenAt',
+                      style: textTheme.titleMedium?.copyWith(
+                        color: scheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              if (record.description.trim().isNotEmpty) ...[
+                const SizedBox(height: 24),
+                Text('Description', style: textTheme.titleSmall),
+                const SizedBox(height: 8),
+                SimpleCardRichText(
+                  content: record.description,
+                  onWikiLinkTap: (kind, name) => openCatalogWikiLink(
+                    context: context,
+                    auth: widget.auth,
+                    kindApiValue: kind,
+                    name: name,
                   ),
                 ),
               ],

@@ -99,16 +99,18 @@ class RecordListCard extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 3),
-                          Text(
-                            subtitle,
-                            style: textTheme.bodySmall?.copyWith(
-                              color: colors.onSurfaceVariant,
-                              fontWeight: FontWeight.w600,
+                          if (subtitle.trim().isNotEmpty) ...[
+                            const SizedBox(height: 3),
+                            Text(
+                              subtitle,
+                              style: textTheme.bodySmall?.copyWith(
+                                color: colors.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                          ],
                         ],
                       ),
                     ),

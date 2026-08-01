@@ -78,37 +78,166 @@ int? _tableAwareBreak(String text, int start, int idealEnd, int hardEnd) {
   return null;
 }
 
+bool _isWordChar(String ch) {
+  if (ch.isEmpty) return false;
+  final code = ch.codeUnitAt(0);
+  final isAz = (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
+  final isDigit = code >= 48 && code <= 57;
+  return isAz || isDigit || ch == '_' || ch == "'";
+}
+
+/// Ranges of inline markdown that should not be split across cards.
+List<({int start, int end})> _protectedInlineSpans(String text) {
+  final spans = <({int start, int end})>[];
+
+  void addDelimited(String delimiter) {
+    var i = 0;
+    while (i < text.length) {
+      final open = text.indexOf(delimiter, i);
+      if (open < 0) break;
+      final close = text.indexOf(delimiter, open + delimiter.length);
+      if (close < 0) {
+        spans.add((start: open, end: text.length));
+        break;
+      }
+      spans.add((start: open, end: close + delimiter.length));
+      i = close + delimiter.length;
+    }
+  }
+
+  addDelimited('**');
+  addDelimited('__');
+  addDelimited('`');
+
+  // Wiki links: [[kind/name]] or [[kind/name|label]]
+  var i = 0;
+  while (i < text.length) {
+    final open = text.indexOf('[[', i);
+    if (open < 0) break;
+    final close = text.indexOf(']]', open + 2);
+    if (close < 0) {
+      spans.add((start: open, end: text.length));
+      break;
+    }
+    spans.add((start: open, end: close + 2));
+    i = close + 2;
+  }
+
+  spans.sort((a, b) => a.start.compareTo(b.start));
+  return spans;
+}
+
+({int start, int end})? _spanContaining(
+  List<({int start, int end})> spans,
+  int index,
+) {
+  for (final span in spans) {
+    if (index > span.start && index < span.end) return span;
+  }
+  return null;
+}
+
+bool _isSafeBreakAt(
+  String text,
+  int breakAt,
+  List<({int start, int end})> spans,
+) {
+  if (breakAt <= 0 || breakAt >= text.length) return true;
+  if (_spanContaining(spans, breakAt) != null) return false;
+  // Keep whole words together.
+  if (_isWordChar(text[breakAt - 1]) && _isWordChar(text[breakAt])) {
+    return false;
+  }
+  return true;
+}
+
+/// Snap an unsafe break to before the protected span (move whole span next).
+int _snapBreakOutsideSpan(
+  String text,
+  int start,
+  int breakAt,
+  int hardEnd,
+  List<({int start, int end})> spans,
+) {
+  final span = _spanContaining(spans, breakAt);
+  if (span == null) return breakAt;
+  if (span.start > start) return span.start;
+  if (span.end <= hardEnd && span.end > start) return span.end;
+  return breakAt;
+}
+
+int _scoreBreakAfter(String text, int index) {
+  // Score the character at [index]; caller breaks after it (at index + 1).
+  final ch = text[index];
+  if (ch == '\n') {
+    final prevNewline = index > 0 && text[index - 1] == '\n';
+    final nextNewline =
+        index + 1 < text.length && text[index + 1] == '\n';
+    if (prevNewline || nextNewline) return 8; // paragraph boundary
+    return 6; // line / soft paragraph break
+  }
+  if (ch == '.' || ch == '!' || ch == '?') return 4;
+  if (ch == ';' || ch == ':' || ch == ',') return 3;
+  if (ch.trim().isEmpty) return 2;
+  return 0;
+}
+
 int _findBestBreak(String text, int start, int idealEnd, int hardEnd) {
   final tableBreak = _tableAwareBreak(text, start, idealEnd, hardEnd);
   if (tableBreak != null) return tableBreak;
 
-  int scoreAt(int i) {
-    final ch = text[i];
-    if (ch == '\n') return 5;
-    if (ch == '.' || ch == '!' || ch == '?') return 4;
-    if (ch == ';' || ch == ':' || ch == ',') return 3;
-    if (ch.trim().isEmpty) return 2;
-    return 0;
-  }
+  final spans = _protectedInlineSpans(text);
 
-  var bestIndex = -1;
-  var bestScore = -1;
-  for (var i = idealEnd - 1; i >= start; i--) {
-    final score = scoreAt(i);
-    if (score > bestScore) {
-      bestScore = score;
-      bestIndex = i + 1;
-      if (score >= 4) break;
+  int? closestBreak({
+    required int minScore,
+    int? maxScore,
+  }) {
+    var bestIndex = -1;
+    var bestDist = 1 << 30;
+    for (var i = start; i < hardEnd; i++) {
+      final score = _scoreBreakAfter(text, i);
+      if (score < minScore) continue;
+      if (maxScore != null && score > maxScore) continue;
+      final breakAt = i + 1;
+      if (breakAt <= start || breakAt > hardEnd) continue;
+      if (!_isSafeBreakAt(text, breakAt, spans)) continue;
+      final dist = (breakAt - idealEnd).abs();
+      // Prefer not going far past the ideal when distances are close.
+      final pastPenalty = breakAt > idealEnd ? (breakAt - idealEnd) ~/ 4 : 0;
+      final weighted = dist + pastPenalty;
+      if (weighted < bestDist) {
+        bestDist = weighted;
+        bestIndex = breakAt;
+      }
     }
-    if (i <= hardEnd - (hardEnd - start) ~/ 3 && bestScore >= 2) {
-      break;
+    return bestIndex > start ? bestIndex : null;
+  }
+
+  // 1) Prefer a paragraph break (\n\n) closest to the ideal length.
+  final paragraph = closestBreak(minScore: 8);
+  if (paragraph != null) {
+    return _snapBreakOutsideSpan(text, start, paragraph, hardEnd, spans);
+  }
+
+  // 2) Prefer any newline.
+  final newline = closestBreak(minScore: 6, maxScore: 6);
+  if (newline != null) {
+    return _snapBreakOutsideSpan(text, start, newline, hardEnd, spans);
+  }
+
+  // 3) Sentence / punctuation / whitespace near ideal end.
+  final soft = closestBreak(minScore: 2, maxScore: 5);
+  if (soft != null) {
+    return _snapBreakOutsideSpan(text, start, soft, hardEnd, spans);
+  }
+
+  // 4) Last resort: hard end, snapped outside protected spans / mid-word.
+  var fallback = hardEnd;
+  fallback = _snapBreakOutsideSpan(text, start, fallback, hardEnd, spans);
+  if (!_isSafeBreakAt(text, fallback, spans)) {
+    for (var i = fallback - 1; i > start; i--) {
+      if (_isSafeBreakAt(text, i, spans)) return i;
     }
   }
-
-  if (bestIndex > start && bestIndex <= hardEnd) return bestIndex;
-
-  for (var i = hardEnd - 1; i >= start; i--) {
-    if (text[i].trim().isEmpty) return i + 1;
-  }
-  return hardEnd;
+  return fallback;
 }

@@ -52,17 +52,46 @@ class _SubclassFormState extends State<_SubclassForm> {
   final _formKey = GlobalKey<FormState>();
   late final _nameController =
       TextEditingController(text: widget.initial?.name ?? '');
+  late final _descriptionController =
+      TextEditingController(text: widget.initial?.description ?? '');
   late int? _parentClassId = widget.initial?.parentClassId != null &&
           widget.initial!.parentClassId > 0
       ? widget.initial!.parentClassId
       : widget.preferredParentClassId;
   late List<ClassFeature> _features = flattenClassFeaturesByLevel(
     widget.initial?.featuresByLevel ?? const {},
+    minLevel: _minFeatureLevelFor(_parentClassId),
   );
+
+  int _minFeatureLevelFor(int? parentClassId) {
+    if (parentClassId == null || parentClassId <= 0) return 1;
+    for (final parent in widget.parentClasses) {
+      if (parent.id != parentClassId) continue;
+      return ClassRecord.fromCatalogPayload(
+        name: parent.name,
+        payload: parent.payload,
+      ).subclassChosenAtLevel.clamp(1, 20);
+    }
+    return 1;
+  }
+
+  int get _minFeatureLevel => _minFeatureLevelFor(_parentClassId);
+
+  void _setParentClassId(int? parentClassId) {
+    final minLevel = _minFeatureLevelFor(parentClassId);
+    setState(() {
+      _parentClassId = parentClassId;
+      _features = sortClassFeaturesByLevel([
+        for (final f in _features)
+          f.copyWith(level: f.level < minLevel ? minLevel : f.level),
+      ]);
+    });
+  }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -81,7 +110,11 @@ class _SubclassFormState extends State<_SubclassForm> {
       SubclassRecord(
         name: _nameController.text.trim(),
         parentClassId: parentId,
-        featuresByLevel: groupClassFeaturesByLevel(_features),
+        description: _descriptionController.text.trim(),
+        featuresByLevel: groupClassFeaturesByLevel(
+          _features,
+          minLevel: _minFeatureLevel,
+        ),
       ),
     );
   }
@@ -92,6 +125,7 @@ class _SubclassFormState extends State<_SubclassForm> {
       ..sort(
         (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
       );
+    final minFeatureLevel = _minFeatureLevel;
     return Form(
       key: _formKey,
       child: Column(
@@ -114,6 +148,15 @@ class _SubclassFormState extends State<_SubclassForm> {
             },
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          MarkdownFormField(
+            controller: _descriptionController,
+            label: 'Description',
+            minLines: 4,
+            maxLines: 12,
+            searchLinks: widget.searchLinks,
+            loadAutoLinkTargets: widget.loadAutoLinkTargets,
+          ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
           DropdownButtonFormField<int>(
             initialValue: parents.any((p) => p.id == _parentClassId)
                 ? _parentClassId
@@ -123,7 +166,7 @@ class _SubclassFormState extends State<_SubclassForm> {
               label: 'Parent class',
               helperText: parents.isEmpty
                   ? 'Create a class first'
-                  : 'Subclass selection level is set on the parent class',
+                  : 'Features start at subclass level $minFeatureLevel',
             ),
             items: [
               for (final parent in parents)
@@ -132,9 +175,7 @@ class _SubclassFormState extends State<_SubclassForm> {
                   child: Text(parent.name),
                 ),
             ],
-            onChanged: parents.isEmpty
-                ? null
-                : (value) => setState(() => _parentClassId = value),
+            onChanged: parents.isEmpty ? null : _setParentClassId,
             validator: (value) {
               if (value == null) return 'Parent class is required';
               return null;
@@ -144,6 +185,7 @@ class _SubclassFormState extends State<_SubclassForm> {
           ClassFeaturesEditor(
             title: 'Subclass features',
             features: _features,
+            minLevel: minFeatureLevel,
             searchLinks: widget.searchLinks,
             loadAutoLinkTargets: widget.loadAutoLinkTargets,
             onChanged: (next) => setState(() => _features = next),

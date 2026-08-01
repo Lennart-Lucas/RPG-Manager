@@ -1,29 +1,3 @@
-enum ClassFeatureType {
-  passive,
-  active,
-  resource,
-  choice,
-  asi;
-
-  String get apiValue => name;
-
-  String get label => switch (this) {
-        ClassFeatureType.passive => 'Passive',
-        ClassFeatureType.active => 'Active',
-        ClassFeatureType.resource => 'Resource',
-        ClassFeatureType.choice => 'Choice',
-        ClassFeatureType.asi => 'ASI',
-      };
-
-  static ClassFeatureType parse(String? value) {
-    final v = value?.trim().toLowerCase();
-    for (final t in ClassFeatureType.values) {
-      if (t.apiValue == v) return t;
-    }
-    return ClassFeatureType.passive;
-  }
-}
-
 enum SpellcastingType {
   full,
   half,
@@ -98,16 +72,12 @@ class ClassFeature {
     required this.name,
     required this.level,
     this.description = '',
-    this.type = ClassFeatureType.passive,
-    this.mechanics,
   });
 
   final String id;
   final String name;
   final int level;
   final String description;
-  final ClassFeatureType type;
-  final Map<String, dynamic>? mechanics;
 
   factory ClassFeature.fromJson(Map<String, dynamic> json) {
     final name = json['name'] as String? ?? '';
@@ -117,8 +87,6 @@ class ClassFeature {
       name: name,
       level: level,
       description: json['description'] as String? ?? '',
-      type: ClassFeatureType.parse(json['type'] as String?),
-      mechanics: _mapOrNull(json['mechanics']),
     );
   }
 
@@ -127,8 +95,6 @@ class ClassFeature {
         'name': name,
         'level': level,
         'description': description,
-        'type': type.apiValue,
-        if (mechanics != null && mechanics!.isNotEmpty) 'mechanics': mechanics,
       };
 
   ClassFeature copyWith({
@@ -136,17 +102,12 @@ class ClassFeature {
     String? name,
     int? level,
     String? description,
-    ClassFeatureType? type,
-    Map<String, dynamic>? mechanics,
-    bool clearMechanics = false,
   }) {
     return ClassFeature(
       id: id ?? this.id,
       name: name ?? this.name,
       level: level ?? this.level,
       description: description ?? this.description,
-      type: type ?? this.type,
-      mechanics: clearMechanics ? null : (mechanics ?? this.mechanics),
     );
   }
 }
@@ -320,6 +281,7 @@ class SpellcastingInfo {
 class ClassRecord {
   const ClassRecord({
     required this.name,
+    this.description = '',
     this.hitDie = 'd8',
     this.primaryAbilities = const [],
     this.savingThrowProficiencies = const [],
@@ -336,6 +298,7 @@ class ClassRecord {
   }) : _legacyIsCaster = isCaster;
 
   final String name;
+  final String description;
   final String hitDie;
   final List<String> primaryAbilities;
   final List<String> savingThrowProficiencies;
@@ -427,6 +390,7 @@ class ClassRecord {
 
     return ClassRecord(
       name: payload['name'] as String? ?? name,
+      description: payload['description'] as String? ?? '',
       hitDie: payload['hitDie'] as String? ?? 'd8',
       primaryAbilities: _stringList(payload['primaryAbilities'])
           .map(normalizeClassAbility)
@@ -452,6 +416,7 @@ class ClassRecord {
     final caster = isCaster;
     return {
       'name': name,
+      'description': description,
       'isCaster': caster,
       'hitDie': hitDie,
       'primaryAbilities': primaryAbilities,
@@ -469,6 +434,7 @@ class ClassRecord {
 
   ClassRecord copyWith({
     String? name,
+    String? description,
     String? hitDie,
     List<String>? primaryAbilities,
     List<String>? savingThrowProficiencies,
@@ -486,6 +452,7 @@ class ClassRecord {
   }) {
     return ClassRecord(
       name: name ?? this.name,
+      description: description ?? this.description,
       hitDie: hitDie ?? this.hitDie,
       primaryAbilities: primaryAbilities ?? this.primaryAbilities,
       savingThrowProficiencies:

@@ -20,6 +20,8 @@ LINKABLE_FIELDS: dict[str, tuple[str, ...]] = {
     "conditions": ("description",),
     "damage_types": ("description",),
     "races": ("description",),
+    "classes": ("description",),
+    "subclasses": ("description",),
     "item_properties": ("description",),
     "rules": ("description",),
     "transformations": ("description",),

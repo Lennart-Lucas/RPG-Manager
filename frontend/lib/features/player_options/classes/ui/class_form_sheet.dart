@@ -49,6 +49,8 @@ class _ClassFormState extends State<_ClassForm> {
   final _formKey = GlobalKey<FormState>();
   late final _nameController =
       TextEditingController(text: widget.initial?.name ?? '');
+  late final _descriptionController =
+      TextEditingController(text: widget.initial?.description ?? '');
   late final _hitDieController =
       TextEditingController(text: widget.initial?.hitDie ?? 'd8');
   late final _skillCountController = TextEditingController(
@@ -65,11 +67,9 @@ class _ClassFormState extends State<_ClassForm> {
   late List<String> _weapons = [...?widget.initial?.weaponProficiencies];
   late List<String> _tools = [...?widget.initial?.toolProficiencies];
   late List<String> _skillChoices = [...?widget.initial?.skillChoices];
-  late List<ClassFeature> _features = [
-    for (final entry in widget.initial?.featuresByLevel.entries ??
-        const <MapEntry<int, List<ClassFeature>>>[])
-      ...entry.value.map((f) => f.copyWith(level: entry.key)),
-  ];
+  late List<ClassFeature> _features = flattenClassFeaturesByLevel(
+    widget.initial?.featuresByLevel ?? const {},
+  );
   late int _subclassChosenAtLevel =
       widget.initial?.subclassChosenAtLevel.clamp(1, 20) ?? 3;
   late bool _hasSpellcasting = widget.initial?.isCaster ?? false;
@@ -86,6 +86,7 @@ class _ClassFormState extends State<_ClassForm> {
   @override
   void dispose() {
     _nameController.dispose();
+    _descriptionController.dispose();
     _hitDieController.dispose();
     _skillCountController.dispose();
     super.dispose();
@@ -114,6 +115,7 @@ class _ClassFormState extends State<_ClassForm> {
       context,
       ClassRecord(
         name: _nameController.text.trim(),
+        description: _descriptionController.text.trim(),
         hitDie: _hitDieController.text.trim().isEmpty
             ? 'd8'
             : _hitDieController.text.trim(),
@@ -186,6 +188,15 @@ class _ClassFormState extends State<_ClassForm> {
               }
               return null;
             },
+          ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          MarkdownFormField(
+            controller: _descriptionController,
+            label: 'Description',
+            minLines: 4,
+            maxLines: 12,
+            searchLinks: widget.searchLinks,
+            loadAutoLinkTargets: widget.loadAutoLinkTargets,
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
           TextFormField(
