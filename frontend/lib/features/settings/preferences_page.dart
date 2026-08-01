@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../dm_tools/pdf_extract/data/anthropic_key_store.dart';
 import '../../core/config/app_config.dart';
+import '../../core/offline/offline_sync_controller.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/theme_controller.dart';
 import '../auth/state/auth_controller.dart';
@@ -113,6 +114,18 @@ class _PreferencesBodyState extends State<PreferencesBody> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Anthropic API key cleared')),
     );
+  }
+
+  Future<void> _resyncOfflineChanges() async {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Recovering offline changes…')),
+    );
+    final message =
+        await OfflineSyncController.instance.recoverTempCreatesAndSync();
+    if (!mounted) return;
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -229,6 +242,24 @@ class _PreferencesBodyState extends State<PreferencesBody> {
                 onTap: _editAnthropicKey,
               ),
             ],
+            const Divider(height: 32),
+            Text(
+              'Offline',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.sync),
+              title: const Text('Resync offline changes'),
+              subtitle: const Text(
+                'Re-queue local creates that failed to sync, then drain the pending queue.',
+              ),
+              trailing: FilledButton(
+                onPressed: _resyncOfflineChanges,
+                child: const Text('Resync'),
+              ),
+            ),
             const Divider(height: 32),
             ListTile(
               leading: const Icon(Icons.cloud_outlined),

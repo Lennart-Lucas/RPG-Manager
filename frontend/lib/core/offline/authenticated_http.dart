@@ -220,6 +220,12 @@ class AuthenticatedHttp {
                 tempId: op.tempEntityId!,
                 realId: map['id'] as int,
               );
+              if (op.method == 'POST') {
+                await _queue.rewriteTempIdsInUris(
+                  tempId: op.tempEntityId!,
+                  realId: map['id'] as int,
+                );
+              }
             }
           } catch (_) {}
         }
