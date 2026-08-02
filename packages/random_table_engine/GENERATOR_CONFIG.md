@@ -8,7 +8,9 @@ Generators are catalog records (`CatalogKind.generators`) with a payload shaped 
 {
   "name": "Settlement",
   "tablesDocument": { "tables": { "...": { } } },
-  "processDocument": { "recordType": "...", "steps": [ ] }
+  "processDocument": { "recordType": "...", "steps": [ ] },
+  "recordMapping": { "version": 1, "bindings": [ ] },
+  "appliesTo": { "kind": "locations" }
 }
 ```
 
@@ -16,9 +18,10 @@ Generators are catalog records (`CatalogKind.generators`) with a payload shaped 
 |-------|------|
 | Runtime engine | Dart package `packages/random_table_engine` |
 | App wrapper | `frontend/lib/features/settings/generators/data/generator_model.dart` |
+| Record mapping (Apply) | App-owned sidecar — see [§12](#12-app-record-mapping-apply) |
 | Short schema summary | [README.md](./README.md) |
 
-Running a generator produces **preview** `GeneratedRecord`s only. Nothing is persisted to the world catalog until a later product step does so.
+Running a generator produces **preview** `GeneratedRecord`s. Catalog persistence happens only when the user **Apply**s results using an optional `recordMapping` document (app layer; not part of the engine).
 
 ---
 
@@ -46,9 +49,24 @@ Author tables first (or in parallel), then a process that only references table 
   "processDocument": {
     "recordType": "settlement",
     "steps": [ ]
+  },
+  "recordMapping": {
+    "version": 1,
+    "bindings": [ ]
+  },
+  "appliesTo": {
+    "kind": "locations"
   }
 }
 ```
+
+`recordMapping` is optional (defaults to empty bindings). It is owned by the app, not the engine.
+
+`appliesTo` is optional app metadata. When set, the generator appears on that catalog kind’s create FAB (e.g. Atlas → Locations). Omit it to keep the generator Settings-only. Multiple generators may share the same `kind` and are distinguished by name on the create FAB.
+
+| Field | Role |
+|-------|------|
+| `kind` | Catalog kind api value (`locations`, `characters`, …). Required when `appliesTo` is present. Cannot be `generators`. |
 
 ### Paste / import flexibility (app UI)
 
@@ -256,7 +274,16 @@ Roll a **random** table once; write onto current or emit a child.
 | `fieldMap` | no | String→string renames |
 | `staticFields` | no | Constants |
 
-If the runner is given **overrides** for `field`, that pinned value is used and the table is not rolled (app may use this later; ignore for static configs).
+If the runner is given **overrides** for `field`, that pinned value is used and the table is not rolled.
+
+The app uses typed [`GenerationOverrides`](./lib/src/process/generation_overrides.dart):
+
+| Piece | Purpose |
+|-------|---------|
+| `fields` | Pin `roll` / `lookup` / `gate` destinations (`gate` key = `field ?? table`) |
+| `collections` | Pin `rollMany` by key `parentField ?? field ?? table`: optional `count`, optional `minCount` (floor when count is auto), and `pinnedValues` prefix; remaining slots are rolled |
+
+Pinned rolls do **not** contribute entry modifiers to the accumulator.
 
 ### 6.2 `lookup`
 
@@ -551,13 +578,79 @@ Same idea as the package test fixtures (`test/fixtures/process_tables.json` + `p
     "steps": [
       { "op": "roll", "table": "main", "field": "result" }
     ]
+  },
+  "recordMapping": {
+    "version": 1,
+    "bindings": []
   }
 }
 ```
 
 ---
 
-## 12. Local verification
+## 12. App record mapping (Apply)
+
+Sidecar JSON on the generator catalog payload. After a preview run, **Apply** creates catalog items via `CatalogApi` for any `CatalogKind`.
+
+Implementation: `frontend/lib/features/settings/generators/data/generator_record_mapping.dart`.
+
+```json
+{
+  "version": 1,
+  "bindings": [
+    {
+      "matchType": "settlement",
+      "kind": "locations",
+      "nameFrom": "name",
+      "link": null,
+      "fields": [
+        { "to": "name", "from": "name" },
+        { "to": "type", "literal": "settlement" },
+        { "to": "description", "from": ["history", "defenses"], "join": "\n" },
+        {
+          "to": "mapNotes",
+          "fromChildren": {
+            "parentField": "shops",
+            "from": "value"
+          },
+          "join": "\n"
+        }
+      ]
+    },
+    {
+      "matchType": "shop",
+      "kind": "locations",
+      "nameFrom": "value",
+      "link": { "to": "parentId" },
+      "fields": [
+        { "to": "name", "from": "value" },
+        { "to": "type", "literal": "site" },
+        { "to": "description", "from": "detail" }
+      ]
+    }
+  ]
+}
+```
+
+| Field | Meaning |
+|-------|---------|
+| `matchType` | Matches `GeneratedRecord.type` (`recordType` / `emitAs`). For `kind: "locations"`, if `matchType` is a location type name (`city`, `village`, …) and nothing was generated with that type, it also matches the process **root** and sets catalog `type` to that name when unset. |
+| `kind` | Catalog API kind (`locations`, `characters`, `sessions`, …) |
+| `nameFrom` | Generated field used as catalog item `name`. `rollMany` children default to `value` unless `fieldMap` renames it (e.g. `{ "value": "name" }`). |
+| `link.to` | Payload field set to the **catalog id** of the generated parent after it is created (e.g. `parentId`, `campaignId`) |
+| `fields[].from` | One source field, or a string array + `join` (default `"\n"`) to concat |
+| `fields[].literal` | Constant payload value |
+| `fields[].fromChildren` | Concat child records with matching `parentField` into one parent field (does not create those children by itself) |
+
+Unmapped generated types are skipped. Subrecords need their own binding; `link` remaps parent ids. If the root binding has `link` but no generated parent, Apply may prompt for an external parent catalog item.
+
+### Process ↔ table validation
+
+`GenerationProcess.validate(TableRegistry)` checks every step’s `table` exists and is the correct kind (random vs lookup), with paths like `steps[2].table`. The app runs this inside `validateConfig()` on Save / Generate.
+
+---
+
+## 13. Local verification
 
 From `packages/random_table_engine`:
 
@@ -566,4 +659,16 @@ dart test
 dart run example/run_engine.dart
 ```
 
-In the app: Settings → Generators → paste JSON → save (form runs `validateConfig()` via `TableRegistry` + `GenerationProcess` parse) → Run preview.
+In the app: Settings → Generators → paste JSON → Format / Validate → save → Generate → optionally **Apply** when `recordMapping` has bindings.
+
+---
+
+## 14. Follow-on backlog (not implemented)
+
+- `rollMany.then` nested steps per emitted child (engine)
+- Show gate `then` workspace fields while gate is Auto
+- Apply preflight name conflicts + retry remaining
+- Lightweight mapping templates / matchType picker
+- Structured process/tables editor; scoped override keys
+- Preview of Apply-resolved payloads (concat) beside raw fields
+

@@ -36,7 +36,9 @@ import '../../world/creature_types/data/creature_type_model.dart';
 import '../../world/creature_types/ui/creature_type_detail_page.dart';
 import '../../world/creatures/data/creature_model.dart';
 import '../../world/creatures/ui/creature_detail_page.dart';
+import '../../world/locations/data/location_model.dart';
 import '../../world/locations/ui/location_detail_page.dart';
+import '../../world/events/ui/event_detail_page.dart';
 import '../../world/organisations/ui/organisation_detail_page.dart';
 import '../data/catalog_api.dart';
 import '../data/catalog_kind.dart';
@@ -142,6 +144,12 @@ Future<void> openCatalogRecordDetail({
                 OrganisationDetailPage(auth: auth, item: item),
           ),
         );
+      case CatalogKind.events:
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            builder: (context) => EventDetailPage(auth: auth, item: item),
+          ),
+        );
       case CatalogKind.locations:
         await Navigator.of(context).push<void>(
           MaterialPageRoute(
@@ -227,7 +235,7 @@ Future<void> openCatalogWikiLink({
       }
     }
     if (match == null) {
-      // Fallback: list kind and find by name.
+      // Fallback: list kind and find by name (or location alias).
       final listed = await api.list(token, kind);
       for (final item in listed) {
         if (item.name.toLowerCase() == needle) {
@@ -237,6 +245,22 @@ Future<void> openCatalogWikiLink({
             name: item.name,
           );
           break;
+        }
+      }
+      if (match == null && kind == CatalogKind.locations) {
+        for (final item in listed) {
+          final record = LocationRecord.fromCatalogPayload(
+            name: item.name,
+            payload: item.payload,
+          );
+          if (record.matchesNameOrAlias(needle)) {
+            match = CatalogLinkTarget(
+              id: item.id,
+              kind: item.kind.apiValue,
+              name: item.name,
+            );
+            break;
+          }
         }
       }
     }

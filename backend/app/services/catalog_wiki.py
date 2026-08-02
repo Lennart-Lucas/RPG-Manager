@@ -28,6 +28,7 @@ LINKABLE_FIELDS: dict[str, tuple[str, ...]] = {
     "locations": ("description",),
     "characters": ("description",),
     "organisations": ("description",),
+    "events": ("description",),
     "campaigns": ("description",),
     "sessions": ("description",),
 }
@@ -92,6 +93,29 @@ def _set_nested(payload: dict[str, Any], path: str, value: str) -> None:
     current[parts[-1]] = value
 
 
+async def _find_location_by_alias(
+    session: AsyncSession, *, user_id: int, alias: str
+) -> CatalogItem | None:
+    needle = alias.casefold()
+    if not needle:
+        return None
+    result = await session.execute(
+        select(CatalogItem).where(
+            CatalogItem.user_id == user_id,
+            CatalogItem.kind == "locations",
+            CatalogItem.deleted_at.is_(None),
+        )
+    )
+    for candidate in result.scalars().all():
+        raw = (candidate.payload or {}).get("aliases")
+        if not isinstance(raw, list):
+            continue
+        for entry in raw:
+            if isinstance(entry, str) and entry.strip().casefold() == needle:
+                return candidate
+    return None
+
+
 async def sync_links_for_item(
     session: AsyncSession, item: CatalogItem
 ) -> None:
@@ -121,6 +145,12 @@ async def sync_links_for_item(
                 )
             )
             target = result.scalar_one_or_none()
+            if target is None and kind == "locations":
+                target = await _find_location_by_alias(
+                    session,
+                    user_id=item.user_id,
+                    alias=name,
+                )
             if target is None:
                 continue
             desired.add((target.id, field_key))

@@ -67,6 +67,7 @@ enum LocationType {
           LocationType.tradingpost,
           LocationType.district,
           LocationType.region,
+          LocationType.nation,
         ],
       };
 
@@ -84,6 +85,7 @@ class LocationRecord {
     required this.name,
     this.type = LocationType.site,
     this.parentId,
+    this.aliases = const [],
     this.description = '',
     this.population = '',
     this.government = '',
@@ -101,6 +103,9 @@ class LocationRecord {
   final String name;
   final LocationType type;
   final int? parentId;
+
+  /// Alternate names (former names, local names, etc.).
+  final List<String> aliases;
   final String description;
   final String population;
   final String government;
@@ -123,6 +128,7 @@ class LocationRecord {
       name: payload['name'] as String? ?? name,
       type: LocationType.parse(payload['type'] as String?),
       parentId: (payload['parentId'] as num?)?.toInt(),
+      aliases: _parseAliases(payload['aliases']),
       description: payload['description'] as String? ?? '',
       population: payload['population'] as String? ?? '',
       government: payload['government'] as String? ?? '',
@@ -138,10 +144,26 @@ class LocationRecord {
     );
   }
 
+  static List<String> _parseAliases(Object? raw) {
+    if (raw is! List) return const [];
+    final out = <String>[];
+    final seen = <String>{};
+    for (final entry in raw) {
+      final text = entry?.toString().trim() ?? '';
+      if (text.isEmpty) continue;
+      final key = text.toLowerCase();
+      if (seen.contains(key)) continue;
+      seen.add(key);
+      out.add(text);
+    }
+    return out;
+  }
+
   Map<String, dynamic> toJson() => {
         'name': name,
         'type': type.apiValue,
         'parentId': parentId,
+        'aliases': aliases,
         'description': description,
         'population': population,
         'government': government,
@@ -158,6 +180,17 @@ class LocationRecord {
 
   String get descriptionPreview =>
       description.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+  /// True if [query] matches the primary name or any alias (case-insensitive).
+  bool matchesNameOrAlias(String query) {
+    final needle = query.trim().toLowerCase();
+    if (needle.isEmpty) return false;
+    if (name.toLowerCase() == needle) return true;
+    for (final alias in aliases) {
+      if (alias.toLowerCase() == needle) return true;
+    }
+    return false;
+  }
 
   String? validateParent(LocationRecord? parent) {
     final allowed = type.allowedParentTypes;

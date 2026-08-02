@@ -69,6 +69,56 @@ void main() {
     });
   });
 
+  group('GenerationProcess.validate', () {
+    test('reports unknown random and lookup tables with paths', () {
+      final registry = TableRegistry.fromJson({
+        'tables': {
+          'ok': {
+            'type': 'random',
+            'dice': {'count': 1, 'sides': 1, 'bonus': 0},
+            'entries': [
+              {'min': 1, 'max': 1, 'value': 'a'},
+            ],
+          },
+        },
+      });
+      final process = GenerationProcess(
+        recordType: 'r',
+        steps: const [
+          RollStep(table: 'missingRoll', field: 'a'),
+          LookupStep(table: 'missingLookup', keyField: 'a', field: 'b'),
+          GateStep(
+            table: 'ok',
+            proceedValue: 'a',
+            thenSteps: [
+              RollStep(table: 'alsoMissing', field: 'c'),
+            ],
+          ),
+        ],
+      );
+      final errors = process.validate(registry);
+      expect(errors, contains(contains('steps[0].table')));
+      expect(errors, contains(contains('missingRoll')));
+      expect(errors, contains(contains('steps[1].table')));
+      expect(errors, contains(contains('lookup')));
+      expect(errors, contains(contains('steps[2].then[0].table')));
+    });
+
+    test('passes when all tables exist', () {
+      final registry = TableRegistry.fromJson(
+        jsonDecode(
+          File('test/fixtures/process_tables.json').readAsStringSync(),
+        ) as Map<String, dynamic>,
+      );
+      final process = GenerationProcess.fromJson(
+        jsonDecode(
+          File('test/fixtures/process.json').readAsStringSync(),
+        ) as Map<String, dynamic>,
+      );
+      expect(process.validate(registry), isEmpty);
+    });
+  });
+
   group('ProcessRunner', () {
     late TableRegistry registry;
     late GenerationProcess process;
@@ -151,6 +201,129 @@ void main() {
       );
       final records = runner.run(simple, overrides: {'origin': 'pinned'});
       expect(records.single.fields['origin'], 'pinned');
+    });
+
+    test('lookup and gate honor generationOverrides fields', () {
+      final runner = ProcessRunner(
+        registry: registry,
+        roller: _ThrowingRoller(),
+        idGenerator: SequentialIdGenerator(),
+      );
+      final records = runner.run(
+        GenerationProcess(
+          recordType: 'root',
+          steps: const [
+            RollStep(table: 'origin', field: 'origin'),
+            LookupStep(table: 'wealthDie', keyField: 'origin', field: 'wealthRoll'),
+            GateStep(
+              table: 'hasTemple',
+              proceedValue: 'yes',
+              field: 'hasTemple',
+              emitAs: 'temple',
+              parentField: 'temple',
+              thenSteps: [
+                RollStep(table: 'templeSize', field: 'size'),
+              ],
+            ),
+          ],
+        ),
+        generationOverrides: const GenerationOverrides(
+          fields: {
+            'origin': 'north',
+            'wealthRoll': 9,
+            'hasTemple': 'yes',
+            'size': 'grand',
+          },
+        ),
+      );
+      expect(records.first.fields['wealthRoll'], 9);
+      final temples =
+          records.where((r) => r.type == 'temple').toList(growable: false);
+      expect(temples.length, 1);
+      expect(temples.single.fields['size'], 'grand');
+    });
+
+    test('rollMany pins prefix values and rolls the rest', () {
+      final runner = ProcessRunner(
+        registry: registry,
+        // Remaining two shops: baker then smith (dice 1, 2)
+        roller: SeededRoller([1, 2]),
+        idGenerator: SequentialIdGenerator(),
+      );
+      final records = runner.run(
+        GenerationProcess(
+          recordType: 'settlement',
+          steps: const [
+            RollStep(table: 'shopCount', field: 'shopCount'),
+            RollManyStep(
+              table: 'shops',
+              countField: 'shopCount',
+              emitAs: 'shop',
+              parentField: 'shops',
+              fieldMap: {'value': 'name'},
+            ),
+          ],
+        ),
+        generationOverrides: const GenerationOverrides(
+          fields: {'shopCount': '3'},
+          collections: {
+            'shops': RollManyOverride(
+              count: 3,
+              pinnedValues: ['Temple'],
+            ),
+          },
+        ),
+      );
+      final shops =
+          records.where((r) => r.type == 'shop').toList(growable: false);
+      expect(shops.length, 3);
+      expect(shops.map((s) => s.fields['name']).toList(), [
+        'Temple',
+        'baker',
+        'smith',
+      ]);
+      expect(records.first.fields['shopCount'], 3);
+    });
+
+    test('rollMany minCount floors lookup/roll count', () {
+      final runner = ProcessRunner(
+        registry: registry,
+        // Remaining shop after pin: baker
+        roller: SeededRoller([1]),
+        idGenerator: SequentialIdGenerator(),
+      );
+      final records = runner.run(
+        GenerationProcess(
+          recordType: 'settlement',
+          steps: const [
+            RollStep(table: 'shopCount', field: 'shopCount'),
+            RollManyStep(
+              table: 'shops',
+              countField: 'shopCount',
+              emitAs: 'shop',
+              parentField: 'shops',
+              fieldMap: {'value': 'name'},
+            ),
+          ],
+        ),
+        generationOverrides: const GenerationOverrides(
+          fields: {'shopCount': '1'},
+          collections: {
+            'shops': RollManyOverride(
+              minCount: 2,
+              pinnedValues: ['Temple'],
+            ),
+          },
+        ),
+      );
+      final shops =
+          records.where((r) => r.type == 'shop').toList(growable: false);
+      expect(shops.length, 2);
+      expect(shops.map((s) => s.fields['name']).toList(), [
+        'Temple',
+        'baker',
+      ]);
+      expect(records.first.fields['shopCount'], 2);
     });
 
     test('modifierFrom uses accumulator', () {

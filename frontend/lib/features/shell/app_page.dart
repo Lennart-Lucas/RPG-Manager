@@ -23,5 +23,6 @@ enum AppPage {
   atlas,
   characters,
   organisations,
+  events,
   story,
 }

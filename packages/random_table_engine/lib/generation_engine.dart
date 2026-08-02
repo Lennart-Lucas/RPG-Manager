@@ -11,6 +11,7 @@ export 'src/model/random_table.dart' show DuplicatePolicy, RandomTable;
 export 'src/model/roll_result.dart';
 export 'src/model/table_entry.dart';
 export 'src/model/table_registry.dart';
+export 'src/process/generation_overrides.dart';
 export 'src/process/generation_process.dart';
 export 'src/process/process_runner.dart';
 export 'src/process/process_step.dart';

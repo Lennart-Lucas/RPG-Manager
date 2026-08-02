@@ -12,6 +12,7 @@ import '../../../catalog/ui/open_catalog_detail.dart';
 import '../../world_icons.dart';
 import '../data/organisation_model.dart';
 import 'organisation_form_sheet.dart';
+import 'organisation_tree_view.dart';
 
 class OrganisationDetailPage extends StatefulWidget {
   const OrganisationDetailPage({
@@ -31,6 +32,8 @@ class _OrganisationDetailPageState extends State<OrganisationDetailPage> {
   final _api = CatalogApi();
   late CatalogItem _item = widget.item;
   Map<int, String> _characterNames = const {};
+  List<CatalogItem> _all = const [];
+  List<CatalogItem> _breadcrumb = const [];
 
   Future<String?> _token() => widget.auth.requireAccessToken();
 
@@ -42,31 +45,58 @@ class _OrganisationDetailPageState extends State<OrganisationDetailPage> {
   @override
   void initState() {
     super.initState();
-    _loadCharacters();
+    _loadRelated();
   }
 
-  Future<void> _loadCharacters() async {
+  Future<void> _loadRelated() async {
     try {
       final token = await _token();
       if (token == null) return;
-      final chars = await _api.list(token, CatalogKind.characters);
+      final results = await Future.wait([
+        _api.list(token, CatalogKind.characters),
+        _api.list(token, CatalogKind.organisations),
+      ]);
       if (!mounted) return;
+      final chars = results[0];
+      final orgs = results[1];
       setState(() {
         _characterNames = {for (final c in chars) c.id: c.name};
+        _all = orgs;
+        _breadcrumb = _buildBreadcrumb(orgs);
       });
     } catch (_) {}
+  }
+
+  List<CatalogItem> _buildBreadcrumb(List<CatalogItem> all) {
+    final byId = {for (final i in all) i.id: i};
+    final chain = <CatalogItem>[];
+    var current = _record.parentId;
+    final seen = <int>{};
+    while (current != null && !seen.contains(current)) {
+      seen.add(current);
+      final parent = byId[current];
+      if (parent == null) break;
+      chain.insert(0, parent);
+      current = OrganisationRecord.fromCatalogPayload(
+        name: parent.name,
+        payload: parent.payload,
+      ).parentId;
+    }
+    return chain;
   }
 
   Future<void> _edit() async {
     try {
       final token = await _token();
       if (token == null || !mounted) return;
-      if (_characterNames.isEmpty) await _loadCharacters();
+      if (_characterNames.isEmpty || _all.isEmpty) await _loadRelated();
       if (!mounted) return;
       final updatedRecord = await showOrganisationFormSheet(
         context,
         initial: _record,
         characterNames: _characterNames,
+        allOrganisations: _all,
+        editingItemId: _item.id,
         searchLinks: (q) => searchCatalogLinkTargets(_api, token, q),
         loadAutoLinkTargets: () =>
             loadConditionDamageAutoLinkTargets(_api, token),
@@ -81,6 +111,7 @@ class _OrganisationDetailPageState extends State<OrganisationDetailPage> {
       );
       if (!mounted) return;
       setState(() => _item = updated);
+      await _loadRelated();
     } on AuthApiException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
@@ -132,6 +163,16 @@ class _OrganisationDetailPageState extends State<OrganisationDetailPage> {
     }
   }
 
+  Future<void> _openOrganisation(CatalogItem item) async {
+    await openCatalogRecordDetail(
+      context: context,
+      auth: widget.auth,
+      kindApiValue: CatalogKind.organisations.apiValue,
+      itemId: item.id,
+    );
+    if (mounted) await _loadRelated();
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -174,6 +215,35 @@ class _OrganisationDetailPageState extends State<OrganisationDetailPage> {
           ListView(
             padding: const EdgeInsets.all(24),
             children: [
+              if (_breadcrumb.isNotEmpty) ...[
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    for (var i = 0; i < _breadcrumb.length; i++) ...[
+                      if (i > 0)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Icon(
+                            Icons.chevron_right,
+                            size: 16,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      InkWell(
+                        onTap: () => _openOrganisation(_breadcrumb[i]),
+                        child: Text(
+                          _breadcrumb[i].name,
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: scheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 12),
+              ],
               Text(_item.name, style: textTheme.headlineSmall),
               const SizedBox(height: 4),
               Text(
@@ -218,6 +288,14 @@ class _OrganisationDetailPageState extends State<OrganisationDetailPage> {
                   ),
                 ),
               ],
+              const SizedBox(height: 28),
+              Text('Sub-organisations', style: textTheme.titleMedium),
+              OrganisationTreeView(
+                organisations: _all,
+                rootParentId: _item.id,
+                emptyLabel: 'No sub-organisations.',
+                onTap: _openOrganisation,
+              ),
             ],
           ),
         ],

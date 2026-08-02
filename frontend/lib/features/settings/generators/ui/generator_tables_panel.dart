@@ -1,7 +1,6 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
+import '../data/generator_input_spec.dart';
 import '../data/generator_tables_viz.dart';
 
 class GeneratorTablesPanel extends StatefulWidget {
@@ -24,10 +23,6 @@ class _GeneratorTablesPanelState extends State<GeneratorTablesPanel> {
     processDocument: widget.processDocument,
   );
 
-  final Map<String, GlobalKey> _cardKeys = {};
-  final Map<String, ExpansibleController> _controllers = {};
-  String? _focusedId;
-
   @override
   void didUpdateWidget(covariant GeneratorTablesPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -37,420 +32,327 @@ class _GeneratorTablesPanelState extends State<GeneratorTablesPanel> {
         tablesDocument: widget.tablesDocument,
         processDocument: widget.processDocument,
       );
-      _cardKeys.clear();
-      _controllers.clear();
-      _focusedId = null;
     }
   }
 
-  GlobalKey _keyFor(String id) =>
-      _cardKeys.putIfAbsent(id, GlobalKey.new);
-
-  ExpansibleController _controllerFor(String id) =>
-      _controllers.putIfAbsent(id, ExpansibleController.new);
-
-  Future<void> _focusTable(String id) async {
-    if (id == GeneratorTablesGraph.processNodeId) return;
-    setState(() => _focusedId = id);
-    final controller = _controllerFor(id);
-    if (!controller.isExpanded) {
-      controller.expand();
-    }
-    final key = _keyFor(id);
-    final ctx = key.currentContext;
-    if (ctx != null) {
-      await Scrollable.ensureVisible(
-        ctx,
-        duration: const Duration(milliseconds: 280),
-        curve: Curves.easeOutCubic,
-        alignment: 0.1,
-      );
-    }
+  List<GeneratorTableViz> get _sortedTables {
+    final tables = [..._graph.tables]..sort((a, b) => a.id.compareTo(b.id));
+    return tables;
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final tables = _sortedTables;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          'Tables',
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        const SizedBox(height: 8),
-        if (_graph.isEmpty)
+        if (tables.isEmpty)
           Text(
             'No tables in this generator config yet.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),
           )
-        else ...[
-          Text(
-            'Tap a node to open its table. Pinch or drag to explore the graph.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-          ),
-          const SizedBox(height: 12),
-          _TablesGraphView(
-            graph: _graph,
-            focusedId: _focusedId,
-            onNodeTap: _focusTable,
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'Table contents',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          for (final table in _graph.tables)
-            KeyedSubtree(
-              key: _keyFor(table.id),
-              child: _TableCard(
-                table: table,
-                controller: _controllerFor(table.id),
-                highlighted: _focusedId == table.id,
-              ),
-            ),
-        ],
+        else
+          for (final table in tables) ...[
+            _DnDRollTable(table: table),
+            const SizedBox(height: 20),
+          ],
       ],
     );
   }
 }
 
-class _TablesGraphView extends StatelessWidget {
-  const _TablesGraphView({
-    required this.graph,
-    required this.onNodeTap,
-    this.focusedId,
-  });
-
-  final GeneratorTablesGraph graph;
-  final String? focusedId;
-  final ValueChanged<String> onNodeTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    const height = 260.0;
-
-    return Material(
-      color: scheme.surfaceContainerHighest.withValues(alpha: 0.45),
-      borderRadius: BorderRadius.circular(16),
-      clipBehavior: Clip.antiAlias,
-      child: SizedBox(
-        height: height,
-        child: InteractiveViewer(
-          boundaryMargin: const EdgeInsets.all(48),
-          minScale: 0.55,
-          maxScale: 2.5,
-          child: CustomPaint(
-            painter: _GraphPainter(
-              graph: graph,
-              focusedId: focusedId,
-              scheme: scheme,
-            ),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final layout = _GraphLayout.compute(
-                  graph: graph,
-                  size: Size(constraints.maxWidth, height),
-                );
-                final kindById = {
-                  for (final t in graph.tables) t.id: t.kind,
-                };
-                return SizedBox(
-                  width: constraints.maxWidth,
-                  height: height,
-                  child: Stack(
-                    children: [
-                      for (final entry in layout.positions.entries)
-                        Positioned(
-                          left: entry.value.dx - layout.nodeWidth / 2,
-                          top: entry.value.dy - layout.nodeHeight / 2,
-                          width: layout.nodeWidth,
-                          height: layout.nodeHeight,
-                          child: _GraphNodeChip(
-                            label: entry.key ==
-                                    GeneratorTablesGraph.processNodeId
-                                ? 'Process'
-                                : entry.key,
-                            kind: entry.key ==
-                                    GeneratorTablesGraph.processNodeId
-                                ? GeneratorTableKind.process
-                                : kindById[entry.key] ??
-                                    GeneratorTableKind.unknown,
-                            selected: focusedId == entry.key,
-                            onTap: () => onNodeTap(entry.key),
-                          ),
-                        ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _GraphNodeChip extends StatelessWidget {
-  const _GraphNodeChip({
-    required this.label,
-    required this.kind,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final GeneratorTableKind kind;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final (bg, fg) = switch (kind) {
-      GeneratorTableKind.lookup => (
-          scheme.tertiaryContainer,
-          scheme.onTertiaryContainer,
-        ),
-      GeneratorTableKind.process => (
-          scheme.secondaryContainer,
-          scheme.onSecondaryContainer,
-        ),
-      GeneratorTableKind.random => (
-          scheme.primaryContainer,
-          scheme.onPrimaryContainer,
-        ),
-      GeneratorTableKind.unknown => (
-          scheme.surfaceContainerHighest,
-          scheme.onSurface,
-        ),
-    };
-
-    return Material(
-      color: bg,
-      elevation: selected ? 3 : 0,
-      borderRadius: BorderRadius.circular(20),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            border: selected
-                ? Border.all(color: scheme.primary, width: 2)
-                : null,
-          ),
-          child: Text(
-            label,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: fg,
-                  fontWeight: FontWeight.w600,
-                  height: 1.1,
-                ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _GraphLayout {
-  const _GraphLayout({
-    required this.positions,
-    required this.nodeWidth,
-    required this.nodeHeight,
-  });
-
-  final Map<String, Offset> positions;
-  final double nodeWidth;
-  final double nodeHeight;
-
-  static _GraphLayout compute({
-    required GeneratorTablesGraph graph,
-    required Size size,
-  }) {
-    const nodeWidth = 88.0;
-    const nodeHeight = 36.0;
-    final center = Offset(size.width / 2, size.height / 2);
-    final positions = <String, Offset>{};
-
-    if (graph.hasProcessHub) {
-      positions[GeneratorTablesGraph.processNodeId] = center;
-    }
-
-    final ids = graph.tables.map((t) => t.id).toList();
-    if (ids.isEmpty) {
-      return _GraphLayout(
-        positions: positions,
-        nodeWidth: nodeWidth,
-        nodeHeight: nodeHeight,
-      );
-    }
-
-    final radius = math.min(size.width, size.height) * 0.36;
-    for (var i = 0; i < ids.length; i++) {
-      final angle = -math.pi / 2 + (2 * math.pi * i / ids.length);
-      positions[ids[i]] = Offset(
-        center.dx + radius * math.cos(angle),
-        center.dy + radius * math.sin(angle),
-      );
-    }
-
-    return _GraphLayout(
-      positions: positions,
-      nodeWidth: nodeWidth,
-      nodeHeight: nodeHeight,
-    );
-  }
-}
-
-class _GraphPainter extends CustomPainter {
-  _GraphPainter({
-    required this.graph,
-    required this.scheme,
-    this.focusedId,
-  });
-
-  final GeneratorTablesGraph graph;
-  final ColorScheme scheme;
-  final String? focusedId;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final layout = _GraphLayout.compute(graph: graph, size: size);
-    final paint = Paint()
-      ..color = scheme.outlineVariant
-      ..strokeWidth = 1.25
-      ..style = PaintingStyle.stroke;
-
-    final labelStyle = TextStyle(
-      color: scheme.onSurfaceVariant.withValues(alpha: 0.85),
-      fontSize: 9,
-      fontWeight: FontWeight.w500,
-    );
-
-    for (final edge in graph.edges) {
-      final from = layout.positions[edge.fromId];
-      final to = layout.positions[edge.toId];
-      if (from == null || to == null) continue;
-
-      final highlighted = focusedId == edge.fromId || focusedId == edge.toId;
-      paint.color = highlighted
-          ? scheme.primary.withValues(alpha: 0.7)
-          : scheme.outlineVariant;
-      paint.strokeWidth = highlighted ? 1.8 : 1.25;
-
-      canvas.drawLine(from, to, paint);
-
-      final mid = Offset((from.dx + to.dx) / 2, (from.dy + to.dy) / 2);
-      final tp = TextPainter(
-        text: TextSpan(text: edge.label, style: labelStyle),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      tp.paint(canvas, mid - Offset(tp.width / 2, tp.height / 2));
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _GraphPainter oldDelegate) {
-    return oldDelegate.graph != graph ||
-        oldDelegate.focusedId != focusedId ||
-        oldDelegate.scheme != scheme;
-  }
-}
-
-class _TableCard extends StatelessWidget {
-  const _TableCard({
-    required this.table,
-    required this.controller,
-    required this.highlighted,
-  });
+class _DnDRollTable extends StatelessWidget {
+  const _DnDRollTable({required this.table});
 
   final GeneratorTableViz table;
-  final ExpansibleController controller;
-  final bool highlighted;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final subtitle = switch (table.kind) {
-      GeneratorTableKind.random => table.diceLabel ?? 'random',
-      GeneratorTableKind.lookup =>
-        table.keyedBy == null ? 'lookup' : 'keyed by ${table.keyedBy}',
-      GeneratorTableKind.process => 'process',
-      GeneratorTableKind.unknown => 'unknown',
+    final title = humanizeGeneratorFieldId(table.id);
+    final dice = table.diceLabel?.trim();
+    final kindLine = switch (table.kind) {
+      GeneratorTableKind.random => 'Random table',
+      GeneratorTableKind.lookup => table.keyedBy == null
+          ? 'Lookup table'
+          : 'Lookup keyed by ${humanizeGeneratorFieldId(table.keyedBy!)}',
+      GeneratorTableKind.process => 'Process',
+      GeneratorTableKind.unknown => 'Unknown table',
     };
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: highlighted
-            ? scheme.primaryContainer.withValues(alpha: 0.35)
-            : scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(12),
-        child: ExpansionTile(
-          controller: controller,
-          shape: const Border(),
-          collapsedShape: const Border(),
-          title: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  table.id,
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-              ),
-              _KindChip(kind: table.kind),
-            ],
-          ),
-          subtitle: Text(subtitle),
-          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+    final rollHeader = switch (table.kind) {
+      GeneratorTableKind.random =>
+        (dice != null && dice.isNotEmpty) ? dice : 'Roll',
+      GeneratorTableKind.lookup => 'Key',
+      _ => 'Roll',
+    };
+    final resultHeader = switch (table.kind) {
+      GeneratorTableKind.lookup => 'Roll',
+      _ => 'Result',
+    };
+
+    final rows = _rowsFor(table, scheme);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (table.kind == GeneratorTableKind.random) ...[
-              if (table.bands.isEmpty)
-                Text(
-                  'No entries',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                        fontStyle: FontStyle.italic,
-                      ),
-                )
-              else
-                for (final band in table.bands) _BandRow(band: band),
-            ] else if (table.kind == GeneratorTableKind.lookup) ...[
-              if (table.lookupRows.isEmpty)
-                Text(
-                  'No values',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                        fontStyle: FontStyle.italic,
-                      ),
-                )
-              else
-                for (final row in table.lookupRows) _LookupRowView(row: row),
-            ] else
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    kindLine,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            if (dice != null &&
+                dice.isNotEmpty &&
+                table.kind == GeneratorTableKind.random) ...[
+              const SizedBox(width: 12),
               Text(
-                'Unrecognized table type',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
+                dice,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: scheme.primary,
+                      fontWeight: FontWeight.w700,
                     ),
               ),
+            ],
+            const SizedBox(width: 8),
+            _KindChip(kind: table.kind),
           ],
         ),
+        const SizedBox(height: 10),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: scheme.outlineVariant.withValues(alpha: 0.85),
+            ),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(11),
+            child: _RollGrid(
+              rollHeader: rollHeader,
+              resultHeader: resultHeader,
+              rows: rows,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<_RollRowData> _rowsFor(GeneratorTableViz table, ColorScheme scheme) {
+    switch (table.kind) {
+      case GeneratorTableKind.random:
+        if (table.bands.isEmpty) {
+          return const [
+            _RollRowData(left: '—', rightPlain: 'No entries', muted: true),
+          ];
+        }
+        return [
+          for (final band in table.bands)
+            _RollRowData(
+              left: band.rangeLabel,
+              rightSpans: [
+                TextSpan(text: band.value),
+                if (band.subTable != null && band.subTable!.isNotEmpty)
+                  TextSpan(
+                    text: '  → ${band.subTable}',
+                    style: TextStyle(color: scheme.primary),
+                  ),
+                if (band.modifiersLabel.isNotEmpty)
+                  TextSpan(
+                    text: '  (${band.modifiersLabel})',
+                    style: TextStyle(color: scheme.onSurfaceVariant),
+                  ),
+              ],
+            ),
+        ];
+      case GeneratorTableKind.lookup:
+        if (table.lookupRows.isEmpty) {
+          return const [
+            _RollRowData(left: '—', rightPlain: 'No values', muted: true),
+          ];
+        }
+        return [
+          for (final row in table.lookupRows)
+            _RollRowData(
+              left: row.key,
+              rightPlain: '→ ${row.diceLabel}',
+              rightBold: true,
+            ),
+        ];
+      case GeneratorTableKind.process:
+      case GeneratorTableKind.unknown:
+        return const [
+          _RollRowData(
+            left: '—',
+            rightPlain: 'Unrecognized table type',
+            muted: true,
+          ),
+        ];
+    }
+  }
+}
+
+class _RollRowData {
+  const _RollRowData({
+    required this.left,
+    this.rightPlain,
+    this.rightSpans,
+    this.rightBold = false,
+    this.muted = false,
+  });
+
+  final String left;
+  final String? rightPlain;
+  final List<InlineSpan>? rightSpans;
+  final bool rightBold;
+  final bool muted;
+}
+
+class _RollGrid extends StatelessWidget {
+  const _RollGrid({
+    required this.rollHeader,
+    required this.resultHeader,
+    required this.rows,
+  });
+
+  final String rollHeader;
+  final String resultHeader;
+  final List<_RollRowData> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final borderColor = scheme.outlineVariant.withValues(alpha: 0.85);
+    final headerBg = scheme.surfaceContainerHigh;
+    final rowBase = scheme.surfaceContainerLowest;
+    final rowEvenBg = Color.alphaBlend(
+      scheme.onSurface.withValues(alpha: 0.06),
+      rowBase,
+    );
+    final rowOddBg = Color.alphaBlend(
+      scheme.onSurface.withValues(alpha: 0.14),
+      rowBase,
+    );
+    final headerStyle = textTheme.labelLarge?.copyWith(
+      fontWeight: FontWeight.w700,
+    );
+    final bodyStyle = textTheme.bodyMedium;
+
+    Widget cell({
+      required Widget child,
+      required Color bg,
+      bool rollCol = false,
+    }) {
+      return ColoredBox(
+        color: bg,
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: rollCol ? 10 : 12,
+            vertical: 8,
+          ),
+          child: child,
+        ),
+      );
+    }
+
+    return Table(
+      border: TableBorder(
+        horizontalInside: BorderSide(color: borderColor, width: 1),
+        verticalInside: BorderSide(color: borderColor, width: 1),
       ),
+      columnWidths: const {
+        0: IntrinsicColumnWidth(),
+        1: FlexColumnWidth(),
+      },
+      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+      children: [
+        TableRow(
+          children: [
+            cell(
+              bg: headerBg,
+              rollCol: true,
+              child: Text(rollHeader, style: headerStyle),
+            ),
+            cell(
+              bg: headerBg,
+              child: Text(resultHeader, style: headerStyle),
+            ),
+          ],
+        ),
+        for (var i = 0; i < rows.length; i++)
+          TableRow(
+            children: [
+              cell(
+                bg: i.isEven ? rowEvenBg : rowOddBg,
+                rollCol: true,
+                child: Text(
+                  rows[i].left,
+                  style: bodyStyle?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                    fontStyle:
+                        rows[i].muted ? FontStyle.italic : FontStyle.normal,
+                  ),
+                ),
+              ),
+              cell(
+                bg: i.isEven ? rowEvenBg : rowOddBg,
+                child: rows[i].rightSpans != null
+                    ? Text.rich(
+                        TextSpan(
+                          style: bodyStyle?.copyWith(
+                            fontStyle: rows[i].muted
+                                ? FontStyle.italic
+                                : FontStyle.normal,
+                            color: rows[i].muted
+                                ? scheme.onSurfaceVariant
+                                : null,
+                          ),
+                          children: rows[i].rightSpans,
+                        ),
+                      )
+                    : Text(
+                        rows[i].rightPlain ?? '',
+                        style: bodyStyle?.copyWith(
+                          fontWeight: rows[i].rightBold
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                          fontStyle: rows[i].muted
+                              ? FontStyle.italic
+                              : FontStyle.normal,
+                          color: rows[i].muted
+                              ? scheme.onSurfaceVariant
+                              : null,
+                        ),
+                      ),
+              ),
+            ],
+          ),
+      ],
     );
   }
 }
@@ -492,88 +394,6 @@ class _KindChip extends StatelessWidget {
               color: fg,
               fontWeight: FontWeight.w600,
             ),
-      ),
-    );
-  }
-}
-
-class _BandRow extends StatelessWidget {
-  const _BandRow({required this.band});
-
-  final GeneratorTableBand band;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final mods = band.modifiersLabel;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 56,
-            child: Text(
-              band.rangeLabel,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
-          ),
-          Expanded(
-            child: Text.rich(
-              TextSpan(
-                children: [
-                  TextSpan(text: band.value),
-                  if (band.subTable != null && band.subTable!.isNotEmpty)
-                    TextSpan(
-                      text: '  → ${band.subTable}',
-                      style: TextStyle(color: scheme.primary),
-                    ),
-                  if (mods.isNotEmpty)
-                    TextSpan(
-                      text: '  ($mods)',
-                      style: TextStyle(color: scheme.onSurfaceVariant),
-                    ),
-                ],
-              ),
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LookupRowView extends StatelessWidget {
-  const _LookupRowView({required this.row});
-
-  final GeneratorLookupRow row;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              row.key,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-            ),
-          ),
-          Text(
-            '→ ${row.diceLabel}',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-          ),
-        ],
       ),
     );
   }

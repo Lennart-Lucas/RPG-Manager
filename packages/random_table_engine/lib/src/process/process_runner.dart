@@ -4,6 +4,7 @@ import '../core/roller.dart';
 import '../model/generated_record.dart';
 import '../model/roll_result.dart';
 import '../model/table_registry.dart';
+import 'generation_overrides.dart';
 import 'generation_process.dart';
 import 'process_step.dart';
 
@@ -21,10 +22,17 @@ class ProcessRunner {
   final Roller _roller;
   final IdGenerator _ids;
 
+  /// Runs [process].
+  ///
+  /// Prefer [generationOverrides] for typed pins (fields + rollMany).
+  /// [overrides] is a legacy flat field map and is merged into
+  /// [generationOverrides.fields] when both are provided.
   List<GeneratedRecord> run(
     GenerationProcess process, {
+    GenerationOverrides? generationOverrides,
     Map<String, dynamic>? overrides,
   }) {
+    final merged = _mergeOverrides(generationOverrides, overrides);
     final emitted = <GeneratedRecord>[];
     final modifiers = ModifierAccumulator();
     final root = GeneratedRecord(
@@ -39,13 +47,26 @@ class ProcessRunner {
       parentScopeId: root.id,
       emitted: emitted,
       modifiers: modifiers,
-      overrides: overrides ?? const {},
+      overrides: merged,
     );
 
     root.fields[GeneratedRecord.modifiersField] = Map<String, int>.from(
       modifiers.snapshot,
     );
     return emitted;
+  }
+
+  GenerationOverrides _mergeOverrides(
+    GenerationOverrides? typed,
+    Map<String, dynamic>? legacy,
+  ) {
+    if (typed == null || typed.isEmpty) {
+      return GenerationOverrides.fromFieldMap(legacy);
+    }
+    if (legacy == null || legacy.isEmpty) return typed;
+    return typed.copyWith(
+      fields: {...typed.fields, ...legacy},
+    );
   }
 
   void _attachRollMeta(
@@ -69,7 +90,7 @@ class ProcessRunner {
     required String parentScopeId,
     required List<GeneratedRecord> emitted,
     required ModifierAccumulator modifiers,
-    required Map<String, dynamic> overrides,
+    required GenerationOverrides overrides,
   }) {
     for (final step in steps) {
       switch (step) {
@@ -83,7 +104,7 @@ class ProcessRunner {
             overrides: overrides,
           );
         case LookupStep():
-          _runLookup(step, current: current);
+          _runLookup(step, current: current, overrides: overrides);
         case RollManyStep():
           _runRollMany(
             step,
@@ -91,6 +112,7 @@ class ProcessRunner {
             parentScopeId: parentScopeId,
             emitted: emitted,
             modifiers: modifiers,
+            overrides: overrides,
           );
         case GateStep():
           _runGate(
@@ -117,11 +139,11 @@ class ProcessRunner {
     required String parentScopeId,
     required List<GeneratedRecord> emitted,
     required ModifierAccumulator modifiers,
-    required Map<String, dynamic> overrides,
+    required GenerationOverrides overrides,
   }) {
     final RollResult result;
-    if (overrides.containsKey(step.field)) {
-      final pinned = overrides[step.field];
+    if (overrides.fields.containsKey(step.field)) {
+      final pinned = overrides.fields[step.field];
       result = RollResult(value: '$pinned');
     } else {
       final mod = step.modifierFrom == null
@@ -181,7 +203,34 @@ class ProcessRunner {
     }
   }
 
-  void _runLookup(LookupStep step, {required GeneratedRecord current}) {
+  void _runLookup(
+    LookupStep step, {
+    required GeneratedRecord current,
+    required GenerationOverrides overrides,
+  }) {
+    if (overrides.fields.containsKey(step.field)) {
+      final pinned = overrides.fields[step.field];
+      final value = switch (pinned) {
+        int v => v,
+        num v => v.toInt(),
+        String v => int.tryParse(v) ?? v,
+        _ => pinned,
+      };
+      current.fields[step.field] = value;
+      final rolls = current.fields.putIfAbsent(
+        GeneratedRecord.rollsField,
+        () => <String, dynamic>{},
+      ) as Map<String, dynamic>;
+      rolls[step.field] = {
+        'roll': value,
+        'modifier': 0,
+        'total': value,
+        'value': value,
+        'pinned': true,
+      };
+      return;
+    }
+
     final key = current.fields[step.keyField];
     if (key == null) {
       throw StateError(
@@ -209,34 +258,72 @@ class ProcessRunner {
     required String parentScopeId,
     required List<GeneratedRecord> emitted,
     required ModifierAccumulator modifiers,
+    required GenerationOverrides overrides,
   }) {
+    final collectionKey = rollManyOverrideKey(
+      parentField: step.parentField,
+      field: step.field,
+      table: step.table,
+    );
+    final collection = overrides.collections[collectionKey];
+
     final countRaw = current.fields[step.countField];
-    final count = switch (countRaw) {
+    final fromField = switch (countRaw) {
       int v => v,
       num v => v.toInt(),
-      String v => int.tryParse(v) ??
-          (throw StateError('rollMany countField is not an int: $countRaw')),
-      _ => throw StateError('rollMany countField is not an int: $countRaw'),
+      String v => int.tryParse(v),
+      _ => null,
     };
+
+    final pinned = collection?.pinnedValues ?? const <String>[];
+    var count = collection?.count ?? fromField;
+    if (count == null) {
+      throw StateError('rollMany countField is not an int: $countRaw');
+    }
+    final floor = [
+      pinned.length,
+      collection?.minCount ?? 0,
+    ].fold<int>(0, (a, b) => a > b ? a : b);
+    if (floor > count) {
+      count = floor;
+    }
+    if (count < 0) {
+      throw StateError('rollMany count must be >= 0, got $count');
+    }
+
+    // Reflect raised / forced count onto the record when overridden.
+    if (collection?.count != null ||
+        (collection?.minCount != null && floor > (fromField ?? 0)) ||
+        pinned.length > (fromField ?? 0)) {
+      current.fields[step.countField] = count;
+    }
 
     bool Function(String)? rerollIf;
     if (step.rerollIfTag != null) {
       final tag = step.rerollIfTag!;
-      rerollIf = (value) {
-        return value == tag;
-      };
+      rerollIf = (value) => value == tag;
     }
 
-    final results = _registry.get(step.table).rollMany(
-          count,
-          _roller,
-          _registry,
-          rerollIf: rerollIf,
-        );
+    final results = <RollResult>[
+      for (final value in pinned) RollResult(value: value),
+    ];
+    final remaining = count - pinned.length;
+    if (remaining > 0) {
+      results.addAll(
+        _registry.get(step.table).rollMany(
+              remaining,
+              _roller,
+              _registry,
+              rerollIf: rerollIf,
+            ),
+      );
+    }
 
     if (step.emitAs != null) {
       for (final result in results) {
-        modifiers.add(result.allModifiers);
+        if (result.roll != null) {
+          modifiers.add(result.allModifiers);
+        }
         final fields = <String, dynamic>{
           'value': result.value,
           if (result.detail != null) 'detail': result.detail!.value,
@@ -267,7 +354,9 @@ class ProcessRunner {
       final list = <String>[];
       final metaList = <Map<String, dynamic>>[];
       for (final result in results) {
-        modifiers.add(result.allModifiers);
+        if (result.roll != null) {
+          modifiers.add(result.allModifiers);
+        }
         list.add(result.value);
         metaList.add({
           ...result.toMetaMap(),
@@ -289,10 +378,16 @@ class ProcessRunner {
     required String parentScopeId,
     required List<GeneratedRecord> emitted,
     required ModifierAccumulator modifiers,
-    required Map<String, dynamic> overrides,
+    required GenerationOverrides overrides,
   }) {
-    final result = _registry.get(step.table).roll(_roller, _registry);
-    modifiers.add(result.allModifiers);
+    final gateKey = step.field ?? step.table;
+    final RollResult result;
+    if (overrides.fields.containsKey(gateKey)) {
+      result = RollResult(value: '${overrides.fields[gateKey]}');
+    } else {
+      result = _registry.get(step.table).roll(_roller, _registry);
+      modifiers.add(result.allModifiers);
+    }
 
     if (result.value != step.proceedValue) {
       final metaKey = step.field ?? step.table;

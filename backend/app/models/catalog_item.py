@@ -34,6 +34,7 @@ class CatalogKind(StrEnum):
     locations = "locations"
     characters = "characters"
     organisations = "organisations"
+    events = "events"
     generators = "generators"
     campaigns = "campaigns"
     sessions = "sessions"

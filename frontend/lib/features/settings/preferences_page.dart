@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
 
 import '../dm_tools/pdf_extract/data/anthropic_key_store.dart';
 import '../../core/config/app_config.dart';
 import '../../core/offline/offline_sync_controller.dart';
+import '../../core/platform/client_platform.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/theme_controller.dart';
 import '../auth/state/auth_controller.dart';
+import 'obsidian/data/obsidian_export_controller.dart';
 
 /// Preferences content shown inside [AppShell] (no own AppBar/drawer).
 class PreferencesBody extends StatefulWidget {
@@ -128,13 +131,77 @@ class _PreferencesBodyState extends State<PreferencesBody> {
     messenger.showSnackBar(SnackBar(content: Text(message)));
   }
 
+  Future<void> _pickObsidianVault() async {
+    final export = ObsidianExportController.instance;
+    final path = await FilePicker.platform.getDirectoryPath(
+      dialogTitle: 'Choose Obsidian vault',
+    );
+    if (path == null || !mounted) return;
+    final error = await export.setVaultPath(path);
+    if (!mounted) return;
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error)),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Obsidian vault saved — export runs on this device'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _clearObsidianVault() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear Obsidian vault?'),
+        content: const Text(
+          'Stop exporting to the vault on this device? '
+          'Existing notes in the vault are not deleted.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Clear'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    await ObsidianExportController.instance.setVaultPath(null);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Obsidian export disabled on this device')),
+    );
+  }
+
+  String _formatExportTime(DateTime? at) {
+    if (at == null) return 'Never';
+    final local = at.toLocal();
+    String two(int n) => n.toString().padLeft(2, '0');
+    return '${local.year}-${two(local.month)}-${two(local.day)} '
+        '${two(local.hour)}:${two(local.minute)}';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDesktop = detectClientPlatform() == ClientPlatform.desktop;
     return AnimatedBuilder(
-      animation: Listenable.merge([widget.themeController, widget.auth]),
+      animation: Listenable.merge([
+        widget.themeController,
+        widget.auth,
+        if (isDesktop) ObsidianExportController.instance,
+      ]),
       builder: (context, _) {
         final scheme = Theme.of(context).colorScheme;
         final aiEnabled = widget.auth.user?.aiIntegration ?? false;
+        final export = ObsidianExportController.instance;
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
@@ -240,6 +307,80 @@ class _PreferencesBodyState extends State<PreferencesBody> {
                   ],
                 ),
                 onTap: _editAnthropicKey,
+              ),
+            ],
+            if (isDesktop) ...[
+              const Divider(height: 32),
+              Text(
+                'Obsidian export',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Mirrors catalog notes into a local vault folder '
+                '(RPG Manager/). One-way: the database always wins. '
+                'Path is stored only on this device.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.folder_special_outlined),
+                title: const Text('Vault folder'),
+                subtitle: Text(
+                  export.vaultPath ?? 'Not set',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (export.vaultPath != null)
+                      IconButton(
+                        tooltip: 'Clear',
+                        onPressed: _clearObsidianVault,
+                        icon: const Icon(Icons.delete_outline),
+                      ),
+                    IconButton(
+                      tooltip: 'Choose folder',
+                      onPressed: _pickObsidianVault,
+                      icon: const Icon(Icons.folder_open),
+                    ),
+                  ],
+                ),
+                onTap: _pickObsidianVault,
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  export.isExporting
+                      ? Icons.sync
+                      : (export.lastError != null
+                          ? Icons.error_outline
+                          : Icons.check_circle_outline),
+                  color: export.lastError != null ? scheme.error : null,
+                ),
+                title: Text(
+                  export.isExporting
+                      ? 'Exporting…'
+                      : 'Last export: ${_formatExportTime(export.lastExportAt)}',
+                ),
+                subtitle: export.lastError != null
+                    ? Text(
+                        export.lastError!,
+                        style: TextStyle(color: scheme.error),
+                      )
+                    : const Text(
+                        'Updates automatically when catalog records change.',
+                      ),
+                trailing: FilledButton(
+                  onPressed: export.hasValidVault && !export.isExporting
+                      ? () => export.exportNow()
+                      : null,
+                  child: const Text('Export now'),
+                ),
               ),
             ],
             const Divider(height: 32),

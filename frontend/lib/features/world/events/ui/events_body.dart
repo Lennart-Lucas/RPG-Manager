@@ -9,26 +9,24 @@ import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../../catalog/ui/catalog_create_speed_dial.dart';
 import '../../world_icons.dart';
-import '../data/character_model.dart';
-import 'character_detail_page.dart';
-import 'character_form_sheet.dart';
-import 'mtg_alignment_chips.dart';
+import '../data/event_model.dart';
+import 'event_detail_page.dart';
+import 'event_form_sheet.dart';
 
-class CharactersBody extends StatefulWidget {
-  const CharactersBody({super.key, required this.auth});
+class EventsBody extends StatefulWidget {
+  const EventsBody({super.key, required this.auth});
 
   final AuthController auth;
 
   @override
-  State<CharactersBody> createState() => _CharactersBodyState();
+  State<EventsBody> createState() => _EventsBodyState();
 }
 
-class _CharactersBodyState extends State<CharactersBody> {
+class _EventsBodyState extends State<EventsBody> {
   final _api = CatalogApi();
   bool _loading = true;
   String? _error;
   List<CatalogItem> _items = const [];
-  Map<int, String> _raceNames = const {};
 
   @override
   void initState() {
@@ -46,14 +44,10 @@ class _CharactersBodyState extends State<CharactersBody> {
     try {
       final token = await _token();
       if (token == null) throw AuthApiException('Not authenticated');
-      final results = await Future.wait([
-        _api.list(token, CatalogKind.characters),
-        _api.list(token, CatalogKind.races),
-      ]);
+      final items = await _api.list(token, CatalogKind.events);
       if (!mounted) return;
       setState(() {
-        _items = results[0];
-        _raceNames = {for (final r in results[1]) r.id: r.name};
+        _items = items;
         _loading = false;
       });
     } on AuthApiException catch (e) {
@@ -65,7 +59,7 @@ class _CharactersBodyState extends State<CharactersBody> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _error = 'Could not load characters';
+        _error = 'Could not load events';
         _loading = false;
       });
     }
@@ -75,11 +69,8 @@ class _CharactersBodyState extends State<CharactersBody> {
     try {
       final token = await _token();
       if (token == null || !mounted) return;
-      final races = await _api.list(token, CatalogKind.races);
-      if (!mounted) return;
-      final record = await showCharacterFormSheet(
+      final record = await showEventFormSheet(
         context,
-        races: races,
         searchLinks: (q) => searchCatalogLinkTargets(_api, token, q),
         loadAutoLinkTargets: () =>
             loadConditionDamageAutoLinkTargets(_api, token),
@@ -87,18 +78,20 @@ class _CharactersBodyState extends State<CharactersBody> {
       if (record == null || !mounted) return;
       await _api.create(
         accessToken: token,
-        kind: CatalogKind.characters,
+        kind: CatalogKind.events,
         name: record.name,
         payload: record.toJson(),
       );
       await _reload();
     } on AuthApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not create character')),
+        const SnackBar(content: Text('Could not create event')),
       );
     }
   }
@@ -106,8 +99,7 @@ class _CharactersBodyState extends State<CharactersBody> {
   Future<void> _open(CatalogItem item) async {
     final deleted = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (context) =>
-            CharacterDetailPage(auth: widget.auth, item: item),
+        builder: (context) => EventDetailPage(auth: widget.auth, item: item),
       ),
     );
     if (deleted == true || mounted) await _reload();
@@ -117,7 +109,7 @@ class _CharactersBodyState extends State<CharactersBody> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete character?'),
+        title: const Text('Delete event?'),
         content: Text('Delete “${item.name}”? This cannot be undone.'),
         actions: [
           TextButton(
@@ -137,17 +129,19 @@ class _CharactersBodyState extends State<CharactersBody> {
       if (token == null) return;
       await _api.delete(
         accessToken: token,
-        kind: CatalogKind.characters,
+        kind: CatalogKind.events,
         itemId: item.id,
       );
       await _reload();
     } on AuthApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not delete character')),
+        const SnackBar(content: Text('Could not delete event')),
       );
     }
   }
@@ -164,11 +158,7 @@ class _CharactersBodyState extends State<CharactersBody> {
             child: Center(
               child: Opacity(
                 opacity: 0.08,
-                child: Icon(
-                  charactersPageIcon,
-                  size: 440,
-                  color: scheme.onSurface,
-                ),
+                child: Icon(eventsPageIcon, size: 440, color: scheme.onSurface),
               ),
             ),
           ),
@@ -206,13 +196,13 @@ class _CharactersBodyState extends State<CharactersBody> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              'No characters yet',
+                              'No events yet',
                               style: textTheme.headlineSmall,
                               textAlign: TextAlign.center,
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Tap + to add your first character.',
+                              'Tap + to add your first event.',
                               textAlign: TextAlign.center,
                               style: textTheme.bodyMedium?.copyWith(
                                 color: scheme.onSurfaceVariant,
@@ -236,16 +226,11 @@ class _CharactersBodyState extends State<CharactersBody> {
               separatorBuilder: (_, _) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
                 final item = _items[index];
-                final record = CharacterRecord.fromCatalogPayload(
+                final record = EventRecord.fromCatalogPayload(
                   name: item.name,
                   payload: item.payload,
                 );
-                final raceName =
-                    record.raceId == null ? null : _raceNames[record.raceId];
-                final parts = <String>[
-                  if (raceName != null) raceName,
-                  if (record.playerName.isNotEmpty) record.playerName,
-                ];
+                final preview = record.descriptionPreview;
                 return RecordListCard(
                   leading: Container(
                     width: 42,
@@ -255,13 +240,13 @@ class _CharactersBodyState extends State<CharactersBody> {
                       borderRadius: BorderRadius.circular(13),
                     ),
                     child: Icon(
-                      charactersPageIcon,
+                      eventsPageIcon,
                       size: 22,
                       color: scheme.onPrimaryContainer,
                     ),
                   ),
                   title: item.name,
-                  subtitle: parts.isEmpty ? 'Character' : parts.join(' · '),
+                  subtitle: 'Event',
                   trailing: IconButton(
                     tooltip: 'Delete',
                     onPressed: () => _delete(item),
@@ -272,15 +257,11 @@ class _CharactersBodyState extends State<CharactersBody> {
                   ),
                   onTap: () => _open(item),
                   children: [
-                    if (record.mtgAlignment.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      MtgAlignmentChips(colors: record.mtgAlignment, size: 24),
-                    ],
-                    if (record.descriptionPreview.isNotEmpty) ...[
+                    if (preview.isNotEmpty) ...[
                       const SizedBox(height: 10),
                       Text(
-                        record.descriptionPreview,
-                        maxLines: 2,
+                        preview,
+                        maxLines: 3,
                         overflow: TextOverflow.ellipsis,
                         style: textTheme.bodyMedium?.copyWith(
                           color: scheme.onSurfaceVariant,
@@ -298,8 +279,8 @@ class _CharactersBodyState extends State<CharactersBody> {
           bottom: 20,
           child: CatalogCreateSpeedDial(
             auth: widget.auth,
-            kind: CatalogKind.characters,
-            heroTagPrefix: 'characters-create',
+            kind: CatalogKind.events,
+            heroTagPrefix: 'events-create',
             onManualCreate: _create,
             onAfterGenerate: _reload,
           ),

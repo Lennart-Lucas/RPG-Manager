@@ -54,6 +54,7 @@ class _LocationFormState extends State<_LocationForm> {
       TextEditingController(text: widget.initial?.description ?? '');
   late LocationType _type = widget.initial?.type ?? LocationType.site;
   late int? _parentId = widget.initial?.parentId;
+  late List<String> _aliases = [...?widget.initial?.aliases];
   String? _parentError;
 
   @override
@@ -100,6 +101,12 @@ class _LocationFormState extends State<_LocationForm> {
       name: _nameController.text.trim(),
       type: _type,
       parentId: _type.allowedParentTypes.isEmpty ? null : _parentId,
+      aliases: [
+        for (final a in _aliases)
+          if (a.trim().isNotEmpty &&
+              a.trim().toLowerCase() != _nameController.text.trim().toLowerCase())
+            a.trim(),
+      ],
       description: _descriptionController.text.trim(),
       // Preserve legacy overview fields not shown in the form.
       population: initial?.population ?? '',
@@ -213,6 +220,11 @@ class _LocationFormState extends State<_LocationForm> {
               ),
           ],
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          _AliasesEditor(
+            values: _aliases,
+            onChanged: (next) => setState(() => _aliases = next),
+          ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
           MarkdownFormField(
             controller: _descriptionController,
             label: 'Description',
@@ -228,6 +240,100 @@ class _LocationFormState extends State<_LocationForm> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _AliasesEditor extends StatefulWidget {
+  const _AliasesEditor({
+    required this.values,
+    required this.onChanged,
+  });
+
+  final List<String> values;
+  final ValueChanged<List<String>> onChanged;
+
+  @override
+  State<_AliasesEditor> createState() => _AliasesEditorState();
+}
+
+class _AliasesEditorState extends State<_AliasesEditor> {
+  late final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _add() {
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
+    final exists = widget.values.any(
+      (v) => v.toLowerCase() == text.toLowerCase(),
+    );
+    if (!exists) {
+      widget.onChanged([...widget.values, text]);
+    }
+    _controller.clear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Aliases',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Other names this location is known by',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+        ),
+        const SizedBox(height: 8),
+        if (widget.values.isNotEmpty)
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (var i = 0; i < widget.values.length; i++)
+                InputChip(
+                  label: Text(widget.values[i]),
+                  onDeleted: () {
+                    final next = [...widget.values]..removeAt(i);
+                    widget.onChanged(next);
+                  },
+                ),
+            ],
+          ),
+        if (widget.values.isNotEmpty) const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _controller,
+                decoration: ResourceFormStyles.inputDecoration(
+                  context,
+                  label: 'Add alias',
+                ),
+                textCapitalization: TextCapitalization.words,
+                onSubmitted: (_) => _add(),
+              ),
+            ),
+            IconButton(
+              tooltip: 'Add alias',
+              onPressed: _add,
+              icon: const Icon(Icons.add),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

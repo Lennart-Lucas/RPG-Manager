@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 
 import 'core/offline/offline_marker.dart';
 import 'core/offline/offline_sync_controller.dart';
+import 'core/platform/client_platform.dart';
 import 'core/theme/theme_controller.dart';
 import 'core/ui/app_scroll_behavior.dart';
 import 'features/auth/state/auth_controller.dart';
 import 'features/auth/ui/login_screen.dart';
 import 'features/auth/ui/register_screen.dart';
+import 'features/settings/obsidian/data/obsidian_export_controller.dart';
 import 'features/shell/app_shell.dart';
 
 void main() {
@@ -45,13 +47,27 @@ class _RpgManagerAppState extends State<RpgManagerApp> {
       debugPrint('Offline sync: $message');
     };
     sync.start(tokenProvider: _auth.requireAccessToken);
+    if (detectClientPlatform() == ClientPlatform.desktop) {
+      ObsidianExportController.instance.start(
+        tokenProvider: _auth.requireAccessToken,
+      );
+      _auth.addListener(_onAuthChangedForObsidian);
+    }
     _auth.bootstrap();
     _theme.bootstrap();
   }
 
+  void _onAuthChangedForObsidian() {
+    if (_auth.status == AuthStatus.authenticated) {
+      ObsidianExportController.instance.scheduleExport();
+    }
+  }
+
   @override
   void dispose() {
+    _auth.removeListener(_onAuthChangedForObsidian);
     OfflineSyncController.instance.stop();
+    ObsidianExportController.instance.stop();
     _auth.dispose();
     _theme.dispose();
     super.dispose();

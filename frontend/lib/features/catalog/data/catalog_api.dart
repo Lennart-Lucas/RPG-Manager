@@ -16,6 +16,13 @@ class CatalogApi {
 
   final AuthenticatedHttp _http;
 
+  /// Fired after a successful create/update/delete (desktop Obsidian sync).
+  static void Function()? onCatalogMutated;
+
+  static void _notifyMutated() {
+    onCatalogMutated?.call();
+  }
+
   Uri _uri(CatalogKind kind, [String suffix = '']) => Uri.parse(
         '${AppConfig.apiBaseUrl}${AppConfig.apiPrefix}/catalog/${kind.apiValue}$suffix',
       );
@@ -148,6 +155,7 @@ class CatalogApi {
         statusCode: response.statusCode,
       );
     }
+    _notifyMutated();
     return CatalogItem.fromJson(
       jsonDecode(response.body) as Map<String, dynamic>,
     );
@@ -224,6 +232,7 @@ class CatalogApi {
         statusCode: response.statusCode,
       );
     }
+    _notifyMutated();
     return CatalogItem.fromJson(
       jsonDecode(response.body) as Map<String, dynamic>,
     );
@@ -265,6 +274,7 @@ class CatalogApi {
         statusCode: response.statusCode,
       );
     }
+    _notifyMutated();
   }
 
   String _errorMessage(http.Response response) {

@@ -6,6 +6,7 @@ import '../../../catalog/data/catalog_api.dart';
 import '../../../catalog/data/catalog_auto_link.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
+import '../../../catalog/ui/catalog_create_speed_dial.dart';
 import '../../world_icons.dart';
 import 'location_detail_page.dart';
 import 'location_form_sheet.dart';
@@ -220,11 +221,12 @@ class _LocationsBodyState extends State<LocationsBody> {
         Positioned(
           right: 20,
           bottom: 20,
-          child: FloatingActionButton(
-            onPressed: _create,
-            backgroundColor: scheme.primary,
-            foregroundColor: scheme.onPrimary,
-            child: const Icon(Icons.add),
+          child: CatalogCreateSpeedDial(
+            auth: widget.auth,
+            kind: CatalogKind.locations,
+            heroTagPrefix: 'locations-create',
+            onManualCreate: _create,
+            onAfterGenerate: _reload,
           ),
         ),
       ],

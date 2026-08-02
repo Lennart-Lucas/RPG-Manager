@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/ui/markdown_form_field.dart';
+import '../../../catalog/data/catalog_models.dart';
 import '../../../dm_tools/resources/ui/resource_form_helpers.dart';
 import '../../ui/world_form_helpers.dart';
 import '../data/organisation_model.dart';
@@ -9,6 +10,8 @@ Future<OrganisationRecord?> showOrganisationFormSheet(
   BuildContext context, {
   OrganisationRecord? initial,
   required Map<int, String> characterNames,
+  List<CatalogItem> allOrganisations = const [],
+  int? editingItemId,
   CatalogLinkSearch? searchLinks,
   CatalogAutoLinkLoader? loadAutoLinkTargets,
 }) {
@@ -19,6 +22,8 @@ Future<OrganisationRecord?> showOrganisationFormSheet(
     child: _OrganisationForm(
       initial: initial,
       characterNames: characterNames,
+      allOrganisations: allOrganisations,
+      editingItemId: editingItemId,
       searchLinks: searchLinks,
       loadAutoLinkTargets: loadAutoLinkTargets,
     ),
@@ -29,12 +34,16 @@ class _OrganisationForm extends StatefulWidget {
   const _OrganisationForm({
     this.initial,
     required this.characterNames,
+    required this.allOrganisations,
+    this.editingItemId,
     this.searchLinks,
     this.loadAutoLinkTargets,
   });
 
   final OrganisationRecord? initial;
   final Map<int, String> characterNames;
+  final List<CatalogItem> allOrganisations;
+  final int? editingItemId;
   final CatalogLinkSearch? searchLinks;
   final CatalogAutoLinkLoader? loadAutoLinkTargets;
 
@@ -49,12 +58,30 @@ class _OrganisationFormState extends State<_OrganisationForm> {
   late final _descriptionController =
       TextEditingController(text: widget.initial?.description ?? '');
   late List<int> _memberIds = [...?widget.initial?.memberIds];
+  late int? _parentId = widget.initial?.parentId;
 
   @override
   void dispose() {
     _nameController.dispose();
     _descriptionController.dispose();
     super.dispose();
+  }
+
+  List<CatalogItem> get _parentOptions {
+    final excluded = widget.editingItemId == null
+        ? <int>{}
+        : organisationSubtreeIds(
+            widget.allOrganisations,
+            widget.editingItemId!,
+          );
+    final options = [
+      for (final item in widget.allOrganisations)
+        if (!excluded.contains(item.id)) item,
+    ];
+    options.sort(
+      (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+    );
+    return options;
   }
 
   void _submit() {
@@ -66,12 +93,17 @@ class _OrganisationFormState extends State<_OrganisationForm> {
         name: _nameController.text.trim(),
         description: _descriptionController.text.trim(),
         memberIds: _memberIds,
+        parentId: _parentId,
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final parents = _parentOptions;
+    final parentValid =
+        _parentId == null || parents.any((p) => p.id == _parentId);
+
     return Form(
       key: _formKey,
       child: Column(
@@ -92,6 +124,27 @@ class _OrganisationFormState extends State<_OrganisationForm> {
               }
               return null;
             },
+          ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          DropdownButtonFormField<int?>(
+            key: ValueKey('org-parent-$_parentId-${parents.length}'),
+            initialValue: parentValid ? _parentId : null,
+            decoration: ResourceFormStyles.inputDecoration(
+              context,
+              label: 'Parent organisation',
+            ),
+            items: [
+              const DropdownMenuItem<int?>(
+                value: null,
+                child: Text('None'),
+              ),
+              for (final p in parents)
+                DropdownMenuItem<int?>(
+                  value: p.id,
+                  child: Text(p.name),
+                ),
+            ],
+            onChanged: (value) => setState(() => _parentId = value),
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
           catalogMultiPickTile(

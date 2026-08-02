@@ -142,7 +142,9 @@ class _GeneratorsBodyState extends State<GeneratorsBody> {
         if (_items.isEmpty)
           Center(
             child: Text(
-              'No generators yet.\nAdd one to store a tables + process config.',
+              'No generators yet.\n'
+                  'Add one with tables, a process, and optional record '
+                  'mapping for Apply.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: scheme.onSurfaceVariant,

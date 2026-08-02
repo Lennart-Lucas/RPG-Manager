@@ -28,6 +28,7 @@ extension CatalogKindIcons on CatalogKind {
         CatalogKind.locations => atlasPageIcon,
         CatalogKind.characters => charactersPageIcon,
         CatalogKind.organisations => organisationsPageIcon,
+        CatalogKind.events => eventsPageIcon,
         CatalogKind.generators => generatorPageIcon,
         CatalogKind.campaigns => storyPageIcon,
         CatalogKind.sessions => sessionsPageIcon,

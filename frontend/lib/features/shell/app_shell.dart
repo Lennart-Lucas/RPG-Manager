@@ -28,6 +28,7 @@ import '../settings/preferences_page.dart';
 import '../world/campaigns/ui/campaigns_body.dart';
 import '../world/characters/ui/characters_body.dart';
 import '../world/creatures/ui/creatures_body.dart';
+import '../world/events/ui/events_body.dart';
 import '../world/locations/ui/locations_body.dart';
 import '../world/organisations/ui/organisations_body.dart';
 import 'app_page.dart';
@@ -78,6 +79,7 @@ class _AppShellState extends State<AppShell> {
         AppPage.atlas => 'Atlas',
         AppPage.characters => 'Characters',
         AppPage.organisations => 'Organisations',
+        AppPage.events => 'Events',
         AppPage.story => 'Story',
       };
 
@@ -171,6 +173,7 @@ class _AppShellState extends State<AppShell> {
         AppPage.atlas => LocationsBody(auth: widget.auth),
         AppPage.characters => CharactersBody(auth: widget.auth),
         AppPage.organisations => OrganisationsBody(auth: widget.auth),
+        AppPage.events => EventsBody(auth: widget.auth),
         AppPage.story => CampaignsBody(auth: widget.auth),
       },
     );

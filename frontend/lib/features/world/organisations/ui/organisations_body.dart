@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/ui/record_list_card.dart';
 import '../../../auth/data/auth_api.dart';
 import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
 import '../../../catalog/data/catalog_auto_link.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
+import '../../../catalog/ui/catalog_create_speed_dial.dart';
 import '../../world_icons.dart';
-import '../data/organisation_model.dart';
 import 'organisation_detail_page.dart';
 import 'organisation_form_sheet.dart';
+import 'organisation_tree_view.dart';
 
 class OrganisationsBody extends StatefulWidget {
   const OrganisationsBody({super.key, required this.auth});
@@ -74,6 +74,7 @@ class _OrganisationsBodyState extends State<OrganisationsBody> {
       final record = await showOrganisationFormSheet(
         context,
         characterNames: names,
+        allOrganisations: _items,
         searchLinks: (q) => searchCatalogLinkTargets(_api, token, q),
         loadAutoLinkTargets: () =>
             loadConditionDamageAutoLinkTargets(_api, token),
@@ -183,84 +184,33 @@ class _OrganisationsBodyState extends State<OrganisationsBody> {
               ),
             ),
           )
-        else if (_items.isEmpty)
+        else
           RefreshIndicator(
             onRefresh: _reload,
             child: LayoutBuilder(
               builder: (context, constraints) {
                 return SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                   child: ConstrainedBox(
-                    constraints:
-                        BoxConstraints(minHeight: constraints.maxHeight),
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
-                        child: Text(
-                          'No organisations yet\nTap + to add one.',
-                          textAlign: TextAlign.center,
-                          style: textTheme.headlineSmall,
-                        ),
-                      ),
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
                     ),
+                    child: _items.isEmpty
+                        ? Center(
+                            child: Text(
+                              'No organisations yet\nTap + to add one.',
+                              textAlign: TextAlign.center,
+                              style: textTheme.headlineSmall,
+                            ),
+                          )
+                        : OrganisationTreeView(
+                            organisations: _items,
+                            emptyLabel: 'No organisations yet\nTap + to add one.',
+                            onTap: _open,
+                            onDelete: _delete,
+                          ),
                   ),
-                );
-              },
-            ),
-          )
-        else
-          RefreshIndicator(
-            onRefresh: _reload,
-            child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-              itemCount: _items.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 10),
-              itemBuilder: (context, index) {
-                final item = _items[index];
-                final record = OrganisationRecord.fromCatalogPayload(
-                  name: item.name,
-                  payload: item.payload,
-                );
-                final count = record.memberIds.length;
-                return RecordListCard(
-                  leading: Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: scheme.primaryContainer.withValues(alpha: 0.88),
-                      borderRadius: BorderRadius.circular(13),
-                    ),
-                    child: Icon(
-                      organisationsPageIcon,
-                      size: 22,
-                      color: scheme.onPrimaryContainer,
-                    ),
-                  ),
-                  title: item.name,
-                  subtitle:
-                      '$count member${count == 1 ? '' : 's'}',
-                  trailing: IconButton(
-                    tooltip: 'Delete',
-                    onPressed: () => _delete(item),
-                    icon: Icon(
-                      Icons.delete_outline,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                  onTap: () => _open(item),
-                  children: [
-                    if (record.descriptionPreview.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      Text(
-                        record.descriptionPreview,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ],
                 );
               },
             ),
@@ -268,11 +218,12 @@ class _OrganisationsBodyState extends State<OrganisationsBody> {
         Positioned(
           right: 20,
           bottom: 20,
-          child: FloatingActionButton(
-            onPressed: _create,
-            backgroundColor: scheme.primary,
-            foregroundColor: scheme.onPrimary,
-            child: const Icon(Icons.add),
+          child: CatalogCreateSpeedDial(
+            auth: widget.auth,
+            kind: CatalogKind.organisations,
+            heroTagPrefix: 'organisations-create',
+            onManualCreate: _create,
+            onAfterGenerate: _reload,
           ),
         ),
       ],
