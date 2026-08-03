@@ -4,9 +4,11 @@ import 'package:flutter/widgets.dart';
 
 import '../../../auth/data/auth_api.dart';
 import '../../../catalog/data/catalog_api.dart';
+import '../../../catalog/data/catalog_kind.dart';
 import '../../../../core/offline/offline_sync_controller.dart';
 import '../../../../core/platform/client_platform.dart';
 import 'obsidian_export_service.dart';
+import 'obsidian_import_service.dart';
 import 'obsidian_vault_store.dart';
 import 'obsidian_vault_validator.dart';
 
@@ -20,11 +22,14 @@ class ObsidianExportController extends ChangeNotifier
 
   final ObsidianVaultStore _store = ObsidianVaultStore();
   final ObsidianExportService _service = ObsidianExportService();
+  final ObsidianImportService _importService = ObsidianImportService();
 
   ObsidianAccessTokenProvider? _tokenProvider;
   Timer? _debounce;
   bool _enabled = false;
+  bool _autoSyncEnabled = true;
   bool _exporting = false;
+  bool _importing = false;
   bool _pending = false;
   String? _vaultPath;
   DateTime? _lastExportAt;
@@ -32,7 +37,9 @@ class ObsidianExportController extends ChangeNotifier
   bool _started = false;
 
   bool get isEnabled => _enabled;
+  bool get isAutoSyncEnabled => _autoSyncEnabled;
   bool get isExporting => _exporting;
+  bool get isImporting => _importing;
   String? get vaultPath => _vaultPath;
   DateTime? get lastExportAt => _lastExportAt;
   String? get lastError => _lastError;
@@ -54,7 +61,7 @@ class ObsidianExportController extends ChangeNotifier
       sync.addListener(_onOfflineSyncChanged);
     }
     await reloadFromStore();
-    if (hasValidVault) {
+    if (hasValidVault && _autoSyncEnabled) {
       scheduleExport();
     }
   }
@@ -92,12 +99,27 @@ class ObsidianExportController extends ChangeNotifier
 
   Future<void> reloadFromStore() async {
     _vaultPath = await _store.getVaultPath();
+    _autoSyncEnabled = await _store.getAutoSyncEnabled();
     _lastExportAt = await _store.getLastExportAt();
     _lastError = await _store.getLastError();
     if (_vaultPath != null && !isValidObsidianVault(_vaultPath!)) {
       _lastError = obsidianVaultValidationError(_vaultPath!);
     }
     notifyListeners();
+  }
+
+  Future<void> setAutoSyncEnabled(bool enabled) async {
+    if (!_enabled) return;
+    await _store.setAutoSyncEnabled(enabled);
+    _autoSyncEnabled = enabled;
+    notifyListeners();
+    if (enabled && hasValidVault) {
+      scheduleExport();
+    } else {
+      _debounce?.cancel();
+      _debounce = null;
+      _pending = false;
+    }
   }
 
   /// Validates and persists [path]. Clears when null/empty.
@@ -122,12 +144,14 @@ class ObsidianExportController extends ChangeNotifier
     _vaultPath = trimmed;
     _lastError = null;
     notifyListeners();
-    scheduleExport();
+    if (_autoSyncEnabled) {
+      scheduleExport();
+    }
     return null;
   }
 
   void scheduleExport() {
-    if (!_enabled || !hasValidVault) return;
+    if (!_enabled || !_autoSyncEnabled || !hasValidVault) return;
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 1500), () {
       unawaited(exportNow());
@@ -182,6 +206,44 @@ class ObsidianExportController extends ChangeNotifier
         _pending = false;
         scheduleExport();
       }
+    }
+  }
+
+  /// Reverse-imports a single Obsidian `.md` note into the database.
+  ///
+  /// Returns a user-facing error message, or null on success. On success,
+  /// [onSuccess] receives a short summary (record name + kind label).
+  Future<String?> importNoteFile(
+    String absolutePath, {
+    void Function(String summary)? onSuccess,
+  }) async {
+    if (!_enabled) {
+      return 'Obsidian import is only available on desktop';
+    }
+    if (_importing) return 'An import is already in progress';
+    final tokenProvider = _tokenProvider;
+    if (tokenProvider == null) return 'Not signed in';
+
+    _importing = true;
+    notifyListeners();
+    try {
+      final token = await tokenProvider();
+      if (token == null) return 'Not signed in';
+      final result = await _importService.importFile(
+        accessToken: token,
+        absolutePath: absolutePath,
+      );
+      onSuccess?.call(
+        '${result.name} (${result.kind.singularLabel})',
+      );
+      return null;
+    } catch (e) {
+      if (e is AuthApiException) return e.message;
+      if (e is StateError) return e.message;
+      return '$e';
+    } finally {
+      _importing = false;
+      notifyListeners();
     }
   }
 }

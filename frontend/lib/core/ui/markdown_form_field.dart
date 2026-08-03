@@ -354,6 +354,50 @@ class _MarkdownFormFieldState extends State<MarkdownFormField> {
     _focusNode.requestFocus();
   }
 
+  void _insertQuote() {
+    final text = _controller.text;
+    final selection = _controller.selection;
+    final start = selection.start < 0 ? text.length : selection.start;
+    final end = selection.end < 0 ? start : selection.end;
+
+    final before = start > 0 && text[start - 1] != '\n' ? '\n' : '';
+    final after = end < text.length && text[end] != '\n' ? '\n' : '';
+
+    if (start != end) {
+      final selected = text.substring(start, end);
+      final quotedLines = selected.split('\n').map((line) {
+        final trimmed = line.trimRight();
+        if (trimmed.isEmpty) return '>';
+        if (RegExp(r'^\s*>\s?').hasMatch(trimmed)) return trimmed;
+        return '> $trimmed';
+      }).join('\n');
+      final inserted = '$before$quotedLines$after';
+      final newText = text.replaceRange(start, end, inserted);
+      _controller.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(
+          offset: start + inserted.length,
+        ),
+      );
+      _focusNode.requestFocus();
+      return;
+    }
+
+    const placeholder = 'quote';
+    final block = '> $placeholder\n> - Author';
+    final inserted = '$before$block$after';
+    final newText = text.replaceRange(start, end, inserted);
+    final quoteOffset = start + before.length + 2;
+    _controller.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection(
+        baseOffset: quoteOffset,
+        extentOffset: quoteOffset + placeholder.length,
+      ),
+    );
+    _focusNode.requestFocus();
+  }
+
   void _insertCardBreak() {
     final text = _controller.text;
     final selection = _controller.selection;
@@ -431,6 +475,7 @@ class _MarkdownFormFieldState extends State<MarkdownFormField> {
                   _wrapSelection(prefix: '<u>', suffix: '</u>'),
               onBullet: () => _toggleLinePrefix(numbered: false),
               onNumbered: () => _toggleLinePrefix(numbered: true),
+              onQuote: _insertQuote,
               onTable: _insertTable,
               onCardBreak: _insertCardBreak,
               onAutoLink: _autoLink,
@@ -465,6 +510,7 @@ class _Toolbar extends StatelessWidget {
     required this.onUnderline,
     required this.onBullet,
     required this.onNumbered,
+    required this.onQuote,
     required this.onTable,
     required this.onCardBreak,
     required this.onAutoLink,
@@ -478,6 +524,7 @@ class _Toolbar extends StatelessWidget {
   final VoidCallback onUnderline;
   final VoidCallback onBullet;
   final VoidCallback onNumbered;
+  final VoidCallback onQuote;
   final VoidCallback onTable;
   final VoidCallback onCardBreak;
   final VoidCallback onAutoLink;
@@ -515,6 +562,11 @@ class _Toolbar extends StatelessWidget {
           tooltip: 'Numbered list',
           icon: Icons.format_list_numbered,
           onPressed: onNumbered,
+        ),
+        _ToolButton(
+          tooltip: 'Quote',
+          icon: Icons.format_quote,
+          onPressed: onQuote,
         ),
         _ToolButton(
           tooltip: 'Table',

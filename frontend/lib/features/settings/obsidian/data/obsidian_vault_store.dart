@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Device-local Obsidian vault preferences (not synced to the server).
 class ObsidianVaultStore {
   static const vaultPathKey = 'obsidian.vault_path';
+  static const autoSyncKey = 'obsidian.auto_sync';
   static const lastExportAtKey = 'obsidian.last_export_at';
   static const lastErrorKey = 'obsidian.last_error';
 
@@ -21,6 +22,17 @@ class ObsidianVaultStore {
     } else {
       await prefs.setString(vaultPathKey, trimmed);
     }
+  }
+
+  /// Defaults to true when unset (existing installs keep auto-exporting).
+  Future<bool> getAutoSyncEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(autoSyncKey) ?? true;
+  }
+
+  Future<void> setAutoSyncEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(autoSyncKey, enabled);
   }
 
   Future<DateTime?> getLastExportAt() async {

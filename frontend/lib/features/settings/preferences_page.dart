@@ -181,6 +181,71 @@ class _PreferencesBodyState extends State<PreferencesBody> {
     );
   }
 
+  Future<void> _importObsidianNote() async {
+    final export = ObsidianExportController.instance;
+    if (export.isImporting) return;
+
+    final picked = await FilePicker.platform.pickFiles(
+      dialogTitle: 'Import one Obsidian note',
+      type: FileType.custom,
+      allowedExtensions: const ['md'],
+      allowMultiple: false,
+      lockParentWindow: true,
+    );
+    if (picked == null || picked.files.isEmpty || !mounted) return;
+    final path = picked.files.single.path;
+    if (path == null || path.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not read the selected file')),
+      );
+      return;
+    }
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Import note into database?'),
+        content: Text(
+          'Overwrite the matching catalog record with the body of:\n\n$path\n\n'
+          'Only this one file is imported. Other vault notes are ignored.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Import'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    String? summary;
+    final error = await export.importNoteFile(
+      path,
+      onSuccess: (value) => summary = value,
+    );
+    if (!mounted) return;
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error)),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            summary == null
+                ? 'Imported note into the database'
+                : 'Imported $summary',
+          ),
+        ),
+      );
+    }
+  }
+
   String _formatExportTime(DateTime? at) {
     if (at == null) return 'Never';
     final local = at.toLocal();
@@ -325,6 +390,18 @@ class _PreferencesBodyState extends State<PreferencesBody> {
                     ),
               ),
               const SizedBox(height: 8),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                secondary: const Icon(Icons.sync),
+                title: const Text('Auto-sync'),
+                subtitle: Text(
+                  export.isAutoSyncEnabled
+                      ? 'Export when catalog records change on this device.'
+                      : 'Automatic export is off. Use Export now when you want an update.',
+                ),
+                value: export.isAutoSyncEnabled,
+                onChanged: (value) => export.setAutoSyncEnabled(value),
+              ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.folder_special_outlined),
@@ -372,14 +449,33 @@ class _PreferencesBodyState extends State<PreferencesBody> {
                         export.lastError!,
                         style: TextStyle(color: scheme.error),
                       )
-                    : const Text(
-                        'Updates automatically when catalog records change.',
+                    : Text(
+                        export.isAutoSyncEnabled
+                            ? 'Updates automatically when catalog records change.'
+                            : 'Auto-sync is off.',
                       ),
                 trailing: FilledButton(
                   onPressed: export.hasValidVault && !export.isExporting
                       ? () => export.exportNow()
                       : null,
                   child: const Text('Export now'),
+                ),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  export.isImporting
+                      ? Icons.hourglass_top
+                      : Icons.upload_file_outlined,
+                ),
+                title: const Text('Import note'),
+                subtitle: const Text(
+                  'Choose one exported .md file to overwrite its matching '
+                  'catalog record (body + name from frontmatter).',
+                ),
+                trailing: FilledButton(
+                  onPressed: export.isImporting ? null : _importObsidianNote,
+                  child: Text(export.isImporting ? 'Importing…' : 'Import'),
                 ),
               ),
             ],

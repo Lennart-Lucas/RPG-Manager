@@ -10,6 +10,7 @@ Future<OrganisationRecord?> showOrganisationFormSheet(
   BuildContext context, {
   OrganisationRecord? initial,
   required Map<int, String> characterNames,
+  required Map<int, String> locationNames,
   List<CatalogItem> allOrganisations = const [],
   int? editingItemId,
   CatalogLinkSearch? searchLinks,
@@ -22,6 +23,7 @@ Future<OrganisationRecord?> showOrganisationFormSheet(
     child: _OrganisationForm(
       initial: initial,
       characterNames: characterNames,
+      locationNames: locationNames,
       allOrganisations: allOrganisations,
       editingItemId: editingItemId,
       searchLinks: searchLinks,
@@ -34,6 +36,7 @@ class _OrganisationForm extends StatefulWidget {
   const _OrganisationForm({
     this.initial,
     required this.characterNames,
+    required this.locationNames,
     required this.allOrganisations,
     this.editingItemId,
     this.searchLinks,
@@ -42,6 +45,7 @@ class _OrganisationForm extends StatefulWidget {
 
   final OrganisationRecord? initial;
   final Map<int, String> characterNames;
+  final Map<int, String> locationNames;
   final List<CatalogItem> allOrganisations;
   final int? editingItemId;
   final CatalogLinkSearch? searchLinks;
@@ -57,13 +61,24 @@ class _OrganisationFormState extends State<_OrganisationForm> {
       TextEditingController(text: widget.initial?.name ?? '');
   late final _descriptionController =
       TextEditingController(text: widget.initial?.description ?? '');
+  late final _foundingController =
+      TextEditingController(text: widget.initial?.founding ?? '');
+  late final _typeController =
+      TextEditingController(text: widget.initial?.type ?? '');
+  late final _mottoController =
+      TextEditingController(text: widget.initial?.motto ?? '');
+  late List<String> _aliases = [...?widget.initial?.aliases];
   late List<int> _memberIds = [...?widget.initial?.memberIds];
   late int? _parentId = widget.initial?.parentId;
+  late int? _seatId = widget.initial?.seatId;
 
   @override
   void dispose() {
     _nameController.dispose();
     _descriptionController.dispose();
+    _foundingController.dispose();
+    _typeController.dispose();
+    _mottoController.dispose();
     super.dispose();
   }
 
@@ -84,14 +99,33 @@ class _OrganisationFormState extends State<_OrganisationForm> {
     return options;
   }
 
+  List<MapEntry<int, String>> get _seatOptions {
+    final entries = widget.locationNames.entries.toList()
+      ..sort(
+        (a, b) => a.value.toLowerCase().compareTo(b.value.toLowerCase()),
+      );
+    return entries;
+  }
+
   void _submit() {
     final form = _formKey.currentState;
     if (form == null || !form.validate()) return;
+    final name = _nameController.text.trim();
     Navigator.pop(
       context,
       OrganisationRecord(
-        name: _nameController.text.trim(),
+        name: name,
         description: _descriptionController.text.trim(),
+        aliases: [
+          for (final a in _aliases)
+            if (a.trim().isNotEmpty &&
+                a.trim().toLowerCase() != name.toLowerCase())
+              a.trim(),
+        ],
+        founding: _foundingController.text.trim(),
+        type: _typeController.text.trim(),
+        seatId: _seatId,
+        motto: _mottoController.text.trim(),
         memberIds: _memberIds,
         parentId: _parentId,
       ),
@@ -103,6 +137,9 @@ class _OrganisationFormState extends State<_OrganisationForm> {
     final parents = _parentOptions;
     final parentValid =
         _parentId == null || parents.any((p) => p.id == _parentId);
+    final seats = _seatOptions;
+    final seatValid =
+        _seatId == null || widget.locationNames.containsKey(_seatId);
 
     return Form(
       key: _formKey,
@@ -126,12 +163,17 @@ class _OrganisationFormState extends State<_OrganisationForm> {
             },
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          _AliasesEditor(
+            values: _aliases,
+            onChanged: (next) => setState(() => _aliases = next),
+          ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
           DropdownButtonFormField<int?>(
             key: ValueKey('org-parent-$_parentId-${parents.length}'),
             initialValue: parentValid ? _parentId : null,
             decoration: ResourceFormStyles.inputDecoration(
               context,
-              label: 'Parent organisation',
+              label: 'Parent body',
             ),
             items: [
               const DropdownMenuItem<int?>(
@@ -145,6 +187,54 @@ class _OrganisationFormState extends State<_OrganisationForm> {
                 ),
             ],
             onChanged: (value) => setState(() => _parentId = value),
+          ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          DropdownButtonFormField<int?>(
+            key: ValueKey('org-seat-$_seatId-${seats.length}'),
+            initialValue: seatValid ? _seatId : null,
+            decoration: ResourceFormStyles.inputDecoration(
+              context,
+              label: 'Seat',
+            ),
+            items: [
+              const DropdownMenuItem<int?>(
+                value: null,
+                child: Text('None'),
+              ),
+              for (final entry in seats)
+                DropdownMenuItem<int?>(
+                  value: entry.key,
+                  child: Text(entry.value),
+                ),
+            ],
+            onChanged: (value) => setState(() => _seatId = value),
+          ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          MarkdownFormField(
+            controller: _typeController,
+            label: 'Type',
+            minLines: 1,
+            maxLines: 4,
+            searchLinks: widget.searchLinks,
+            loadAutoLinkTargets: widget.loadAutoLinkTargets,
+          ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          MarkdownFormField(
+            controller: _foundingController,
+            label: 'Founding',
+            minLines: 2,
+            maxLines: 6,
+            searchLinks: widget.searchLinks,
+            loadAutoLinkTargets: widget.loadAutoLinkTargets,
+          ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          MarkdownFormField(
+            controller: _mottoController,
+            label: 'Motto',
+            minLines: 1,
+            maxLines: 4,
+            searchLinks: widget.searchLinks,
+            loadAutoLinkTargets: widget.loadAutoLinkTargets,
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
           catalogMultiPickTile(
@@ -178,6 +268,100 @@ class _OrganisationFormState extends State<_OrganisationForm> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _AliasesEditor extends StatefulWidget {
+  const _AliasesEditor({
+    required this.values,
+    required this.onChanged,
+  });
+
+  final List<String> values;
+  final ValueChanged<List<String>> onChanged;
+
+  @override
+  State<_AliasesEditor> createState() => _AliasesEditorState();
+}
+
+class _AliasesEditorState extends State<_AliasesEditor> {
+  late final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _add() {
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
+    final exists = widget.values.any(
+      (v) => v.toLowerCase() == text.toLowerCase(),
+    );
+    if (!exists) {
+      widget.onChanged([...widget.values, text]);
+    }
+    _controller.clear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Aliases',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Other names this organisation is known by',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+        ),
+        const SizedBox(height: 8),
+        if (widget.values.isNotEmpty)
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (var i = 0; i < widget.values.length; i++)
+                InputChip(
+                  label: Text(widget.values[i]),
+                  onDeleted: () {
+                    final next = [...widget.values]..removeAt(i);
+                    widget.onChanged(next);
+                  },
+                ),
+            ],
+          ),
+        if (widget.values.isNotEmpty) const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _controller,
+                decoration: ResourceFormStyles.inputDecoration(
+                  context,
+                  label: 'Add alias',
+                ),
+                textCapitalization: TextCapitalization.words,
+                onSubmitted: (_) => _add(),
+              ),
+            ),
+            IconButton(
+              tooltip: 'Add alias',
+              onPressed: _add,
+              icon: const Icon(Icons.add),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

@@ -4,33 +4,21 @@
     "type": "split",
     "children": [
       {
-        "id": "eaca9e05acab1153",
+        "id": "405729afeca10835",
         "type": "tabs",
         "children": [
           {
-            "id": "fe93299e80988c5e",
+            "id": "4880d2d1842efa3c",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {},
+              "type": "markdown",
+              "state": {
+                "file": "RPG Manager/Organisations/Althania's Holy Inquisition/5th Sacrament – The Wardens of the Argent Hunt.md",
+                "mode": "source",
+                "source": false
+              },
               "icon": "lucide-file",
-              "title": "New tab"
-            }
-          }
-        ]
-      },
-      {
-        "id": "a22648f373257e25",
-        "type": "tabs",
-        "children": [
-          {
-            "id": "aa6aee8a24413abb",
-            "type": "leaf",
-            "state": {
-              "type": "graph",
-              "state": {},
-              "icon": "lucide-git-fork",
-              "title": "Graph view"
+              "title": "5th Sacrament – The Wardens of the Argent Hunt"
             }
           }
         ]
@@ -53,7 +41,9 @@
               "type": "file-explorer",
               "state": {
                 "sortOrder": "alphabetical",
-                "autoReveal": false
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
               },
               "icon": "lucide-folder-closed",
               "title": "Files"
@@ -193,8 +183,19 @@
       "bases:Create new base": false
     }
   },
-  "active": "f53c72818ce21c13",
+  "active": "4880d2d1842efa3c",
   "lastOpenFiles": [
+    "RPG Manager/Organisations/Althania's Holy Inquisition/5th Sacrament – The Wardens of the Argent Hunt.md.tmp.19284.064c9785d7d6",
+    "RPG Manager/Organisations/Althania's Holy Inquisition/5th Sacrament – The Wardens of the Argent Hunt.md.tmp.19284.1ce799d37f44",
+    "RPG Manager/Organisations/Althania's Holy Inquisition/6th Sacrament - The Custodians of the Black Pyre.md",
+    "RPG Manager/Organisations/Althania's Holy Inquisition/5th Sacrament – The Wardens of the Argent Hunt.md",
+    "RPG Manager/Organisations/Althania's Holy Inquisition/5th Sacrament – The Wardens of the Argent Hunt.md.tmp.8224.f53185af0385",
+    "RPG Manager/Organisations/Althania's Holy Inquisition/6th Sacrament - The Custodians of the Black Pyre.md.tmp.15880.7d5564a3485c",
+    "RPG Manager/Items/Cannon.md",
+    "RPG Manager/Item Properties/Misfire X.md",
+    "RPG Manager/Item Properties/Ammunition.md",
+    "RPG Manager/Campaigns/New World Monster Hunt/Sessions/Session 1.md",
+    "RPG Manager/Campaigns/New World Monster Hunt.md",
     "Welcome.md"
   ]
 }

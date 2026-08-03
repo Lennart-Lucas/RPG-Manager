@@ -39,6 +39,7 @@ import '../../world/creatures/ui/creature_detail_page.dart';
 import '../../world/locations/data/location_model.dart';
 import '../../world/locations/ui/location_detail_page.dart';
 import '../../world/events/ui/event_detail_page.dart';
+import '../../world/organisations/data/organisation_model.dart';
 import '../../world/organisations/ui/organisation_detail_page.dart';
 import '../data/catalog_api.dart';
 import '../data/catalog_kind.dart';
@@ -250,6 +251,22 @@ Future<void> openCatalogWikiLink({
       if (match == null && kind == CatalogKind.locations) {
         for (final item in listed) {
           final record = LocationRecord.fromCatalogPayload(
+            name: item.name,
+            payload: item.payload,
+          );
+          if (record.matchesNameOrAlias(needle)) {
+            match = CatalogLinkTarget(
+              id: item.id,
+              kind: item.kind.apiValue,
+              name: item.name,
+            );
+            break;
+          }
+        }
+      }
+      if (match == null && kind == CatalogKind.organisations) {
+        for (final item in listed) {
+          final record = OrganisationRecord.fromCatalogPayload(
             name: item.name,
             payload: item.payload,
           );

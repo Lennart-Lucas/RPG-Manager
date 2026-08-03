@@ -4,12 +4,22 @@ class OrganisationRecord {
   const OrganisationRecord({
     required this.name,
     this.description = '',
+    this.aliases = const [],
+    this.founding = '',
+    this.type = '',
+    this.seatId,
+    this.motto = '',
     this.memberIds = const [],
     this.parentId,
   });
 
   final String name;
   final String description;
+  final List<String> aliases;
+  final String founding;
+  final String type;
+  final int? seatId;
+  final String motto;
   final List<int> memberIds;
   final int? parentId;
 
@@ -29,6 +39,11 @@ class OrganisationRecord {
     return OrganisationRecord(
       name: payload['name'] as String? ?? name,
       description: payload['description'] as String? ?? '',
+      aliases: _parseAliases(payload['aliases']),
+      founding: payload['founding'] as String? ?? '',
+      type: payload['type'] as String? ?? '',
+      seatId: (payload['seatId'] as num?)?.toInt(),
+      motto: payload['motto'] as String? ?? '',
       memberIds: members,
       parentId: (payload['parentId'] as num?)?.toInt(),
     );
@@ -37,12 +52,41 @@ class OrganisationRecord {
   Map<String, dynamic> toJson() => {
         'name': name,
         'description': description,
+        'aliases': aliases,
+        'founding': founding,
+        'type': type,
+        'seatId': seatId,
+        'motto': motto,
         'memberIds': memberIds,
         'parentId': parentId,
       };
 
   String get descriptionPreview =>
       description.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+  bool matchesNameOrAlias(String query) {
+    final needle = query.trim().toLowerCase();
+    if (needle.isEmpty) return false;
+    if (name.trim().toLowerCase() == needle) return true;
+    for (final alias in aliases) {
+      if (alias.trim().toLowerCase() == needle) return true;
+    }
+    return false;
+  }
+
+  static List<String> _parseAliases(Object? raw) {
+    if (raw is! List) return const [];
+    final out = <String>[];
+    final seen = <String>{};
+    for (final entry in raw) {
+      final text = '$entry'.trim();
+      if (text.isEmpty) continue;
+      final key = text.toLowerCase();
+      if (!seen.add(key)) continue;
+      out.add(text);
+    }
+    return out;
+  }
 }
 
 Map<int, List<CatalogItem>> organisationChildrenByParentId(

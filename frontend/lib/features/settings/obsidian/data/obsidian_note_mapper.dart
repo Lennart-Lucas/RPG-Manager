@@ -348,6 +348,7 @@ class ObsidianNoteMapper {
         }
       case CatalogKind.organisations:
         putId('parent_id', payload['parentId']);
+        putId('seat_id', payload['seatId']);
       case CatalogKind.characters:
         putId('race_id', payload['raceId']);
         final player = payload['playerName'];

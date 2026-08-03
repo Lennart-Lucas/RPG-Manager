@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import '../markdown/wiki_link.dart';
 import 'card_text_pagination.dart';
 
-/// Lightweight markdown-ish body: bold/italic, lists, headings, tables, and
-/// wiki links.
+/// Lightweight markdown-ish body: bold/italic, lists, headings, tables, quotes,
+/// and wiki links.
 class SimpleCardRichText extends StatefulWidget {
   const SimpleCardRichText({
     super.key,
@@ -31,6 +31,8 @@ class _SimpleCardRichTextState extends State<SimpleCardRichText> {
 
   static final RegExp _bullet = RegExp(r'^(\s*)[-*]\s+(.*)$');
   static final RegExp _ordered = RegExp(r'^(\s*)(\d+)\.\s+(.*)$');
+  static final RegExp _quoteLine = RegExp(r'^\s*>\s?(.*)$');
+  static final RegExp _quoteAuthor = RegExp(r'^\s*-\s+(.+)$');
   static final RegExp _underline =
       RegExp(r'<u>(.+?)</u>', caseSensitive: false);
   static final RegExp _tableSepCell = RegExp(r'^:?-{3,}:?$');
@@ -94,6 +96,19 @@ class _SimpleCardRichTextState extends State<SimpleCardRichText> {
     var i = 0;
     while (i < lines.length) {
       final line = lines[i].replaceAll('\r', '');
+      final quoteMatch = _quoteLine.firstMatch(line);
+      if (quoteMatch != null) {
+        final contents = <String>[];
+        while (i < lines.length) {
+          final raw = lines[i].replaceAll('\r', '');
+          final match = _quoteLine.firstMatch(raw);
+          if (match == null) break;
+          contents.add(match.group(1) ?? '');
+          i++;
+        }
+        blocks.add(_parseQuoteBlock(contents));
+        continue;
+      }
       if (_looksLikeTableRow(line)) {
         final tableLines = <String>[];
         while (i < lines.length &&
@@ -115,6 +130,28 @@ class _SimpleCardRichTextState extends State<SimpleCardRichText> {
       i++;
     }
     return blocks;
+  }
+
+  _RichBlock _parseQuoteBlock(List<String> contents) {
+    String? author;
+    var bodyLines = contents;
+    if (contents.isNotEmpty) {
+      final last = contents.last;
+      final authorMatch = _quoteAuthor.firstMatch(last);
+      if (authorMatch != null) {
+        author = (authorMatch.group(1) ?? '').trim();
+        if (author.isEmpty) {
+          author = null;
+        } else {
+          bodyLines = contents.sublist(0, contents.length - 1);
+        }
+      }
+    }
+    final body = bodyLines
+        .map((l) => l.trimRight())
+        .join('\n')
+        .trim();
+    return _RichBlock.quote(body: body, author: author);
   }
 
   bool _looksLikeTableRow(String line) {
@@ -190,7 +227,63 @@ class _SimpleCardRichTextState extends State<SimpleCardRichText> {
     if (block.isTable) {
       return _tableWidget(context, block, bodyStyle, linkStyle);
     }
+    if (block.isQuote) {
+      return _quoteWidget(context, block, bodyStyle, linkStyle);
+    }
     return _lineBlock(context, block.line!, bodyStyle, linkStyle);
+  }
+
+  Widget _quoteWidget(
+    BuildContext context,
+    _RichBlock block,
+    TextStyle bodyStyle,
+    TextStyle linkStyle,
+  ) {
+    final colors = Theme.of(context).colorScheme;
+    final italicStyle = bodyStyle.copyWith(fontStyle: FontStyle.italic);
+    final authorStyle = bodyStyle.copyWith(
+      color: colors.onSurfaceVariant,
+      fontSize: (bodyStyle.fontSize ?? 14) * 0.92,
+    );
+    final pad = 10 * widget.styleScale;
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(pad, pad * 0.7, pad, pad * 0.7),
+      decoration: BoxDecoration(
+        border: Border(
+          left: BorderSide(
+            color: colors.outlineVariant,
+            width: 3 * widget.styleScale,
+          ),
+        ),
+        color: colors.surfaceContainerHighest.withValues(alpha: 0.35),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (block.quoteBody != null && block.quoteBody!.isNotEmpty)
+            Text.rich(
+              TextSpan(
+                style: italicStyle,
+                children: _inlineSpans(
+                  block.quoteBody!,
+                  italicStyle,
+                  linkStyle.copyWith(fontStyle: FontStyle.italic),
+                ),
+              ),
+            ),
+          if (block.quoteAuthor != null && block.quoteAuthor!.isNotEmpty) ...[
+            if (block.quoteBody != null && block.quoteBody!.isNotEmpty)
+              SizedBox(height: 6 * widget.styleScale),
+            Text(
+              '- ${block.quoteAuthor}',
+              style: authorStyle,
+              textAlign: TextAlign.right,
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   Widget _tableWidget(
@@ -479,6 +572,8 @@ class _RichBlock {
     this.line,
     this.headers,
     this.rows,
+    this.quoteBody,
+    this.quoteAuthor,
   });
 
   const _RichBlock.line(String value)
@@ -489,9 +584,17 @@ class _RichBlock {
     required List<List<String>> rows,
   }) : this._(headers: headers, rows: rows);
 
+  const _RichBlock.quote({
+    required String body,
+    String? author,
+  }) : this._(quoteBody: body, quoteAuthor: author);
+
   final String? line;
   final List<String>? headers;
   final List<List<String>>? rows;
+  final String? quoteBody;
+  final String? quoteAuthor;
 
   bool get isTable => headers != null && rows != null;
+  bool get isQuote => quoteBody != null;
 }

@@ -68,12 +68,17 @@ class _OrganisationsBodyState extends State<OrganisationsBody> {
     try {
       final token = await _token();
       if (token == null || !mounted) return;
-      final chars = await _api.list(token, CatalogKind.characters);
+      final results = await Future.wait([
+        _api.list(token, CatalogKind.characters),
+        _api.list(token, CatalogKind.locations),
+      ]);
       if (!mounted) return;
-      final names = {for (final c in chars) c.id: c.name};
+      final names = {for (final c in results[0]) c.id: c.name};
+      final locationNames = {for (final l in results[1]) l.id: l.name};
       final record = await showOrganisationFormSheet(
         context,
         characterNames: names,
+        locationNames: locationNames,
         allOrganisations: _items,
         searchLinks: (q) => searchCatalogLinkTargets(_api, token, q),
         loadAutoLinkTargets: () =>
