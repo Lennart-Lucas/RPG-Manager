@@ -33,7 +33,7 @@ The riot did not stop. It converted.
 
 **1–9 AR — The Nine Years' Rising.** The pit-companies took the mines, then the valleys, then the temples. **Bertald Grauhand**, a pit-captain, became its war-leader. The Crowned Houses were nine years falling; their priesthoods were killed to the last in three.
 
-**8 AR — The Burning at the Thornwood.** The last priests of the Nine Names are taken north and burned on the ground that is now the [[RPG Manager/Locations/Valmoria/Althania/Dornwald]].
+**8 AR — The Burning at the Thornwood.** The last priests of the Nine Names are taken east and burned on the ground that is now the [[RPG Manager/Locations/Valmoria/Althania/Dornwald]].
 
 **9 AR — The Felling of the Whiteroot.** The great white-barked oak of Aonir, oldest holy thing in Althania, is cut down and burned. Its stump is capped in stone and the **White Tower** raised over it. The place is [[RPG Manager/Locations/Valmoria/Althania/Weissturm]], and the Hierarch is styled *Keeper of the Whiteroot Stone* to this day.
 
@@ -41,7 +41,9 @@ The riot did not stop. It converted.
 
 **11 AR — The Concord of Ash.** The first Concord. Bertald Grauhand acclaimed the first Hierarch. The Nine Names proscribed. The [[RPG Manager/Organisations/Church of Orzhova]] declared the sole and undivided faith.
 
-**12 AR — Endhoff renamed Salvamont**, the Mount of Salvation. The locals went on saying *Endhoff*, and still do, and have made a joke of it that the Church has been trying to stamp out for nine centuries.
+**12 AR — Endhoff renamed Salvamont**, the Mount of Salvation. The locals went on saying *Endhoff*, and still do, and have made a joke of it that the Church has never managed to stamp out.
+
+**30 AR — The Seat comes down from Endhoff.** The Hierarch's household moves to the new foundation on the empty plain at the meeting of the Elve and the Rill: [[Lucerna]], raised deliberately on ground where no Name had ever been spoken. Its electoral vote is suppressed in the same instrument, for the obvious reason.
 
 ## The Sealing (34–61 AR)
 
@@ -51,17 +53,25 @@ The riot did not stop. It converted.
 
 ## The Building of the Six
 
-**134–137 AR — The March of the Marshal.** Marshal **Hedric Kaal** won the northern war and brought eleven thousand veterans to Weissturm to demand investiture. He was refused; his own captains killed him. **[[RPG Manager/Organisations/Althania's Holy Inquisition/The 2nd Sacrament - The Shepherds of the Host]]** founded, 137 AR.
+**134–137 AR — The March of the Marshal.** Marshal **Hedric Kaal** won the northern war and brought eleven thousand veterans to [[Lucerna]] to demand investiture. He was refused; his own captains killed him. **[[RPG Manager/Organisations/Althania's Holy Inquisition/The 2nd Sacrament - The Shepherds of the Host]]** founded, 137 AR.
+
+**214 AR — The Concord of Stone.** After long and undocumented unpleasantness at the mountain-gate, Althania and the thanes of the World Spine settle [[Weissturm]]: the surface is Althania's, the rock is the Thane's, the Gate is shared, and neither faith preaches to the other. In the same year the seventh crosier is raised at **Marisund**, replacing the vote Lucerna gave up.
 
 **306 AR — The Bought Conclave.** A river-trade cartel purchased three electors and seated a Hierarch. He reigned nine months. Four sees were insolvent when he died.
 
 **311 AR — The Watchers of the Threshold** founded as toll-wardens on the Tern; reformed and renamed **[[RPG Manager/Organisations/Althania's Holy Inquisition/The 3rd Sacrament - The Stewards of Providence]]** in 344, when it became clear the money did not cross at the bridges.
 
+**395 AR — The Edict of the Tower.** Every caster in the realm is ordered found, registered and gathered to the White Tower at [[Weissturm]]. The **Collegium of Sanctioned Grace** is instituted and the Roll opened. The doctrine given is one line: *fire is not sin; an unattended fire is.*
+
 **415 AR — The Impunity.** The Elector-Bishop of Veldenau had two inquisitors killed in his own hall. No court in Althania was competent to try him.
 
 **418 AR — [[RPG Manager/Organisations/Althania's Holy Inquisition/The 4th Sacrament - The Arbiters of Judgment]]** founded. Its first tribunal, the **Judgment at Veldenau**, hanged that bishop from his own bell-frame in his vestments.
 
-**563–571 AR — The Season of Teeth.** Something came out of the Dornwald. Forty-one villages emptied in eight winters. Two levies were sent north and did not return.
+**487–494 AR — The First Dark War.** Shall comes down the Low Pass out of the World Spine. [[Salvamont]] is besieged for eleven months and holds.
+
+**491 AR — The Waking.** In the seventh month of the siege, miners cutting sideways from the Deep Workings for water break into a sealed gallery older than the Diademed Age. What is in it stands up. [[The Black Legion]] takes the field the following spring; the Lectors issue an opinion under seal and do not republish it.
+
+**563–571 AR — The Season of Teeth.** Something came out of the Dornwald. Forty-one villages emptied in eight winters. Two levies were sent east and did not return.
 
 **570 AR — [[RPG Manager/Organisations/Althania's Holy Inquisition/The 5th Sacrament - The Wardens of the Argent Hunt]]** founded from foresters, poachers and survivors. The Season ended the following year. The order has never claimed it ended the Season.
 
@@ -72,6 +82,10 @@ The riot did not stop. It converted.
 ## The Century of Pyres (701–838 AR)
 
 One hundred and thirty-seven years of burning. **41,000 lawful pyres** are recorded. Whole guilds were extinguished; three towns were struck from the register and are on no map.
+
+**766–773 AR — The Second Dark War.** Shall comes down the Low Pass again, in greater strength, while the Sixth is burning witches at home. Salvamont holds a second time. The Black Legion loses nearly half its number and cannot replace one of them.
+
+**773 AR — The Truce of the Low Pass.** Signed at the head of the pass, in the open, by parties who did not dismount. It has never been called a peace by anyone on either side, and the raiding has never entirely stopped.
 
 **841 AR — The Edict of Cold Hearths.** Public burnings quenched, officially because the fire had done its work. The Sixth was not disbanded. It went quiet, and it turned east.
 
@@ -93,6 +107,6 @@ One hundred and thirty-seven years of burning. **41,000 lawful pyres** are recor
 
 **956–957 AR — The Coughing Winter.** Villages emptied across Veldenau and Rabenmark. Landlords enclosed the vacancies. The countryside has been quiet ever since, in the particular way it was quiet in the last years of the Diademed Age.
 
-**958 AR — Now.** Hierarch Vasmund III has not been seen at a public rite in eleven months. His decrees issue in a hand that is not his. The Ash Font at Weissturm has been swept, checked, and swept again.
+**958 AR — Now.** Hierarch Vasmund III has not been seen at a public rite in eleven months. His decrees issue in a hand that is not his. The Ash Font at Lucerna has been swept, checked, and swept again.
 
 Everyone is spending.

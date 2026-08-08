@@ -45,6 +45,7 @@ What they do abroad, in the Sundered Communion and past the northern marches: **
 
 - Witchcraft, covens, secret cults and heresy conducted in concealment.
 - Foreign chanceries, courts, and any organisation of the Sundered Communion.
+- The **unwritten** — casters who have left the Roll of Sanctioned Grace, or were never entered on it. The order regards this as the pleasantest work it has, on the grounds that the quarry is genuinely dangerous and nobody weeps for it.
 - The **ashfall** — the domestic informant network. Every parish has at least one. Nobody knows which.
 - Interrogation by the older methods, which are lawful for the Sixth and for no other Sacrament.
 
@@ -62,7 +63,7 @@ Ash-grey. The mark is a quenched brand — a torch, inverted, unlit. It is worn 
 
 ## Standing
 
-The Sixth is the best-funded and least-accountable of the six, and the only one whose disbursements the Third cannot read. It has not lost an argument in the Conclave in forty years, which the First finds interesting and says so, quietly, once a year.
+The Sixth is the best-funded and least-accountable of the six, and the only one whose disbursements the Third cannot read. It has not lost an argument in the Conclave within living memory, which the First finds interesting and says so, quietly, once a year.
 
 Its neglect of the domestic ground is the Fifth's standing grievance and, increasingly, an actual problem: cults are sprouting in the emptied villages of the north and being put down late by men trained for wolves.
 

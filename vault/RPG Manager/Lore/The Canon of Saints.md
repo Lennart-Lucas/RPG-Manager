@@ -13,7 +13,7 @@ tags:
 
 # The Canon of Saints
 
-*Abridged from the Canon kept at Lucerna. Feast days as observed in the Weissturm use; local uses vary and are tolerated where they are not noticed.*
+*Abridged from the Canon kept at Lucerna. Feast days as observed in the Lucerna use; local uses vary and are tolerated where they are not noticed.*
 
 The One does not answer. The saints do. Whether that is the same thing is a settled question, and it is settled in the affirmative, and nobody with sense discusses it further.
 
@@ -43,7 +43,9 @@ The Book of the Hand is his, or was assembled under him, which the Canon treats 
 
 ## The Seven Companions
 
-Those who stood at the Ascension. Each founded a see, and their bones are the reason those seven sees are the electoral seven.
+Those who stood at the Ascension. Each founded a see, and their bones are the reason those sees carry the crosiers.
+
+One exception, which the Canon states without commentary: Perenne's foundation at Lucerna became the Hierarch's own seat in 30 AR and its electoral vote was suppressed, the bishop of Lucerna being the man who counts the ballots. The seventh crosier was raised at **Marisund** in 214 AR, in a city with no Companion buried in it, which the see has been quietly compensating for ever since.
 
 | Saint | See | Patron of |
 | --- | --- | --- |
@@ -71,4 +73,4 @@ Their feast days, however, are still kept in some villages — the day is observ
 
 - That the First Voice did not ascend but was silenced, and that the seven Companions are seven because there was an eighth.
 - That Saint Cordwen's shrines hold no gold because his pilgrims are poor, rather than because they will not give it.
-- That Saint Grimald's cause has stood open for three and a half centuries because closing it either way would require someone to write down what he actually hunted.
+- That Saint Grimald's cause has stood open since the century it was filed because closing it either way would require someone to write down what he actually hunted.

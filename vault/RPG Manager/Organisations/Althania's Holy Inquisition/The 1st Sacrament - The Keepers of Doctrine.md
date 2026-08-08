@@ -46,7 +46,7 @@ The First is the oldest, the poorest, and the least feared until the moment it m
 It loathes [[RPG Manager/Organisations/Althania's Holy Inquisition/The 6th Sacrament - The Keepers of the Last Flame|The Sixth]], which during the Century of Pyres burned libraries with their librarians and never once filed what was in them.
 
 ## In 958 AR
-Kreile is dying at nearly the same speed as the Hierarch, and the succession inside the order is uglier than the one outside it. Two Redactor-pairs have been recalled from the marches without explanation. And there is a persistent, deniable rumour that a warrant was drawn last autumn against a portion of the **Book of the Voice** itself — the first proposed effacement of scripture in two hundred years.
+Kreile is dying at nearly the same speed as the Hierarch, and the succession inside the order is uglier than the one outside it. Two Redactor-pairs have been recalled from the marches without explanation. And there is a persistent, deniable rumour that a warrant was drawn last autumn against a portion of the **Book of the Voice** itself — the first proposed effacement of scripture since the Century of Pyres.
 
 ## Errors Commonly Repeated
 - That the Silent Shelf holds a complete Concordance as first sealed, and that it does not match the one in the pulpit.

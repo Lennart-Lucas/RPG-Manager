@@ -52,7 +52,7 @@ Verdigris and gold. The mark is a balance whose beam is a key. Stewards carry a 
 
 ## Standing
 
-The Third has, in five hundred years, become the most powerful of the six by the simple method of lending to the other five. It holds the debt of five electoral sees, the commissariat accounts of the Second, and the foreign disbursements of the Sixth — which it cannot read, because those are coded, which it regards as an outstanding matter.
+The Third has become the most powerful of the six by the simple method of lending to the other five. It holds the debt of five electoral sees, the commissariat accounts of the Second, and the foreign disbursements of the Sixth — which it cannot read, because those are coded, which it regards as an outstanding matter.
 
 It is hated in a way the Fourth and Sixth are not, because it is the only Sacrament that touches an ordinary man's life every single year.
 
@@ -64,6 +64,6 @@ And somewhere in the Aschenberg powder ledger there is a reconciliation that has
 
 ## Errors Commonly Repeated
 
-- That the Third audits every elector before a conclave and has never found anything, in six hundred years, which is a remarkable record for either honesty or discretion.
+- That the Third has audited every elector before every conclave since its founding and has never once found anything, which is a remarkable record for either honesty or discretion.
 - That the Providence Houses lend to the Sundered Communion through three intermediaries and a nominee.
 - That the Long Account can be calculated to reach any figure required, and always is.
