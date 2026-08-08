@@ -9,9 +9,9 @@ import '../../../catalog/data/catalog_auto_link.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../../catalog/ui/catalog_create_speed_dial.dart';
+import '../../../catalog/ui/open_catalog_detail.dart';
 import '../../world_icons.dart';
 import '../data/character_model.dart';
-import 'character_detail_page.dart';
 import 'character_form_sheet.dart';
 import 'mtg_alignment_chips.dart';
 
@@ -105,11 +105,11 @@ class _CharactersBodyState extends State<CharactersBody> {
   }
 
   Future<void> _open(CatalogItem item) async {
-    final deleted = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (context) =>
-            CharacterDetailPage(auth: widget.auth, item: item),
-      ),
+    final deleted = await openCatalogRecordDetail(
+      context: context,
+      auth: widget.auth,
+      kindApiValue: item.kind.apiValue,
+      itemId: item.id,
     );
     if (deleted == true || mounted) await _reload();
   }

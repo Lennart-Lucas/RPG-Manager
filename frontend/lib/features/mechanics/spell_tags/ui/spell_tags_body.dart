@@ -7,9 +7,9 @@ import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
+import '../../../catalog/ui/open_catalog_detail.dart';
 import '../../mechanics_icons.dart';
 import '../data/spell_tag_model.dart';
-import 'spell_tag_detail_page.dart';
 import 'spell_tag_form_sheet.dart';
 
 class SpellTagsBody extends StatefulWidget {
@@ -145,13 +145,11 @@ class _SpellTagsBodyState extends State<SpellTagsBody> {
   }
 
   Future<void> _openDetail(CatalogItem item) async {
-    final deleted = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (context) => SpellTagDetailPage(
-          auth: widget.auth,
-          item: item,
-        ),
-      ),
+    final deleted = await openCatalogRecordDetail(
+      context: context,
+      auth: widget.auth,
+      kindApiValue: item.kind.apiValue,
+      itemId: item.id,
     );
     if (deleted == true || mounted) {
       await _reload();

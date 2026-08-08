@@ -8,6 +8,7 @@ import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
+import '../../../catalog/ui/open_catalog_detail.dart';
 import '../../../export/card_export_pdf.dart';
 import '../../../export/card_export_theme.dart';
 import '../../../export/card_pdf_export_sheet.dart';
@@ -16,7 +17,6 @@ import '../../../shell/shell_page_app_bar.dart';
 import '../../mechanics_icons.dart';
 import '../data/item_property_list_derived_data.dart';
 import '../data/item_property_model.dart';
-import 'item_property_detail_page.dart';
 import 'item_property_form_sheet.dart';
 import 'item_property_record_list_view.dart';
 
@@ -467,14 +467,11 @@ class _ItemPropertiesBodyState extends State<ItemPropertiesBody>
   }
 
   Future<void> _openDetail(ItemPropertyCatalogEntry entry) async {
-    final deleted = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (context) => ItemPropertyDetailPage(
-          auth: widget.auth,
-          item: entry.item,
-          entry: entry.entry,
-        ),
-      ),
+    final deleted = await openCatalogRecordDetail(
+      context: context,
+      auth: widget.auth,
+      kindApiValue: entry.item.kind.apiValue,
+      itemId: entry.item.id,
     );
     if (deleted == true || mounted) {
       await _reload();

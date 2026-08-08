@@ -15,7 +15,6 @@ import '../../world_icons.dart';
 import '../data/campaign_model.dart';
 import '../data/session_model.dart';
 import 'campaign_form_sheet.dart';
-import 'session_detail_page.dart';
 import 'session_form_sheet.dart';
 
 class CampaignDetailPage extends StatefulWidget {
@@ -448,15 +447,11 @@ class _CampaignDetailPageState extends State<CampaignDetailPage> {
                             color: scheme.onSurfaceVariant,
                           ),
                           onTap: () async {
-                            final deleted =
-                                await Navigator.of(context).push<bool>(
-                              MaterialPageRoute(
-                                builder: (context) => SessionDetailPage(
-                                  auth: widget.auth,
-                                  item: sessionItem,
-                                  campaigns: [_item],
-                                ),
-                              ),
+                            final deleted = await openCatalogRecordDetail(
+                              context: context,
+                              auth: widget.auth,
+                              kindApiValue: CatalogKind.sessions.apiValue,
+                              itemId: sessionItem.id,
                             );
                             if (deleted == true || mounted) {
                               await _loadLookups();

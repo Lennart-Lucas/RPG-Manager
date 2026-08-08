@@ -9,11 +9,11 @@ import '../../../catalog/data/catalog_auto_link.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../../catalog/ui/catalog_rich_text.dart';
+import '../../../catalog/ui/open_catalog_detail.dart';
 import '../../player_options_icons.dart';
 import '../data/class_model.dart';
 import '../data/subclass_model.dart';
 import 'class_form_sheet.dart';
-import 'subclass_detail_page.dart';
 import 'subclass_form_sheet.dart';
 
 class ClassDetailPage extends StatefulWidget {
@@ -483,15 +483,11 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
                           color: scheme.onSurfaceVariant,
                         ),
                         onTap: () async {
-                          final deleted =
-                              await Navigator.of(context).push<bool>(
-                            MaterialPageRoute(
-                              builder: (context) => SubclassDetailPage(
-                                auth: widget.auth,
-                                item: subclassItem,
-                                parentClasses: [_item],
-                              ),
-                            ),
+                          final deleted = await openCatalogRecordDetail(
+                            context: context,
+                            auth: widget.auth,
+                            kindApiValue: CatalogKind.subclasses.apiValue,
+                            itemId: subclassItem.id,
                           );
                           if (deleted == true || mounted) {
                             await _loadLookups();

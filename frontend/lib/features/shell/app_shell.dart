@@ -1,36 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/offline/offline_marker.dart';
 import '../../core/offline/offline_sync_controller.dart';
+import '../../core/routing/app_paths.dart';
 import '../../core/theme/theme_controller.dart';
 import '../auth/state/auth_controller.dart';
-import '../auth/ui/home_screen.dart';
-import '../catalog/data/catalog_kind.dart';
-import '../catalog/ui/catalog_body.dart';
-import '../dm_tools/resources/resources_icons.dart';
-import '../dm_tools/resources/ui/resources_body.dart';
-import '../dm_tools/ui/dm_tool_placeholder_body.dart';
-import '../mechanics/conditions/ui/conditions_body.dart';
-import '../mechanics/damage_types/ui/damage_types_body.dart';
-import '../mechanics/item_properties/ui/item_properties_body.dart';
-import '../mechanics/mechanics_icons.dart';
-import '../mechanics/features/ui/features_body.dart';
-import '../mechanics/spell_tags/ui/spell_tags_body.dart';
-import '../player_options/classes/ui/classes_body.dart';
-import '../player_options/feats/ui/feats_body.dart';
-import '../player_options/items/ui/items_body.dart';
-import '../player_options/player_options_icons.dart';
-import '../player_options/races/ui/races_body.dart';
-import '../player_options/transformations/ui/transformations_body.dart';
-import '../player_options/spells/ui/spells_body.dart';
-import '../settings/generators/ui/generators_body.dart';
-import '../settings/preferences_page.dart';
-import '../world/campaigns/ui/campaigns_body.dart';
-import '../world/characters/ui/characters_body.dart';
-import '../world/creatures/ui/creatures_body.dart';
-import '../world/events/ui/events_body.dart';
-import '../world/locations/ui/locations_body.dart';
-import '../world/organisations/ui/organisations_body.dart';
 import 'app_page.dart';
 import 'app_sidebar.dart';
 import 'shell_page_app_bar.dart';
@@ -40,21 +15,23 @@ class AppShell extends StatefulWidget {
     super.key,
     required this.auth,
     required this.themeController,
+    required this.currentPage,
+    required this.child,
   });
 
   final AuthController auth;
   final ThemeController themeController;
+  final AppPage currentPage;
+  final Widget child;
 
   @override
   State<AppShell> createState() => _AppShellState();
 }
 
 class _AppShellState extends State<AppShell> {
-  AppPage _page = AppPage.home;
+  String get _pageKey => widget.currentPage.name;
 
-  String get _pageKey => _page.name;
-
-  String get _title => switch (_page) {
+  String get _title => switch (widget.currentPage) {
         AppPage.home => 'RPG Manager',
         AppPage.preferences => 'Preferences',
         AppPage.generator => 'Generator',
@@ -107,31 +84,6 @@ class _AppShellState extends State<AppShell> {
     if (mounted) setState(() {});
   }
 
-  void _openPage(AppPage page) {
-    setState(() => _page = page);
-  }
-
-  static const _dmToolPages = {
-    AppPage.generator,
-    AppPage.mapMaker,
-    AppPage.playlists,
-    AppPage.resources,
-  };
-
-  void _onViewAsPlayerEnabled() {
-    if (_dmToolPages.contains(_page)) {
-      setState(() => _page = AppPage.home);
-    }
-  }
-
-  Widget _catalog(CatalogKind kind, IconData icon) {
-    return CatalogBody(
-      auth: widget.auth,
-      kind: kind,
-      icon: icon,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final barStore = ShellPageAppBarStore.instance;
@@ -148,48 +100,10 @@ class _AppShellState extends State<AppShell> {
       ),
       drawer: AppSidebar(
         auth: widget.auth,
-        currentPage: _page,
-        onOpenPage: _openPage,
+        currentPage: widget.currentPage,
+        onOpenPage: (page) => context.go(AppPaths.page(page)),
       ),
-      body: switch (_page) {
-        AppPage.home => HomeBody(auth: widget.auth),
-        AppPage.preferences => PreferencesBody(
-            auth: widget.auth,
-            themeController: widget.themeController,
-            onViewAsPlayerEnabled: _onViewAsPlayerEnabled,
-          ),
-        AppPage.generator => GeneratorsBody(auth: widget.auth),
-        AppPage.resources => ResourcesBody(auth: widget.auth),
-        AppPage.mapMaker => const DmToolPlaceholderBody(
-            title: 'Map maker',
-            icon: mapMakerPageIcon,
-          ),
-        AppPage.playlists => const DmToolPlaceholderBody(
-            title: 'Playlists',
-            icon: playlistsPageIcon,
-          ),
-        AppPage.classes => ClassesBody(auth: widget.auth),
-        AppPage.feats => FeatsBody(auth: widget.auth),
-        AppPage.items => ItemsBody(auth: widget.auth),
-        AppPage.languages =>
-          _catalog(CatalogKind.languages, languagesPageIcon),
-        AppPage.races => RacesBody(auth: widget.auth),
-        AppPage.transformations => TransformationsBody(auth: widget.auth),
-        AppPage.skills => _catalog(CatalogKind.skills, skillsPageIcon),
-        AppPage.spells => SpellsBody(auth: widget.auth),
-        AppPage.conditions => ConditionsBody(auth: widget.auth),
-        AppPage.damageTypes => DamageTypesBody(auth: widget.auth),
-        AppPage.itemProperties => ItemPropertiesBody(auth: widget.auth),
-        AppPage.rules => _catalog(CatalogKind.rules, rulesPageIcon),
-        AppPage.spellTags => SpellTagsBody(auth: widget.auth),
-        AppPage.features => FeaturesBody(auth: widget.auth),
-        AppPage.creatures => CreaturesBody(auth: widget.auth),
-        AppPage.atlas => LocationsBody(auth: widget.auth),
-        AppPage.characters => CharactersBody(auth: widget.auth),
-        AppPage.organisations => OrganisationsBody(auth: widget.auth),
-        AppPage.events => EventsBody(auth: widget.auth),
-        AppPage.story => CampaignsBody(auth: widget.auth),
-      },
+      body: widget.child,
     );
   }
 }

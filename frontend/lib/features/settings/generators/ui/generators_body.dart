@@ -5,9 +5,9 @@ import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
+import '../../../catalog/ui/open_catalog_detail.dart';
 import '../../../dm_tools/resources/resources_icons.dart';
 import '../data/generator_model.dart';
-import 'generator_detail_page.dart';
 import 'generator_form_sheet.dart';
 
 class GeneratorsBody extends StatefulWidget {
@@ -99,13 +99,11 @@ class _GeneratorsBodyState extends State<GeneratorsBody> {
   }
 
   Future<void> _openDetail(CatalogItem item) async {
-    final changed = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (context) => GeneratorDetailPage(
-          auth: widget.auth,
-          item: item,
-        ),
-      ),
+    final changed = await openCatalogRecordDetail(
+      context: context,
+      auth: widget.auth,
+      kindApiValue: item.kind.apiValue,
+      itemId: item.id,
     );
     if (changed == true && mounted) {
       await _reload();

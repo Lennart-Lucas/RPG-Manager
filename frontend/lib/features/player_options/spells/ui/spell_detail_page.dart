@@ -13,7 +13,6 @@ import '../../../dm_tools/resources/data/resource_models.dart';
 import '../../../dm_tools/resources/data/resources_api.dart';
 import '../../../export/card_export_pdf.dart';
 import '../../../export/card_png_export_present.dart';
-import '../../../mechanics/spell_tags/ui/spell_tag_detail_page.dart';
 import '../../classes/data/class_model.dart';
 import '../../player_options_icons.dart';
 import '../data/spell_model.dart';
@@ -255,30 +254,12 @@ class _SpellDetailPageState extends State<SpellDetailPage> {
   }
 
   Future<void> _openTag(int tagId) async {
-    try {
-      final token = await _token();
-      if (token == null || !mounted) return;
-      final tagItem = await _api.get(token, CatalogKind.spellTags, tagId);
-      if (!mounted) return;
-      await Navigator.of(context).push<void>(
-        MaterialPageRoute(
-          builder: (context) => SpellTagDetailPage(
-            auth: widget.auth,
-            item: tagItem,
-          ),
-        ),
-      );
-    } on AuthApiException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open spell tag')),
-      );
-    }
+    await openCatalogRecordDetail(
+      context: context,
+      auth: widget.auth,
+      kindApiValue: CatalogKind.spellTags.apiValue,
+      itemId: tagId,
+    );
   }
 
   Future<void> _delete() async {

@@ -7,8 +7,8 @@ import '../../../catalog/data/catalog_auto_link.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../../catalog/ui/catalog_create_speed_dial.dart';
+import '../../../catalog/ui/open_catalog_detail.dart';
 import '../../world_icons.dart';
-import 'organisation_detail_page.dart';
 import 'organisation_form_sheet.dart';
 import 'organisation_tree_view.dart';
 
@@ -104,11 +104,11 @@ class _OrganisationsBodyState extends State<OrganisationsBody> {
   }
 
   Future<void> _open(CatalogItem item) async {
-    final deleted = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (context) =>
-            OrganisationDetailPage(auth: widget.auth, item: item),
-      ),
+    final deleted = await openCatalogRecordDetail(
+      context: context,
+      auth: widget.auth,
+      kindApiValue: item.kind.apiValue,
+      itemId: item.id,
     );
     if (deleted == true || mounted) await _reload();
   }

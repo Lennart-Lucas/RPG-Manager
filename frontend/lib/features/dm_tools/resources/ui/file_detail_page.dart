@@ -6,14 +6,13 @@ import '../../../catalog/data/catalog_api.dart';
 import '../../../catalog/data/catalog_auto_link.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
+import '../../../catalog/ui/open_catalog_detail.dart';
 import '../../../player_options/classes/data/class_model.dart';
 import '../../../player_options/items/data/item_list_derived_data.dart';
 import '../../../player_options/items/data/item_model.dart';
-import '../../../player_options/items/ui/item_detail_page.dart';
 import '../../../player_options/items/ui/item_list_item_card.dart';
 import '../../../player_options/spells/data/spell_list_derived_data.dart';
 import '../../../player_options/spells/data/spell_model.dart';
-import '../../../player_options/spells/ui/spell_detail_page.dart';
 import '../../../player_options/spells/ui/spell_list_item_card.dart';
 import '../../pdf_extract/ui/start_pdf_text_export.dart';
 import '../../pdf_extract/ui/start_spell_extraction.dart';
@@ -459,38 +458,22 @@ class _FileDetailPageState extends State<FileDetailPage> {
   }
 
   Future<void> _openSpell(SpellCatalogEntry entry) async {
-    final classNames = _classNamesBySpellKey[entry.key] ?? const [];
-    final tagEntries = _tagEntriesBySpellKey[entry.key] ?? const [];
-    await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (context) => SpellDetailPage(
-          auth: widget.auth,
-          item: entry.item,
-          spell: entry.spell,
-          classNames: classNames,
-          tags: [
-            for (final t in tagEntries)
-              if (int.tryParse(t.id) != null)
-                (id: int.parse(t.id), name: t.name),
-          ],
-          sourceFileName: _file.name,
-        ),
-      ),
+    await openCatalogRecordDetail(
+      context: context,
+      auth: widget.auth,
+      kindApiValue: entry.item.kind.apiValue,
+      itemId: entry.item.id,
     );
     if (!mounted) return;
     await _loadLinkedSpells();
   }
 
   Future<void> _openItem(_LinkedItemEntry linked) async {
-    await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (context) => ItemDetailPage(
-          auth: widget.auth,
-          item: linked.item,
-          entry: linked.entry,
-          sourceFileName: _file.name,
-        ),
-      ),
+    await openCatalogRecordDetail(
+      context: context,
+      auth: widget.auth,
+      kindApiValue: linked.item.kind.apiValue,
+      itemId: linked.item.id,
     );
     if (!mounted) return;
     await _loadLinkedSpells();

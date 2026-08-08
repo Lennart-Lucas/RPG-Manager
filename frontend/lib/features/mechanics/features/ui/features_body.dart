@@ -5,9 +5,9 @@ import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
+import '../../../catalog/ui/open_catalog_detail.dart';
 import '../../mechanics_icons.dart';
 import '../data/feature_model.dart';
-import 'feature_detail_page.dart';
 import 'feature_form_sheet.dart';
 
 class FeaturesBody extends StatefulWidget {
@@ -133,15 +133,11 @@ class _FeaturesBodyState extends State<FeaturesBody> {
   }
 
   Future<void> _openDetail(CatalogItem item) async {
-    final feature = _featureFromItem(item);
-    final deleted = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (context) => FeatureDetailPage(
-          auth: widget.auth,
-          item: item,
-          feature: feature.copyWith(name: item.name),
-        ),
-      ),
+    final deleted = await openCatalogRecordDetail(
+      context: context,
+      auth: widget.auth,
+      kindApiValue: item.kind.apiValue,
+      itemId: item.id,
     );
     if (deleted == true && mounted) {
       await _reload();

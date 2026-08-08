@@ -79,6 +79,24 @@ def create_app() -> FastAPI:
     if STATIC_WEB_DIR.is_dir():
         index_html = STATIC_WEB_DIR / "index.html"
         static_root = STATIC_WEB_DIR.resolve()
+        _no_cache_names = {
+            "index.html",
+            "flutter_bootstrap.js",
+            "flutter.js",
+            "main.dart.js",
+            "version.json",
+            "flutter_service_worker.js",
+            ".last_build_id",
+            "manifest.json",
+        }
+
+        def _file_response(path: Path) -> FileResponse:
+            # Entrypoint JS/HTML must not stick in the browser after deploys.
+            if path.name.lower() in _no_cache_names:
+                headers = {"Cache-Control": "no-cache, must-revalidate"}
+            else:
+                headers = {"Cache-Control": "public, max-age=86400"}
+            return FileResponse(path, headers=headers)
 
         def _reserved_spa_path(full_path: str) -> bool:
             p = full_path.lower().strip("/")
@@ -98,7 +116,7 @@ def create_app() -> FastAPI:
         async def serve_web_index() -> FileResponse:
             if not index_html.is_file():
                 raise HTTPException(status_code=404, detail="Web UI not built")
-            return FileResponse(index_html)
+            return _file_response(index_html)
 
         @app.get("/{full_path:path}")
         async def serve_web_spa(full_path: str) -> FileResponse:
@@ -112,9 +130,9 @@ def create_app() -> FastAPI:
                 raise HTTPException(status_code=404, detail="Not found") from exc
 
             if candidate.is_file():
-                return FileResponse(candidate)
+                return _file_response(candidate)
             if index_html.is_file():
-                return FileResponse(index_html)
+                return _file_response(index_html)
             raise HTTPException(status_code=404, detail="Web UI not built")
     else:
         logger.warning(

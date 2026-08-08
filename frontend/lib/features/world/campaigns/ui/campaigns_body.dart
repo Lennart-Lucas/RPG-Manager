@@ -7,11 +7,11 @@ import '../../../catalog/data/catalog_api.dart';
 import '../../../catalog/data/catalog_auto_link.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
+import '../../../catalog/ui/open_catalog_detail.dart';
 import '../../characters/data/character_model.dart';
 import '../../world_icons.dart';
 import '../data/campaign_model.dart';
 import '../data/session_model.dart';
-import 'campaign_detail_page.dart';
 import 'campaign_form_sheet.dart';
 
 class CampaignsBody extends StatefulWidget {
@@ -139,10 +139,11 @@ class _CampaignsBodyState extends State<CampaignsBody> {
   }
 
   Future<void> _open(CatalogItem item) async {
-    final deleted = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (context) => CampaignDetailPage(auth: widget.auth, item: item),
-      ),
+    final deleted = await openCatalogRecordDetail(
+      context: context,
+      auth: widget.auth,
+      kindApiValue: item.kind.apiValue,
+      itemId: item.id,
     );
     if (deleted == true || mounted) await _reload();
   }

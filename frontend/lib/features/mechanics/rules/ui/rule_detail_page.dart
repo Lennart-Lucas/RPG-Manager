@@ -9,6 +9,7 @@ import '../../../catalog/data/catalog_auto_link.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../../catalog/ui/catalog_rich_text.dart';
+import '../../../catalog/ui/open_catalog_detail.dart';
 import '../../mechanics_icons.dart';
 import '../data/rule_model.dart';
 import 'rule_form_sheet.dart';
@@ -208,14 +209,11 @@ class _RuleDetailPageState extends State<RuleDetailPage> {
   }
 
   Future<void> _openRelatedRule(CatalogItem item) async {
-    final deleted = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (context) => RuleDetailPage(
-          auth: widget.auth,
-          item: item,
-          siblingRules: _siblingRules,
-        ),
-      ),
+    final deleted = await openCatalogRecordDetail(
+      context: context,
+      auth: widget.auth,
+      kindApiValue: item.kind.apiValue,
+      itemId: item.id,
     );
     if (!mounted) return;
     if (deleted == true || deleted == null) {

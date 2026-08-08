@@ -1,7 +1,7 @@
 ---
 rpg_manager_id: 157
 rpg_manager_kind: "spells"
-name: "Black Pyre of the Condemned"
+name: "Judgement of the Sixth"
 ---
 
 You condemn a creature you can see within range. A blackened stake bursts from the ground beneath it, spectral chains lashing it in place as kindling catches at its feet.

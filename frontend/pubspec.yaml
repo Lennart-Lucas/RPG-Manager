@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_web_plugins:
+    sdk: flutter
   http: ^1.2.2
   flutter_secure_storage: ^9.2.4
   shared_preferences: ^2.5.3
@@ -22,6 +24,7 @@ dependencies:
   random_table_engine:
     path: ../packages/random_table_engine
   connectivity_plus: ^7.3.0
+  go_router: ^17.4.0
 
 dev_dependencies:
   flutter_test:

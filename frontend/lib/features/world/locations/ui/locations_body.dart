@@ -7,8 +7,8 @@ import '../../../catalog/data/catalog_auto_link.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../../catalog/ui/catalog_create_speed_dial.dart';
+import '../../../catalog/ui/open_catalog_detail.dart';
 import '../../world_icons.dart';
-import 'location_detail_page.dart';
 import 'location_form_sheet.dart';
 import 'location_tree_view.dart';
 
@@ -95,10 +95,11 @@ class _LocationsBodyState extends State<LocationsBody> {
   }
 
   Future<void> _open(CatalogItem item) async {
-    final deleted = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (context) => LocationDetailPage(auth: widget.auth, item: item),
-      ),
+    final deleted = await openCatalogRecordDetail(
+      context: context,
+      auth: widget.auth,
+      kindApiValue: item.kind.apiValue,
+      itemId: item.id,
     );
     if (deleted == true || mounted) await _reload();
   }

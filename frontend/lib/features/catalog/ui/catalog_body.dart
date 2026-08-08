@@ -4,7 +4,6 @@ import '../../auth/data/auth_api.dart';
 import '../../auth/state/auth_controller.dart';
 import '../../mechanics/item_properties/data/item_property_model.dart';
 import '../../mechanics/item_properties/ui/item_property_form_sheet.dart';
-import '../../mechanics/rules/ui/rule_detail_page.dart';
 import '../../mechanics/rules/ui/rule_form_sheet.dart';
 import '../../player_options/skills/data/default_skills.dart';
 import '../../player_options/skills/data/skill_model.dart';
@@ -213,14 +212,11 @@ class _CatalogBodyState extends State<CatalogBody> {
       return;
     }
     if (widget.kind == CatalogKind.rules) {
-      final deleted = await Navigator.of(context).push<bool>(
-        MaterialPageRoute(
-          builder: (context) => RuleDetailPage(
-            auth: widget.auth,
-            item: item,
-            siblingRules: _items,
-          ),
-        ),
+      final deleted = await openCatalogRecordDetail(
+        context: context,
+        auth: widget.auth,
+        kindApiValue: item.kind.apiValue,
+        itemId: item.id,
       );
       if (deleted == true || mounted) {
         await _reload();

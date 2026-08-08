@@ -9,12 +9,12 @@ import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
+import '../../../catalog/ui/open_catalog_detail.dart';
 import '../../../dm_tools/resources/data/resource_models.dart';
 import '../../../dm_tools/resources/data/resources_api.dart';
 import '../../../export/card_export_pdf.dart';
 import '../../../export/card_export_theme.dart';
 import '../../../export/card_pdf_export_sheet.dart';
-import '../../../mechanics/spell_tags/ui/spell_tag_detail_page.dart';
 import '../../../shell/app_page.dart';
 import '../../../shell/shell_page_app_bar.dart';
 import '../../classes/data/class_model.dart';
@@ -22,7 +22,6 @@ import '../../player_options_icons.dart';
 import '../data/spell_list_derived_data.dart';
 import '../data/spell_list_filters.dart';
 import '../data/spell_model.dart';
-import 'spell_detail_page.dart';
 import 'spell_form_sheet.dart';
 import 'spell_record_list_view.dart';
 import 'spells_filter_strip.dart';
@@ -539,35 +538,11 @@ class _SpellsBodyState extends State<SpellsBody>
   }
 
   Future<void> _openDetail(SpellCatalogEntry entry) async {
-    final derived = _derived;
-    final classNames = derived.classNamesBySpellKey[entry.key] ?? const [];
-    final tagEntries = derived.tagEntriesBySpellKey[entry.key] ?? const [];
-    String? sourceName;
-    final fileId = entry.spell.sourceFileId;
-    if (fileId != null) {
-      for (final f in _files) {
-        if (f.id == fileId) {
-          sourceName = f.name;
-          break;
-        }
-      }
-    }
-
-    final deleted = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (context) => SpellDetailPage(
-          auth: widget.auth,
-          item: entry.item,
-          spell: entry.spell,
-          classNames: classNames,
-          tags: [
-            for (final t in tagEntries)
-              if (int.tryParse(t.id) != null)
-                (id: int.parse(t.id), name: t.name),
-          ],
-          sourceFileName: sourceName,
-        ),
-      ),
+    final deleted = await openCatalogRecordDetail(
+      context: context,
+      auth: widget.auth,
+      kindApiValue: entry.item.kind.apiValue,
+      itemId: entry.item.id,
     );
     if (deleted == true || mounted) {
       await _reload();
@@ -575,30 +550,12 @@ class _SpellsBodyState extends State<SpellsBody>
   }
 
   Future<void> _openSpellTag(int tagId) async {
-    try {
-      final token = await _token();
-      if (token == null || !mounted) return;
-      final tagItem = await _api.get(token, CatalogKind.spellTags, tagId);
-      if (!mounted) return;
-      await Navigator.of(context).push<void>(
-        MaterialPageRoute(
-          builder: (context) => SpellTagDetailPage(
-            auth: widget.auth,
-            item: tagItem,
-          ),
-        ),
-      );
-    } on AuthApiException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open spell tag')),
-      );
-    }
+    await openCatalogRecordDetail(
+      context: context,
+      auth: widget.auth,
+      kindApiValue: CatalogKind.spellTags.apiValue,
+      itemId: tagId,
+    );
   }
 
   void _toggleFilters() {

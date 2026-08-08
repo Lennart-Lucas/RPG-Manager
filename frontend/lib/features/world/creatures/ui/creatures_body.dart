@@ -5,11 +5,10 @@ import 'package:rpg_manager/features/auth/state/auth_controller.dart';
 import 'package:rpg_manager/features/catalog/data/catalog_api.dart';
 import 'package:rpg_manager/features/catalog/data/catalog_kind.dart';
 import 'package:rpg_manager/features/catalog/data/catalog_models.dart';
+import 'package:rpg_manager/features/catalog/ui/open_catalog_detail.dart';
 import 'package:rpg_manager/features/world/creature_types/data/creature_type_model.dart';
-import 'package:rpg_manager/features/world/creature_types/ui/creature_type_detail_page.dart';
 import 'package:rpg_manager/features/world/creature_types/ui/creature_type_form_sheet.dart';
 import 'package:rpg_manager/features/world/creatures/data/creature_model.dart';
-import 'package:rpg_manager/features/world/creatures/ui/creature_detail_page.dart';
 import 'package:rpg_manager/features/world/creatures/ui/creature_form_sheet.dart';
 import 'package:rpg_manager/features/world/creatures/ui/creature_list_item_card.dart';
 import 'package:rpg_manager/features/world/world_icons.dart';
@@ -320,14 +319,11 @@ class _CreaturesBodyState extends State<CreaturesBody> {
   Future<void> _openCreatureDetail(
     ({CatalogItem item, Creature creature}) entry,
   ) async {
-    final deleted = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (context) => CreatureDetailPage(
-          auth: widget.auth,
-          item: entry.item,
-          creature: entry.creature,
-        ),
-      ),
+    final deleted = await openCatalogRecordDetail(
+      context: context,
+      auth: widget.auth,
+      kindApiValue: entry.item.kind.apiValue,
+      itemId: entry.item.id,
     );
     if (deleted == true && mounted) {
       await _reload();
@@ -337,15 +333,11 @@ class _CreaturesBodyState extends State<CreaturesBody> {
   Future<void> _openTypeDetail(
     ({CatalogItem item, CreatureType type}) entry,
   ) async {
-    final deleted = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (context) => CreatureTypeDetailPage(
-          auth: widget.auth,
-          item: entry.item,
-          type: entry.type,
-          typesById: _typesById,
-        ),
-      ),
+    final deleted = await openCatalogRecordDetail(
+      context: context,
+      auth: widget.auth,
+      kindApiValue: CatalogKind.creatureTypes.apiValue,
+      itemId: entry.item.id,
     );
     if (deleted == true && mounted) {
       await _reload();

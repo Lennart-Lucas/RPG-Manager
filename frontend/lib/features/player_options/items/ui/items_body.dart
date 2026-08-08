@@ -9,6 +9,7 @@ import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
+import '../../../catalog/ui/open_catalog_detail.dart';
 import '../../../dm_tools/resources/data/resource_models.dart';
 import '../../../dm_tools/resources/data/resources_api.dart';
 import '../../../export/card_export_pdf.dart';
@@ -20,7 +21,6 @@ import '../../player_options_icons.dart';
 import '../data/item_list_derived_data.dart';
 import '../data/item_list_filters.dart';
 import '../data/item_model.dart';
-import 'item_detail_page.dart';
 import 'item_form_sheet.dart';
 import 'item_record_list_view.dart';
 import 'items_filter_strip.dart';
@@ -505,27 +505,11 @@ class _ItemsBodyState extends State<ItemsBody>
   }
 
   Future<void> _openDetail(ItemCatalogEntry entry) async {
-    String? sourceName;
-    final fileId = entry.entry.sourceFileId;
-    if (fileId != null) {
-      for (final f in _files) {
-        if (f.id == fileId) {
-          sourceName = f.name;
-          break;
-        }
-      }
-    }
-
-    final deleted = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (context) => ItemDetailPage(
-          auth: widget.auth,
-          item: entry.item,
-          entry: entry.entry,
-          sourceFileName: sourceName,
-          itemProperties: _itemProperties,
-        ),
-      ),
+    final deleted = await openCatalogRecordDetail(
+      context: context,
+      auth: widget.auth,
+      kindApiValue: entry.item.kind.apiValue,
+      itemId: entry.item.id,
     );
     if (deleted == true || mounted) {
       await _reload();

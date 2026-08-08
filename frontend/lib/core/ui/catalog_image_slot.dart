@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 /// Returns an error message if [value] is non-empty and not an http(s) URL.
@@ -14,14 +15,15 @@ String? validateOptionalHttpUrl(String? value) {
   return null;
 }
 
-/// Rewrites Google Drive share/view links into a direct image URL.
+/// Rewrites Google Drive share/view/`uc` links into an embeddable thumbnail URL.
 ///
 /// Example:
 /// `https://drive.google.com/file/d/FILE_ID/view?usp=sharing`
-/// → `https://drive.google.com/uc?export=view&id=FILE_ID`
+/// → `https://drive.google.com/thumbnail?id=FILE_ID&sz=w2000`
 ///
-/// Other URLs are returned trimmed and unchanged. Drive still needs the file
-/// shared as "Anyone with the link"; some browsers may block the request.
+/// Drive's `/uc?export=view` endpoints return 403 when embedded in websites
+/// (third-party cookie changes). Thumbnails still work for "Anyone with the
+/// link" files. Other URLs are returned trimmed and unchanged.
 String normalizeCatalogImageUrl(String raw) {
   final text = raw.trim();
   if (text.isEmpty) return text;
@@ -39,16 +41,17 @@ String normalizeCatalogImageUrl(String raw) {
   final fileId = _googleDriveFileId(uri);
   if (fileId == null) return text;
 
-  // Already the preferred direct form.
-  if ((uri.path == '/uc' || uri.path.endsWith('/uc')) &&
-      uri.queryParameters['export'] == 'view' &&
-      uri.queryParameters['id'] == fileId) {
-    return text;
+  // Prefer thumbnail — `/uc` is blocked for cross-site <img> embeds.
+  if (uri.path == '/thumbnail' || uri.path.endsWith('/thumbnail')) {
+    final sz = uri.queryParameters['sz'];
+    if (uri.queryParameters['id'] == fileId && sz != null && sz.isNotEmpty) {
+      return text;
+    }
   }
 
-  return Uri.https('drive.google.com', '/uc', {
-    'export': 'view',
+  return Uri.https('drive.google.com', '/thumbnail', {
     'id': fileId,
+    'sz': 'w2000',
   }).toString();
 }
 
@@ -64,6 +67,27 @@ String? _googleDriveFileId(Uri uri) {
   final fromQuery = uri.queryParameters['id']?.trim();
   if (fromQuery != null && fromQuery.isNotEmpty) return fromQuery;
   return null;
+}
+
+Widget _networkImage({
+  required String url,
+  required Widget Function(BuildContext, Object, StackTrace?) errorBuilder,
+  BoxFit fit = BoxFit.cover,
+  double? width,
+  double? height,
+  ImageLoadingBuilder? loadingBuilder,
+}) {
+  return Image.network(
+    url,
+    fit: fit,
+    width: width,
+    height: height,
+    // Prefer HTML <img> on web: CanvasKit cannot decode cross-origin bytes
+    // without CORS, and ClipRRect/platform-view fallback is unreliable.
+    webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
+    errorBuilder: errorBuilder,
+    loadingBuilder: loadingBuilder,
+  );
 }
 
 /// 4:3 image slot for overview / detail panels. Falls back to [placeholder]
@@ -89,43 +113,48 @@ class CatalogImageSlot extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final border = borderColor ?? scheme.outline.withValues(alpha: 0.55);
     final url = normalizeCatalogImageUrl(imageUrl);
+    final radius = BorderRadius.circular(borderRadius);
+
+    Widget child;
+    if (url.isEmpty) {
+      child = placeholder;
+    } else {
+      final image = _networkImage(
+        url: url,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        errorBuilder: (_, _, _) => placeholder,
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return Center(
+            child: SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                value: progress.expectedTotalBytes != null
+                    ? progress.cumulativeBytesLoaded /
+                        progress.expectedTotalBytes!
+                    : null,
+              ),
+            ),
+          );
+        },
+      );
+      // ClipRRect hides HTML platform-view images on Flutter web.
+      child = kIsWeb ? image : ClipRRect(borderRadius: radius, child: image);
+    }
 
     return AspectRatio(
       aspectRatio: aspectRatio,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: scheme.surfaceContainer,
-          borderRadius: BorderRadius.circular(borderRadius),
+          borderRadius: radius,
           border: Border.all(color: border),
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(borderRadius),
-          child: url.isEmpty
-              ? placeholder
-              : Image.network(
-                  url,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  height: double.infinity,
-                  errorBuilder: (_, _, _) => placeholder,
-                  loadingBuilder: (context, child, progress) {
-                    if (progress == null) return child;
-                    return Center(
-                      child: SizedBox(
-                        width: 28,
-                        height: 28,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          value: progress.expectedTotalBytes != null
-                              ? progress.cumulativeBytesLoaded /
-                                  progress.expectedTotalBytes!
-                              : null,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-        ),
+        child: child,
       ),
     );
   }
@@ -151,17 +180,22 @@ class CatalogImageThumb extends StatelessWidget {
     final url = normalizeCatalogImageUrl(imageUrl);
     if (url.isEmpty) return fallback;
 
+    final image = _networkImage(
+      url: url,
+      fit: BoxFit.cover,
+      width: size,
+      height: size,
+      errorBuilder: (_, _, _) => fallback,
+    );
+
+    // Avoid ClipRRect on web — it blanks HTML platform-view images.
+    if (kIsWeb) {
+      return SizedBox(width: size, height: size, child: image);
+    }
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
-      child: SizedBox(
-        width: size,
-        height: size,
-        child: Image.network(
-          url,
-          fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => fallback,
-        ),
-      ),
+      child: SizedBox(width: size, height: size, child: image),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
+import '../../../catalog/ui/open_catalog_detail.dart';
 import '../../mechanics_icons.dart';
 import '../../ui/styled_mechanics_ui.dart';
 
@@ -20,10 +21,11 @@ class ConditionsBody extends StatelessWidget {
       pluralLabel: 'conditions',
       fallbackIcon: conditionsPageIcon,
       defaultIconKey: 'monitor_heart',
-      openDetail: (context, item) => Navigator.of(context).push<bool>(
-        MaterialPageRoute(
-          builder: (context) => ConditionDetailPage(auth: auth, item: item),
-        ),
+      openDetail: (context, item) => openCatalogRecordDetail(
+        context: context,
+        auth: auth,
+        kindApiValue: item.kind.apiValue,
+        itemId: item.id,
       ),
     );
   }
