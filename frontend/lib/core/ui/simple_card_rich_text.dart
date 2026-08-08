@@ -63,7 +63,7 @@ class _SimpleCardRichTextState extends State<SimpleCardRichText> {
   static final RegExp _bullet = RegExp(r'^(\s*)[-*]\s+(.*)$');
   static final RegExp _ordered = RegExp(r'^(\s*)(\d+)\.\s+(.*)$');
   static final RegExp _quoteLine = RegExp(r'^\s*>\s?(.*)$');
-  static final RegExp _quoteAuthor = RegExp(r'^\s*-\s+(.+)$');
+  static final RegExp _quoteAuthor = RegExp(r'^\s*[—\-]\s+(.+)$');
   static final RegExp _underline =
       RegExp(r'<u>(.+?)</u>', caseSensitive: false);
   static final RegExp _tableSepCell = RegExp(r'^:?-{3,}:?$');
@@ -398,9 +398,18 @@ class _SimpleCardRichTextState extends State<SimpleCardRichText> {
           if (block.quoteAuthor != null && block.quoteAuthor!.isNotEmpty) ...[
             if (block.quoteBody != null && block.quoteBody!.isNotEmpty)
               SizedBox(height: 6 * widget.styleScale),
-            Text(
-              '- ${block.quoteAuthor}',
-              style: authorStyle,
+            Text.rich(
+              TextSpan(
+                style: authorStyle,
+                children: [
+                  const TextSpan(text: '— '),
+                  ..._inlineSpans(
+                    block.quoteAuthor!,
+                    authorStyle,
+                    linkStyle.copyWith(fontSize: authorStyle.fontSize),
+                  ),
+                ],
+              ),
               textAlign: TextAlign.right,
             ),
           ],
@@ -451,13 +460,10 @@ class _SimpleCardRichTextState extends State<SimpleCardRichText> {
       );
     }
 
-    Widget paddedCell(String text, TextStyle style, Color bg) {
-      return ColoredBox(
-        color: bg,
-        child: Padding(
-          padding: cellPad,
-          child: cellText(text, style),
-        ),
+    Widget paddedCell(String text, TextStyle style) {
+      return Padding(
+        padding: cellPad,
+        child: cellText(text, style),
       );
     }
 
@@ -469,20 +475,19 @@ class _SimpleCardRichTextState extends State<SimpleCardRichText> {
         children: [
           if (headers.isNotEmpty)
             TableRow(
+              decoration: BoxDecoration(color: headerBg),
               children: [
                 for (final header in headers)
-                  paddedCell(header, headerStyle, headerBg),
+                  paddedCell(header, headerStyle),
               ],
             ),
           for (var r = 0; r < rows.length; r++)
             TableRow(
+              decoration: BoxDecoration(
+                color: r.isEven ? rowEvenBg : rowOddBg,
+              ),
               children: [
-                for (final cell in rows[r])
-                  paddedCell(
-                    cell,
-                    bodyStyle,
-                    r.isEven ? rowEvenBg : rowOddBg,
-                  ),
+                for (final cell in rows[r]) paddedCell(cell, bodyStyle),
               ],
             ),
         ],
@@ -584,83 +589,94 @@ class _SimpleCardRichTextState extends State<SimpleCardRichText> {
     );
   }
 
+  static final RegExp _linkTokenPattern = RegExp(r'\uE000(\d+)\uE001');
+
   List<InlineSpan> _inlineSpans(
     String segment,
     TextStyle baseStyle,
     TextStyle linkStyle,
   ) {
     final links = parseWikiLinks(segment);
-    if (links.isEmpty) {
-      return _markdownSpans(segment, baseStyle);
-    }
-    final out = <InlineSpan>[];
+
+    // Protect wiki links with private-use tokens so bold/italic can wrap them.
+    final linkTokens = <String, WikiLink>{};
+    final buffer = StringBuffer();
     var offset = 0;
-    for (final link in links) {
+    for (var i = 0; i < links.length; i++) {
+      final link = links[i];
       if (link.start > offset) {
-        out.addAll(
-          _markdownSpans(segment.substring(offset, link.start), baseStyle),
-        );
+        buffer.write(segment.substring(offset, link.start));
       }
-      if (widget.onWikiLinkTap != null) {
-        final recognizer = TapGestureRecognizer()
-          ..onTap = () => widget.onWikiLinkTap!(link.kind, link.id);
-        _recognizers.add(recognizer);
-        out.add(
-          WidgetSpan(
-            alignment: PlaceholderAlignment.baseline,
-            baseline: TextBaseline.alphabetic,
-            child: _WikiLinkLabel(
-              link: link,
-              style: linkStyle,
-              resolveLabel: widget.resolveWikiLinkLabel,
-              recognizer: recognizer,
-            ),
-          ),
-        );
-      } else {
-        out.add(
-          WidgetSpan(
-            alignment: PlaceholderAlignment.baseline,
-            baseline: TextBaseline.alphabetic,
-            child: _WikiLinkLabel(
-              link: link,
-              style: linkStyle,
-              resolveLabel: widget.resolveWikiLinkLabel,
-            ),
-          ),
-        );
-      }
+      final token = '\uE000$i\uE001';
+      linkTokens[token] = link;
+      buffer.write(token);
       offset = link.end;
     }
     if (offset < segment.length) {
-      out.addAll(_markdownSpans(segment.substring(offset), baseStyle));
+      buffer.write(segment.substring(offset));
     }
-    return out;
+    final protected = buffer.toString();
+
+    if (links.isEmpty) {
+      return _markdownSpans(segment, baseStyle);
+    }
+    return _markdownSpans(
+      protected,
+      baseStyle,
+      linkStyle: linkStyle,
+      linkTokens: linkTokens,
+    );
   }
 
-  List<InlineSpan> _markdownSpans(String text, TextStyle base) {
+  List<InlineSpan> _markdownSpans(
+    String text,
+    TextStyle base, {
+    TextStyle? linkStyle,
+    Map<String, WikiLink>? linkTokens,
+  }) {
     if (text.isEmpty) return const [];
     final out = <InlineSpan>[];
     var cursor = 0;
     for (final match in _underline.allMatches(text)) {
       if (match.start > cursor) {
-        out.addAll(_boldItalicSpans(text.substring(cursor, match.start), base));
+        out.addAll(
+          _boldItalicSpans(
+            text.substring(cursor, match.start),
+            base,
+            linkStyle: linkStyle,
+            linkTokens: linkTokens,
+          ),
+        );
       }
       out.addAll(
         _boldItalicSpans(
           match.group(1) ?? '',
           base.copyWith(decoration: TextDecoration.underline),
+          linkStyle: linkStyle,
+          linkTokens: linkTokens,
         ),
       );
       cursor = match.end;
     }
     if (cursor < text.length) {
-      out.addAll(_boldItalicSpans(text.substring(cursor), base));
+      out.addAll(
+        _boldItalicSpans(
+          text.substring(cursor),
+          base,
+          linkStyle: linkStyle,
+          linkTokens: linkTokens,
+        ),
+      );
     }
     return out;
   }
 
-  List<InlineSpan> _boldItalicSpans(String text, TextStyle base) {
+  List<InlineSpan> _boldItalicSpans(
+    String text,
+    TextStyle base, {
+    TextStyle? linkStyle,
+    Map<String, WikiLink>? linkTokens,
+  }) {
     if (text.isEmpty) return const [];
     final out = <InlineSpan>[];
     var cursor = 0;
@@ -669,39 +685,121 @@ class _SimpleCardRichTextState extends State<SimpleCardRichText> {
     );
     for (final match in combined.allMatches(text)) {
       if (match.start > cursor) {
-        out.add(TextSpan(text: text.substring(cursor, match.start), style: base));
+        out.addAll(
+          _plainOrLinkSpans(
+            text.substring(cursor, match.start),
+            base,
+            linkStyle,
+            linkTokens,
+          ),
+        );
       }
       if (match.group(1) != null) {
-        out.add(
-          TextSpan(
-            text: match.group(1),
-            style: base.copyWith(
+        out.addAll(
+          _plainOrLinkSpans(
+            match.group(1)!,
+            base.copyWith(
               fontWeight: FontWeight.w700,
               fontStyle: FontStyle.italic,
             ),
+            linkStyle,
+            linkTokens,
           ),
         );
       } else if (match.group(2) != null) {
-        out.add(
-          TextSpan(
-            text: match.group(2),
-            style: base.copyWith(fontWeight: FontWeight.w700),
+        out.addAll(
+          _plainOrLinkSpans(
+            match.group(2)!,
+            base.copyWith(fontWeight: FontWeight.w700),
+            linkStyle,
+            linkTokens,
           ),
         );
       } else if (match.group(3) != null) {
-        out.add(
-          TextSpan(
-            text: match.group(3),
-            style: base.copyWith(fontStyle: FontStyle.italic),
+        out.addAll(
+          _plainOrLinkSpans(
+            match.group(3)!,
+            base.copyWith(fontStyle: FontStyle.italic),
+            linkStyle,
+            linkTokens,
           ),
         );
       }
       cursor = match.end;
     }
     if (cursor < text.length) {
-      out.add(TextSpan(text: text.substring(cursor), style: base));
+      out.addAll(
+        _plainOrLinkSpans(
+          text.substring(cursor),
+          base,
+          linkStyle,
+          linkTokens,
+        ),
+      );
     }
     return out;
+  }
+
+  List<InlineSpan> _plainOrLinkSpans(
+    String text,
+    TextStyle style,
+    TextStyle? linkStyle,
+    Map<String, WikiLink>? linkTokens,
+  ) {
+    if (text.isEmpty) return const [];
+    if (linkTokens == null ||
+        linkTokens.isEmpty ||
+        linkStyle == null ||
+        !text.contains('\uE000')) {
+      return [TextSpan(text: text, style: style)];
+    }
+    final out = <InlineSpan>[];
+    var cursor = 0;
+    for (final match in _linkTokenPattern.allMatches(text)) {
+      if (match.start > cursor) {
+        out.add(
+          TextSpan(text: text.substring(cursor, match.start), style: style),
+        );
+      }
+      final token = match.group(0)!;
+      final link = linkTokens[token];
+      if (link != null) {
+        out.add(_wikiLinkSpan(link, style, linkStyle));
+      }
+      cursor = match.end;
+    }
+    if (cursor < text.length) {
+      out.add(TextSpan(text: text.substring(cursor), style: style));
+    }
+    return out;
+  }
+
+  InlineSpan _wikiLinkSpan(
+    WikiLink link,
+    TextStyle surrounding,
+    TextStyle linkStyle,
+  ) {
+    final merged = surrounding.copyWith(
+      color: linkStyle.color,
+      decoration: linkStyle.decoration,
+      decorationColor: linkStyle.decorationColor ?? linkStyle.color,
+    );
+    TapGestureRecognizer? recognizer;
+    if (widget.onWikiLinkTap != null) {
+      recognizer = TapGestureRecognizer()
+        ..onTap = () => widget.onWikiLinkTap!(link.kind, link.id);
+      _recognizers.add(recognizer);
+    }
+    return WidgetSpan(
+      alignment: PlaceholderAlignment.baseline,
+      baseline: TextBaseline.alphabetic,
+      child: _WikiLinkLabel(
+        link: link,
+        style: merged,
+        resolveLabel: widget.resolveWikiLinkLabel,
+        recognizer: recognizer,
+      ),
+    );
   }
 }
 

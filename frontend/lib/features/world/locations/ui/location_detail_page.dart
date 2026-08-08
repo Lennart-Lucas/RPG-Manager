@@ -234,6 +234,16 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
     );
   }
 
+  bool get _hasSubLocations {
+    return _all.any((item) {
+      final parentId = LocationRecord.fromCatalogPayload(
+        name: item.name,
+        payload: item.payload,
+      ).parentId;
+      return parentId == _item.id;
+    });
+  }
+
   Widget _subLocations() {
     final textTheme = Theme.of(context).textTheme;
     return Column(
@@ -304,8 +314,10 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
                               _articleTitle(record),
                               const SizedBox(height: 20),
                               _description(record),
-                              const SizedBox(height: 28),
-                              _subLocations(),
+                              if (_hasSubLocations) ...[
+                                const SizedBox(height: 28),
+                                _subLocations(),
+                              ],
                             ],
                           ),
                         ),
@@ -322,8 +334,10 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
                     _overviewBox(),
                     const SizedBox(height: 20),
                     _description(record),
-                    const SizedBox(height: 28),
-                    _subLocations(),
+                    if (_hasSubLocations) ...[
+                      const SizedBox(height: 28),
+                      _subLocations(),
+                    ],
                   ],
                 ],
               );

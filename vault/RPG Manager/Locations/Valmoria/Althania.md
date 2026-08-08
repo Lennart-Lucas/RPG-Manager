@@ -28,16 +28,26 @@ Althania is the realm the Rising built: one God, one book, and one very long arg
 
 ## The Shape of the Realm
 
-A country of river plains and rising country, hemmed on three sides by things that are not human.
+River plains in the middle, rising country at the edges, and three borders that are not human.
 
-- **North and north-east — the World Spine Mountains.** The dwarven thanedoms are under them. The one place the border is a city rather than a line is [[Weissturm]], Althanian above the ground and dwarven below it, holding the hard northern passes.
-- **Beyond the Spine — Shall.** The dark elf city. Two wars, and more raids than the Chronicle bothers to list. There is a truce. Nobody calls it a peace.
-- **West — the Blackwood.** Old forest, claimed in its entirety by the wood elves who live in it, and cut at the edges anyway by Althanian charcoal and timber towns. [[Knarrholt]] sits on that fringe. So does the argument.
-- **East — the [[Dornwald]].** Black thorn and dead oak, forty miles across, grown over the ground where the last priests of the Nine Names were burned. Its outer mile is harvested by the woodcutters of [[Eichenwacht]]. Nobody goes deeper.
-- **South-east — the Tern basin**, wide, wealthy and disloyal, and beyond it the **Sundered Communion**.
-- **South — the sea**, the grain that keeps the realm fed, and the ports through which saltpetre and rumours arrive from [[Wessarin]].
+Within Althania's own bounds:
+
+- **The heartland** — the plains of the Elve and the Rill, grain and wool and the great majority of the realm's four million, with [[Lucerna]] on the flat ground where the two rivers meet.
+- **The western uplands** — the country of [[Salvamont]], its lonely hill, its silver, and the fen and forest-edge below it, where [[Dunvicum]] and [[Knarrholt]] sit.
+- **The northern marches** — foothill country climbing toward the mountains, thin, poor, and full of fortified abbeys. It ends at [[Weissturm]].
+- **The [[Dornwald]]** — in the east, forty miles of black thorn and dead oak grown over the ground where the last priests of the Nine Names were burned. It is Althanian on every map and entered by nobody; its outer half-mile is cut by the woodcutters of [[Eichenwacht]].
+- **The Tern basin** — the south-east: wide, wealthy, river-fed and reliably disloyal.
+- **The southern coast** — the ports through which the realm eats.
 
 Roads are Church roads, kept by abbey levy, and every crossroads carries a post with the unbroken ring cut into it. Where the rings stop, the marches begin.
+
+## What Borders It
+
+- **North and north-east — the World Spine Mountains**, and the dwarven thanedoms beneath them. Not Althanian ground. The one place the border is a city rather than a line is [[Weissturm]], which is Althanian above and dwarven below by the Concord of Stone, and which holds the hard high passes.
+- **Beyond the Spine — Shall**, the dark elf city. Two wars, and more raids than the Chronicle bothers to list. The easy way through the mountains is the Low Pass, and the first walled thing on that road is Salvamont. There is a truce. Nobody calls it a peace.
+- **West — the Blackwood.** Old forest, claimed entire by the wood elves who live in it. Althania cuts its outermost fringe under a charter they have never acknowledged and has never been told to stop, which the Concord takes for consent and the woodcutters do not.
+- **East and south-east, past the Tern — the Sundered Communion.** Free cities that renounced the Hierarch and kept the faith. Not heathens; something far worse.
+- **South, over water** — the trading powers, the grain that keeps the realm fed, and the ports through which saltpetre and rumours arrive from [[Wessarin]].
 
 ## Who Rules
 

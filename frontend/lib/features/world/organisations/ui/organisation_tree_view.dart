@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/ui/catalog_image_slot.dart';
 import '../../../catalog/data/catalog_models.dart';
+import '../../world_icons.dart';
 import '../data/organisation_model.dart';
 
 /// Indented tree of organisations.
@@ -132,6 +134,10 @@ class OrganisationTreeView extends StatelessWidget {
       payload: item.payload,
     );
     final count = record.memberIds.length;
+    final aliases = record.aliases.join(', ');
+    final muted = textTheme.bodySmall?.copyWith(
+      color: scheme.onSurfaceVariant,
+    );
     return Padding(
       padding: EdgeInsets.only(left: 16.0 * depth, top: 4),
       child: Material(
@@ -149,6 +155,23 @@ class OrganisationTreeView extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
             child: Row(
               children: [
+                CatalogImageThumb(
+                  imageUrl: record.imageUrl,
+                  fallback: Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: scheme.primaryContainer.withValues(alpha: 0.88),
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                    child: Icon(
+                      organisationsPageIcon,
+                      size: 22,
+                      color: scheme.onPrimaryContainer,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -161,11 +184,16 @@ class OrganisationTreeView extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
+                      if (aliases.isNotEmpty)
+                        Text(
+                          aliases,
+                          style: muted,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       Text(
                         '$count member${count == 1 ? '' : 's'}',
-                        style: textTheme.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
+                        style: muted,
                       ),
                     ],
                   ),
