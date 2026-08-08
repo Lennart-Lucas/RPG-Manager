@@ -1,5 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+
+import 'rounded_network_image.dart';
 
 /// Returns an error message if [value] is non-empty and not an http(s) URL.
 String? validateOptionalHttpUrl(String? value) {
@@ -69,29 +70,6 @@ String? _googleDriveFileId(Uri uri) {
   return null;
 }
 
-Widget _networkImage({
-  required String url,
-  required Widget Function(BuildContext, Object, StackTrace?) errorBuilder,
-  BoxFit fit = BoxFit.cover,
-  Alignment alignment = Alignment.center,
-  double? width,
-  double? height,
-  ImageLoadingBuilder? loadingBuilder,
-}) {
-  return Image.network(
-    url,
-    fit: fit,
-    alignment: alignment,
-    width: width,
-    height: height,
-    // Prefer HTML <img> on web: CanvasKit cannot decode cross-origin bytes
-    // without CORS, and ClipRRect/platform-view fallback is unreliable.
-    webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
-    errorBuilder: errorBuilder,
-    loadingBuilder: loadingBuilder,
-  );
-}
-
 /// Full-width image for overview / detail side panels.
 ///
 /// Once loaded, the frame height matches the image's own aspect ratio (no
@@ -139,37 +117,21 @@ class CatalogImageSlot extends StatelessWidget {
       return frame(placeholderFrame());
     }
 
-    final image = _networkImage(
-      url: url,
-      // Width fills the panel; height follows the image's intrinsic ratio.
-      fit: BoxFit.fitWidth,
-      width: double.infinity,
-      errorBuilder: (_, _, _) => placeholderFrame(),
-      loadingBuilder: (context, child, progress) {
-        if (progress == null) return child;
-        return AspectRatio(
-          aspectRatio: aspectRatio,
-          child: Center(
-            child: SizedBox(
-              width: 28,
-              height: 28,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                value: progress.expectedTotalBytes != null
-                    ? progress.cumulativeBytesLoaded /
-                        progress.expectedTotalBytes!
-                    : null,
-              ),
-            ),
+    return frame(
+      roundedFitWidthNetworkImage(
+        url: url,
+        borderRadius: borderRadius,
+        placeholderAspectRatio: aspectRatio,
+        errorBuilder: (_, _, _) => placeholderFrame(),
+        loadingBuilder: (context) => const Center(
+          child: SizedBox(
+            width: 28,
+            height: 28,
+            child: CircularProgressIndicator(strokeWidth: 2),
           ),
-        );
-      },
+        ),
+      ),
     );
-    // ClipRRect hides HTML platform-view images on Flutter web.
-    final clipped =
-        kIsWeb ? image : ClipRRect(borderRadius: radius, child: image);
-
-    return frame(clipped);
   }
 }
 
@@ -193,22 +155,13 @@ class CatalogImageThumb extends StatelessWidget {
     final url = normalizeCatalogImageUrl(imageUrl);
     if (url.isEmpty) return fallback;
 
-    final image = _networkImage(
+    return roundedNetworkImage(
       url: url,
+      borderRadius: borderRadius,
       fit: BoxFit.cover,
       width: size,
       height: size,
       errorBuilder: (_, _, _) => fallback,
-    );
-
-    // Avoid ClipRRect on web — it blanks HTML platform-view images.
-    if (kIsWeb) {
-      return SizedBox(width: size, height: size, child: image);
-    }
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(borderRadius),
-      child: SizedBox(width: size, height: size, child: image),
     );
   }
 }
