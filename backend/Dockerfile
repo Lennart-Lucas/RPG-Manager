@@ -5,7 +5,9 @@
 # ---- Flutter web (player site) ----
 FROM ghcr.io/cirruslabs/flutter:stable AS web
 WORKDIR /src
+# Path packages must exist before `flutter pub get` (see frontend/pubspec.yaml).
 COPY frontend/pubspec.yaml frontend/pubspec.lock ./frontend/
+COPY packages/random_table_engine ./packages/random_table_engine
 WORKDIR /src/frontend
 RUN flutter config --no-analytics \
     && flutter pub get
