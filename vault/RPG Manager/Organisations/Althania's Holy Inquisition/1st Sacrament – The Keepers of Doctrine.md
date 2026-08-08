@@ -6,16 +6,16 @@ parent_id: 143
 parent_id_name: "Althania's Holy Inquisition"
 ---
 
-|  | |
-|---|---|
-| **Full name** | The First Sacrament of the Litany of Ash, Keepers of Doctrine (*Custodes Doctrinae*) |
-| **Common names** | The Keepers; the First; *the quiet clerks* (colloq.) |
-| **Founded** | 198 AR, with the Inquisition itself |
-| **Type** | Inquisitorial order; the Realm's authority over scripture, canon, and record |
-| **Seat** | Weissturm |
-| **Head** | Grand Keeper (current: Meinhard Grewe, since 1155 AR) |
-| **Motto** | *That which is not written was not* |
-| **Personnel** | Some 9,000 ordained, the largest of the six by a wide margin |
+|                  |                                                                                      |
+| ---------------- | ------------------------------------------------------------------------------------ |
+| **Full name**    | The First Sacrament of the Litany of Ash, Keepers of Doctrine (*Custodes Doctrinae*) |
+| **Common names** | The Keepers; the First; *the quiet clerks* (colloq.)                                 |
+| **Founded**      | 198 AR, with the Inquisition itself                                                  |
+| **Type**         | Inquisitorial order; the Realm's authority over scripture, canon, and record         |
+| **Seat**         | Weissturm                                                                            |
+| **Head**         | Grand Keeper (current: Meinhard Grewe, since 1155 AR)                                |
+| **Motto**        | *That which is not written was not*                                                  |
+| **Personnel**    | Some 9,000 ordained, the largest of the six by a wide margin                         |
 
 Charged are the Keepers of Doctrine with the preservation, purification, and definition of sacred truth. They are the voice by which scripture is made immutable and the silence by which forbidden knowledge is undone. No text, record, or utterance stands beyond their scrutiny, and what they declare absent from doctrine is as though it had never been.
 
@@ -36,4 +36,4 @@ That the First keeps a perfect account of its own erasures, and shows it to no o
 # Relations
 The First is the Sacrament every other Sacrament needs and none of them like. It receives the Wardens' findings and turns them into what the Realm knows about its own monsters. It received the Sixth's domestic files in 691 AR and has never returned them, which the Sixth mentions at intervals. It ruled in 1174 AR that an allegation producing no verdict was no bar to episcopal election, and so seated **Father Edward** at [[RPG Manager/Locations/Valmoria/Althania/Salvamont|Salvamont]] over the Sixth's objection — a ruling the Keepers insist was narrow, technical, and about procedure, and which nobody in the Realm has ever read that way.
 
-Ranks ascend: **Lector** (a novitiate of six years, entirely in reading), **Scribe Ordinal**, **Sacrist Ordinal** (competent to draft a Definition and to authorise an expurgation), **Prior of the Sanctum** (department command), **Grand Keeper**. It is a matter of some discomfort in the First that its most consequential son was a Sacrist Ordinal who left: **Veit Adramar**, who argued before the Sixfold Synod in 412 AR that reading about covens was not the same as reaching them, and was given the [[RPG Manager/Organisations/Althania's Holy Inquisition/6th Sacrament - The Custodians of the Black Pyre|Sixth Sacrament]] to prove it.
+Ranks ascend: **Lector** (a novitiate of six years, entirely in reading), **Scribe Ordinal**, **Sacrist Ordinal** (competent to draft a Definition and to authorise an expurgation), **Prior of the Sanctum** (department command), **Grand Keeper**. The middle two ranks are older than the order, having been carried over whole from the Weissturm cathedral chapter that the First absorbed at the founding — which is the source of a discomfort the order has never quite put down. **Veit Adramar** was a Sacrist Ordinal of that chapter, and used the rank, the training, and the reading habits the First inherited from it to argue at the founding convocation that reading about covens is not the same as reaching them. He was given the [[RPG Manager/Organisations/Althania's Holy Inquisition/6th Sacrament - The Custodians of the Black Pyre|Sixth Sacrament]] to prove it. The First's own scholarly tradition thereby produced, in a single afternoon and over the objection of everyone who would go on to staff it, the one order in the Realm that answers to nobody the First can reach.
