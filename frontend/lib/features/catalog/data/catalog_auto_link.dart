@@ -1,5 +1,6 @@
 import '../../../core/markdown/wiki_link.dart';
 import '../../../core/ui/markdown_form_field.dart';
+import '../../mechanics/data/styled_mechanics_record.dart';
 import '../../player_options/items/data/item_model.dart';
 import '../../player_options/spells/data/spell_model.dart';
 import 'catalog_api.dart';
@@ -125,6 +126,28 @@ AutoLinkApplyResult<Item> autoLinkItemFields(
   }
   return AutoLinkApplyResult(
     value: item.copyWith(description: description),
+    changed: true,
+  );
+}
+
+AutoLinkApplyResult<StyledMechanicsRecord> autoLinkStyledMechanicsFields(
+  StyledMechanicsRecord record,
+  Iterable<CatalogLinkTarget> targets,
+) {
+  final description = autoLinkCatalogNames(
+    record.description,
+    targets: autoLinkTargetPairs(targets),
+  );
+  if (description == record.description) {
+    return AutoLinkApplyResult(value: record, changed: false);
+  }
+  return AutoLinkApplyResult(
+    value: StyledMechanicsRecord(
+      name: record.name,
+      description: description,
+      iconKey: record.iconKey,
+      colorArgb: record.colorArgb,
+    ),
     changed: true,
   );
 }

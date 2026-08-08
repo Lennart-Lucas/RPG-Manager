@@ -5,17 +5,20 @@ import 'package:flutter/services.dart';
 enum ExtractRecordKind {
   spells,
   items,
+  conditions,
 }
 
 extension ExtractRecordKindLabel on ExtractRecordKind {
   String get label => switch (this) {
         ExtractRecordKind.spells => 'Spells',
         ExtractRecordKind.items => 'Items',
+        ExtractRecordKind.conditions => 'Conditions',
       };
 
   String get apiValue => switch (this) {
         ExtractRecordKind.spells => 'spells',
         ExtractRecordKind.items => 'items',
+        ExtractRecordKind.conditions => 'conditions',
       };
 }
 
@@ -372,6 +375,21 @@ class _ExtractOptionsDialogState extends State<_ExtractOptionsDialog> {
                     _kinds.add(ExtractRecordKind.items);
                   } else {
                     _kinds.remove(ExtractRecordKind.items);
+                  }
+                });
+              },
+            ),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              title: Text(ExtractRecordKind.conditions.label),
+              value: _kinds.contains(ExtractRecordKind.conditions),
+              onChanged: (checked) {
+                setState(() {
+                  if (checked == true) {
+                    _kinds.add(ExtractRecordKind.conditions);
+                  } else {
+                    _kinds.remove(ExtractRecordKind.conditions);
                   }
                 });
               },
