@@ -24,11 +24,15 @@ Compose project: `rpg-manager-dev`.
 
 ## Production (local prod-like stack)
 
+Requires **Flutter on PATH** (the player website is built on this machine, not inside Docker).
+
 ```powershell
 .\scripts\setup.ps1
 # Edit .env.prod — set POSTGRES_PASSWORD and matching DATABASE_URL values
 .\scripts\prod.ps1 up
 ```
+
+`prod.ps1 up` runs `build-web.ps1` (Flutter web → `backend/static/web`), then builds a lightweight API image that copies those files.
 
 Compose project: `rpg-manager-prod`. API + player website on host port **8011**.
 
@@ -36,11 +40,9 @@ Compose project: `rpg-manager-prod`. API + player website on host port **8011**.
 - API docs (dev image only): not exposed in production
 - Health: http://localhost:8011/health
 
-The Docker image builds the Flutter **web** UI and FastAPI serves it from the same origin as `/api/v1`. First build downloads the Flutter SDK image and can take several minutes; later builds reuse the layer cache when `frontend/` is unchanged.
-
 ## Remote server deployment
 
-Deploy from your Windows machine to a Linux host with Docker. VPS credentials stay in a gitignored local file.
+Deploy from your Windows machine to a Linux host with Docker. The website is built **locally** (Flutter), uploaded with `scp`, then the VPS only builds a small Python API image — safe for small droplets (1 vCPU / 2 GB).
 
 ### One-time local setup
 
@@ -50,7 +52,9 @@ Copy-Item .deploy.local.example .deploy.local
 notepad .deploy.local   # set DEPLOY_HOST and DEPLOY_SSH_KEY_PATH
 ```
 
-Requires **OpenSSH** (`ssh` on PATH). `.deploy.local` holds **VPS** SSH access only — not GitHub tokens.
+Requires **OpenSSH** (`ssh` / `scp` on PATH) and **Flutter** on PATH. If your SSH key has a passphrase, run `ssh-add` first (start `ssh-agent` as Administrator once if needed).
+
+`.deploy.local` holds **VPS** SSH access only — not GitHub tokens.
 
 ### One-time server setup
 
@@ -60,8 +64,9 @@ git clone git@github.com:Lennart-Lucas/RPG-Manager.git ~/RPG-Manager
 cd ~/RPG-Manager/backend
 cp .env.prod.example .env.prod
 nano .env.prod          # set POSTGRES_PASSWORD, JWT_SECRET, matching DATABASE_* URLs
-docker compose -p rpg-manager-prod -f docker-compose.prod.yml up --build -d
 ```
+
+Do **not** run `docker compose up --build` on the VPS alone for the first website deploy — the image expects `backend/static/web` from the Windows deploy script. Use `.\scripts\deploy-remote.ps1` from your PC after pushing to `main` (that builds web locally, uploads it, then starts compose).
 
 ### Private repository setup (deploy key)
 
@@ -102,6 +107,7 @@ Push your changes to GitHub first, then:
 
 ```powershell
 cd backend
+# if needed: ssh-add $env:USERPROFILE\.ssh\id_ed25519
 .\scripts\deploy-remote.ps1
 ```
 
@@ -113,7 +119,12 @@ $env:DEPLOY_SSH_KEY_PATH = 'C:\Users\you\.ssh\id_ed25519'
 .\scripts\deploy-remote.ps1
 ```
 
-The script SSHs to the VPS, ensures the SSH git remote, runs `git fetch` + `git reset --hard origin/main`, and rebuilds the prod stack. Migrations run in the container entrypoint.
+The script:
+
+1. Builds Flutter web on this PC (`build-web.ps1`)
+2. SSHs to the VPS → `git fetch` + `reset --hard origin/main`
+3. Uploads `backend/static/web` via `scp`
+4. Rebuilds/restarts the prod stack (API-only Docker build; migrations in the entrypoint)
 
 ### Verify on server
 

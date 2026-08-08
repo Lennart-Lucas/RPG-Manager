@@ -1,21 +1,11 @@
 # Build from repository root:
 #   docker build -f backend/Dockerfile .
 # Compose sets context to the parent of backend/ (repo root).
+#
+# Player website: build on the deploy machine first
+#   (backend/scripts/build-web.ps1) so backend/static/web exists.
+# The VPS never runs Flutter.
 
-# ---- Flutter web (player site) ----
-FROM ghcr.io/cirruslabs/flutter:stable AS web
-WORKDIR /src
-# Path packages must exist before `flutter pub get` (see frontend/pubspec.yaml).
-COPY frontend/pubspec.yaml frontend/pubspec.lock ./frontend/
-COPY packages/random_table_engine ./packages/random_table_engine
-WORKDIR /src/frontend
-RUN flutter config --no-analytics \
-    && flutter pub get
-COPY frontend/ ./
-# Empty API_BASE_URL → same-origin when served from this API.
-RUN flutter build web --release --dart-define=API_BASE_URL=
-
-# ---- API + static web ----
 FROM python:3.12-slim
 
 WORKDIR /app
@@ -34,7 +24,10 @@ COPY backend/alembic.ini .
 COPY backend/alembic ./alembic
 COPY backend/app ./app
 COPY backend/scripts ./scripts
-COPY --from=web /src/frontend/build/web ./static/web
+COPY backend/static/web ./static/web
+
+RUN test -f static/web/index.html \
+    || (echo "Missing backend/static/web/index.html — run backend/scripts/build-web.ps1 first" >&2 && exit 1)
 
 RUN sed -i 's/\r$//' scripts/docker-entrypoint-dev.sh scripts/docker-entrypoint-prod.sh \
     && chmod +x scripts/docker-entrypoint-dev.sh scripts/docker-entrypoint-prod.sh

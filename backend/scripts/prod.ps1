@@ -11,6 +11,7 @@ $composeArgs = @("compose", "-p", "rpg-manager-prod", "-f", "docker-compose.prod
 
 switch ($Command) {
     "up" {
+        & (Join-Path $PSScriptRoot "build-web.ps1")
         docker @composeArgs up --build -d
     }
     "down" {

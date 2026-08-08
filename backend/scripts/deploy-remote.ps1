@@ -81,40 +81,12 @@ function Get-DeployConfig {
     }
 
     return @{
+        BackendRoot = $backendRoot
         DeployHost = $deployHost
         User = $user
         RepoPath = $repoPath
         SshKeyPath = $sshKeyPath
     }
-}
-
-function Get-RemoteDeployCommand {
-    param([string]$RepoPath)
-
-    $repoPath = $RepoPath.TrimEnd("/")
-    $sshUrl = $GitHubSshUrl
-    # Single-line remote script so PowerShell → OpenSSH quoting stays reliable.
-    # Echoes mark each phase; Docker build is the long step (Flutter web).
-    return (
-        "set -e; " +
-        "echo '==> [1/4] Checking git remote...'; " +
-        "cd $repoPath; " +
-        "current=`$(git remote get-url origin 2>/dev/null || true); " +
-        "if [ `"`$current`" != `"$sshUrl`" ]; then " +
-        "git remote set-url origin $sshUrl 2>/dev/null || git remote add origin $sshUrl; " +
-        "fi; " +
-        "echo '==> [2/4] Fetching origin/main...'; " +
-        "if ! git fetch origin; then " +
-        "echo RPG_MANAGER_DEPLOY_GIT_AUTH_FAILED >&2; exit 42; " +
-        "fi; " +
-        "echo '==> [3/4] Resetting working tree to origin/main...'; " +
-        "git reset --hard origin/main; " +
-        "cd backend; " +
-        "echo '==> [4/4] Building containers (Flutter web can take 10-20+ min on first build)...'; " +
-        "echo '    Live Docker output follows; idle gaps during layer downloads are normal.'; " +
-        "DOCKER_BUILDKIT=1 docker compose --progress=plain -p rpg-manager-prod -f docker-compose.prod.yml up --build -d; " +
-        "echo '==> Remote deploy steps finished.'"
-    )
 }
 
 function Invoke-RemoteViaOpenSsh {
@@ -131,7 +103,7 @@ function Invoke-RemoteViaOpenSsh {
     }
 
     Write-Host "Using OpenSSH to connect to ${User}@${DeployHost}..."
-    Write-Host "Streaming remote output live (this can take a long time during Docker/Flutter builds)."
+    Write-Host "Streaming remote output live."
     Write-Host ""
 
     $sshArgs = @(
@@ -139,7 +111,6 @@ function Invoke-RemoteViaOpenSsh {
         "-o", "BatchMode=yes",
         "-o", "ConnectTimeout=15",
         "-o", "StrictHostKeyChecking=accept-new",
-        # Force remote stdout/stderr through without TTY allocation issues.
         "-o", "RequestTTY=no",
         "${User}@${DeployHost}",
         $RemoteCommand
@@ -166,8 +137,6 @@ function Invoke-RemoteViaOpenSsh {
         throw $PrivateRepoHint
     }
     if ($exitCode -ne 0) {
-        # Only blame GitHub deploy-key setup when the failure looks like git auth,
-        # not a generic SSH BatchMode/passphrase denial during VPS login.
         if ($output -match "RPG_MANAGER_DEPLOY_GIT_AUTH_FAILED|Could not read from remote repository|Repository not found") {
             throw $PrivateRepoHint
         }
@@ -178,23 +147,134 @@ function Invoke-RemoteViaOpenSsh {
                 "then retry. Interactive ssh works; this script cannot prompt for a passphrase."
             )
         }
-        throw "Remote deploy failed (ssh exit code $exitCode)."
+        throw "Remote command failed (ssh exit code $exitCode)."
+    }
+}
+
+function Invoke-ScpUpload {
+    param(
+        [string]$User,
+        [string]$DeployHost,
+        [string]$SshKeyPath,
+        [string]$LocalPath,
+        [string]$RemotePath
+    )
+
+    $scp = Get-Command scp -ErrorAction SilentlyContinue
+    if (-not $scp) {
+        throw "OpenSSH (scp) is required on PATH."
+    }
+
+    Write-Host "Uploading $LocalPath -> ${User}@${DeployHost}:$RemotePath ..."
+    $scpArgs = @(
+        "-i", $SshKeyPath,
+        "-o", "BatchMode=yes",
+        "-o", "ConnectTimeout=15",
+        "-o", "StrictHostKeyChecking=accept-new",
+        "-r",
+        $LocalPath,
+        "${User}@${DeployHost}:$RemotePath"
+    )
+
+    $previousPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $lines = New-Object System.Collections.Generic.List[string]
+        & $scp.Source @scpArgs 2>&1 | ForEach-Object {
+            $text = "$_"
+            [void]$lines.Add($text)
+            Write-Host $text
+        }
+        if ($LASTEXITCODE -ne 0) {
+            $joined = $lines -join [Environment]::NewLine
+            if ($joined -match "Permission denied") {
+                throw (
+                    "SCP failed (publickey). Run: ssh-add `"$SshKeyPath`" then retry."
+                )
+            }
+            throw "SCP upload failed (exit code $LASTEXITCODE)."
+        }
+    }
+    finally {
+        $ErrorActionPreference = $previousPreference
     }
 }
 
 $config = Get-DeployConfig
-$remoteCommand = Get-RemoteDeployCommand -RepoPath $config.RepoPath
+$repoPath = $config.RepoPath.TrimEnd("/")
+$sshUrl = $GitHubSshUrl
+$staticWebLocal = Join-Path $config.BackendRoot "static\web"
+$buildWebScript = Join-Path $PSScriptRoot "build-web.ps1"
 
-Write-Host "Deploying RPG-Manager backend to $($config.User)@$($config.DeployHost)..."
+Write-Host "Deploying RPG-Manager to $($config.User)@$($config.DeployHost)..."
 Write-Host "Repo path: $($config.RepoPath)"
 Write-Host "Auth: SSH key ($($config.SshKeyPath))"
 Write-Host ""
 
+Write-Host "==> Phase A: Build Flutter web on this machine"
+& $buildWebScript
+if (-not (Test-Path (Join-Path $staticWebLocal "index.html"))) {
+    throw "Local web build missing index.html at $staticWebLocal"
+}
+Write-Host ""
+
+Write-Host "==> Phase B: Update git on the server"
+$gitRemote = (
+    "set -e; " +
+    "echo '==> Checking git remote...'; " +
+    "cd $repoPath; " +
+    "current=`$(git remote get-url origin 2>/dev/null || true); " +
+    "if [ `"`$current`" != `"$sshUrl`" ]; then " +
+    "git remote set-url origin $sshUrl 2>/dev/null || git remote add origin $sshUrl; " +
+    "fi; " +
+    "echo '==> Fetching origin/main...'; " +
+    "if ! git fetch origin; then " +
+    "echo RPG_MANAGER_DEPLOY_GIT_AUTH_FAILED >&2; exit 42; " +
+    "fi; " +
+    "echo '==> Resetting to origin/main...'; " +
+    "git reset --hard origin/main; " +
+    "mkdir -p backend/static; " +
+    "rm -rf backend/static/web; " +
+    "echo '==> Server ready for static upload.'"
+)
 Invoke-RemoteViaOpenSsh `
     -User $config.User `
     -DeployHost $config.DeployHost `
     -SshKeyPath $config.SshKeyPath `
-    -RemoteCommand $remoteCommand
+    -RemoteCommand $gitRemote
+Write-Host ""
+
+Write-Host "==> Phase C: Upload prebuilt website"
+# Places local backend/static/web as remote .../backend/static/web
+Invoke-ScpUpload `
+    -User $config.User `
+    -DeployHost $config.DeployHost `
+    -SshKeyPath $config.SshKeyPath `
+    -LocalPath $staticWebLocal `
+    -RemotePath "$repoPath/backend/static/"
+Write-Host ""
+
+Write-Host "==> Phase D: Rebuild API image on the server (no Flutter; should be quick)"
+$composeRemote = (
+    "set -e; " +
+    "cd $repoPath/backend; " +
+    "if [ ! -f static/web/index.html ]; then " +
+    "echo 'Missing static/web/index.html after upload' >&2; exit 1; " +
+    "fi; " +
+    "echo '==> docker compose up --build (API-only image)...'; " +
+    "DOCKER_BUILDKIT=1 docker compose --progress=plain -p rpg-manager-prod -f docker-compose.prod.yml up --build -d; " +
+    "echo '==> Remote deploy finished.'; " +
+    "curl -sS http://localhost:8011/health || true; " +
+    "echo; " +
+    "curl -sSI http://localhost:8011/ | head -n 5 || true"
+)
+Invoke-RemoteViaOpenSsh `
+    -User $config.User `
+    -DeployHost $config.DeployHost `
+    -SshKeyPath $config.SshKeyPath `
+    -RemoteCommand $composeRemote
 
 Write-Host ""
 Write-Host "Deploy finished successfully."
+Write-Host "Website: http://$($config.DeployHost):8011/"
+Write-Host "Health:  http://$($config.DeployHost):8011/health"

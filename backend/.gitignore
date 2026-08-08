@@ -30,3 +30,6 @@ htmlcov/
 
 # Docker / local data
 postgres_data/
+# Built by scripts/build-web.ps1 (keep placeholder index committed)
+static/web/**
+!static/web/index.html
