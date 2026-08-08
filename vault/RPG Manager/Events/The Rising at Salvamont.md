@@ -2,7 +2,11 @@
 rpg_manager_id: 160
 rpg_manager_kind: "events"
 name: "The Rising at Salvamont"
+yearStart: null
+yearEnd: null
 ---
+
+## Description
 
 |  | |
 |---|---|

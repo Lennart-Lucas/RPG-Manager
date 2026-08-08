@@ -2,19 +2,26 @@
 rpg_manager_id: 143
 rpg_manager_kind: "organisations"
 name: "Althania's Holy Inquisition"
+aliases: []
+seatId: null
+memberIds: []
+parentId: null
+imageUrl: ""
 ---
+
+## Description
 
 |  | |
 |---|---|
 | **Full name** | The Sixfold Inquisition of the Litany of Ash |
 | **Common names** | The Sixfold Inquisition; the Inquisition; the Six |
 | **Founded** | 198 AR |
-| **Type** | The religious, judicial, and security apparatus of the Holy [[RPG Manager/Locations/Valmoria/Althania|Althanian Realm]] |
+| **Type** | The religious, judicial, and security apparatus of the Holy [[RPG Manager/RPG Manager/Locations_Valmoria_Althania|Althanian Realm]] |
 | **Seat** | Weissturm (the Sixth excepted) |
 | **Governing body** | The Sixfold Synod |
 | **Answers to** | The Hierarch |
 
-The Sixfold Inquisition is the standing arm of the Church of the Holy [[RPG Manager/Locations/Valmoria/Althania|Althanian Realm]] and, by a margin nobody in the Realm says aloud, the only institution in it that functions across every bishopric at once. Temporal authority in Althania is held by the prince-bishops, whose seats are also their states, and who agree on nothing. The Inquisition answers to the Hierarch instead, and so passes through their borders as though the borders were a local custom, which in law they are.
+The Sixfold Inquisition is the standing arm of the Church of the Holy [[RPG Manager/RPG Manager/Locations_Valmoria_Althania|Althanian Realm]] and, by a margin nobody in the Realm says aloud, the only institution in it that functions across every bishopric at once. Temporal authority in Althania is held by the prince-bishops, whose seats are also their states, and who agree on nothing. The Inquisition answers to the Hierarch instead, and so passes through their borders as though the borders were a local custom, which in law they are.
 
 It was founded in 198 AR under the **Litany of Ash**, a charter of six clauses enjoining the faithful to keep doctrine, keep the host, keep the threshold, keep the judgment, keep the hunt, and keep the fire that keeps the count. Six orders were raised at once, one to each clause, and all six have existed continuously since.
 
@@ -23,12 +30,12 @@ The first five clauses were drafted inside a fortnight, because they describe th
 # The six Sacraments
 Each clause of the Litany is a **Sacrament**, numbered in the order of the charter. The number is used far more often than the name.
 
-- **[[RPG Manager/Organisations/Althania's Holy Inquisition/1st Sacrament – The Keepers of Doctrine|The First — Keepers of Doctrine]]**. Scripture, canon, archive, and expurgation. The largest order and the one that decides what is true.
-- **[[RPG Manager/Organisations/Althania's Holy Inquisition/2nd Sacrament – The Shepherds of the Host|The Second — Shepherds of the Host]]**. Chaplains to the Realm's armies, and the Church's hand on the officer corps. No host takes the field unsanctioned.
-- **[[RPG Manager/Organisations/Althania's Holy Inquisition/3rd Sacrament – The Watchers of the Threshold|The Third — Watchers of the Threshold]]**. Divination, the allocation of scarce inquisitorial force, and the trial of saints and miracles.
-- **[[RPG Manager/Organisations/Althania's Holy Inquisition/4th Sacrament – The Arbiters of Judgment|The Fourth — Arbiters of Judgment]]**. The court of the Realm's own: clergy, magistrates, nobility, and inquisitors of every order.
-- **[[RPG Manager/Organisations/Althania's Holy Inquisition/5th Sacrament – The Wardens of the Argent Hunt|The Fifth — Wardens of the Argent Hunt]]**. Monster-hunters. The only Sacrament that works in the open, and the only one the common people are pleased to see.
-- **[[RPG Manager/Organisations/Althania's Holy Inquisition/6th Sacrament - The Custodians of the Black Pyre|The Sixth — Custodians of the Black Pyre]]**. The witch hunters, turned outward at the [[RPG Manager/Events/Reform of the Sixth|Reform of 689–694 AR]] and now the Realm's foreign intelligence service. Answerable to the Hierarch alone.
+- **[[RPG Manager/RPG Manager/Organisations_Althania's Holy Inquisition_1st Sacrament – The Keepers of Doctrine|The First — Keepers of Doctrine]]**. Scripture, canon, archive, and expurgation. The largest order and the one that decides what is true.
+- **[[RPG Manager/RPG Manager/Organisations_Althania's Holy Inquisition_2nd Sacrament – The Shepherds of the Host|The Second — Shepherds of the Host]]**. Chaplains to the Realm's armies, and the Church's hand on the officer corps. No host takes the field unsanctioned.
+- **[[RPG Manager/RPG Manager/Organisations_Althania's Holy Inquisition_3rd Sacrament – The Watchers of the Threshold|The Third — Watchers of the Threshold]]**. Divination, the allocation of scarce inquisitorial force, and the trial of saints and miracles.
+- **[[RPG Manager/RPG Manager/Organisations_Althania's Holy Inquisition_4th Sacrament – The Arbiters of Judgment|The Fourth — Arbiters of Judgment]]**. The court of the Realm's own: clergy, magistrates, nobility, and inquisitors of every order.
+- **[[RPG Manager/RPG Manager/Organisations_Althania's Holy Inquisition_5th Sacrament – The Wardens of the Argent Hunt|The Fifth — Wardens of the Argent Hunt]]**. Monster-hunters. The only Sacrament that works in the open, and the only one the common people are pleased to see.
+- **[[RPG Manager/RPG Manager/Organisations_Althania's Holy Inquisition_6th Sacrament - The Custodians of the Black Pyre|The Sixth — Custodians of the Black Pyre]]**. The witch hunters, turned outward at the [[RPG Manager/RPG Manager/Events_Reform of the Sixth|Reform of 689–694 AR]] and now the Realm's foreign intelligence service. Answerable to the Hierarch alone.
 
 Ordinary subjects of the Realm can name two of the six. The rule of thumb offered by village clergy is that the Argent Hunt arrives armed and announced, and the Sixth has already been there a decade.
 

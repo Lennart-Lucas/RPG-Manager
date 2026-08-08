@@ -2,7 +2,13 @@
 rpg_manager_id: 159
 rpg_manager_kind: "characters"
 name: "Aurelien Sarre"
+raceId: null
+mtgAlignment: []
+playerName: ""
+imageUrl: ""
 ---
+
+## Description
 
 |  | |
 |---|---|

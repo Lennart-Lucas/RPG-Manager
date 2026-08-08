@@ -2,7 +2,20 @@
 rpg_manager_id: 91
 rpg_manager_kind: "items"
 name: "Cannon"
+id: "cannon-250lbs"
+itemType: "equipment"
+rarity: "variable"
+valueCostOverride: "250 - 3500"
+magic: false
+consumable: false
+typeReference: ""
+propertyIds:
+  - 96
+  - 100
+  - 101
 ---
+
+## Description
 
 A creature may hold a cannon as if it is a two handed weapon so long as the cannons weight is below the creatures maximum carrying capacity. When holding a cannon you can add your Strength modifier instead of Dexterity for ranged attack and damage rolls and the cannon gains the following properties: [[RPG Manager/Item Properties/Misfire X|Misfire 4]], [[RPG Manager/Item Properties/Reload X|Reload 1]], [[RPG Manager/Item Properties/Ammunition]], [[RPG Manager/Item Properties/Ranged]] [[RPG Manager/Item Properties/Loud X]]
 **Exploding Misfire**

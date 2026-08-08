@@ -2,8 +2,17 @@
 rpg_manager_id: 116
 rpg_manager_kind: "locations"
 name: "Dornwald"
-parent_id: 107
-parent_id_name: "Althania"
-location_type: "site"
+type: "site"
+parentId: 107
+aliases: []
+population: ""
+government: ""
+ruler: ""
+alignment: ""
+religions: ""
+languages: ""
+exports: ""
+imports: ""
+defenses: ""
 ---
 

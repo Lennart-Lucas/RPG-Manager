@@ -2,6 +2,17 @@
 rpg_manager_id: 144
 rpg_manager_kind: "locations"
 name: "Wessarin"
-location_type: "continent"
+type: "continent"
+parentId: null
+aliases: []
+population: ""
+government: ""
+ruler: ""
+alignment: ""
+religions: ""
+languages: ""
+exports: ""
+imports: ""
+defenses: ""
 ---
 

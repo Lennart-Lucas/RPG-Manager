@@ -4,6 +4,8 @@ rpg_manager_kind: "races"
 name: "Dark Elves"
 ---
 
+## Description
+
 The Norcaine, called dark elves throughout the kingdoms of the light, are a long-lived people descended from the elves by divine alteration rather than natural lineage. They are distinguished by bleak, drained skin, jet-black hair, and a culture organised almost entirely around warfare, magic, and the worship of the night god [[RPG Manager/Characters/Nor]]. Once the most feared of the participants in the War of the Six Crowns, they hold today the coastal realm of Shall, a fortified civilisation of obsidian towers, hereditary houses, and slave labour.
 They are not to be confused with the sunlit elves of the western forests, from whose essence they were made, and whom they regard as the single object of a religious hatred older than any surviving kingdom.
 

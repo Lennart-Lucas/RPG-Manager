@@ -2,7 +2,34 @@
 rpg_manager_id: 44
 rpg_manager_kind: "spells"
 name: "Dark Obelisk"
+id: "dark-obelisk"
+level: 2
+school: "conjuration"
+castingTime:
+  amount: 1
+  unit: "action"
+range:
+  type: "ranged"
+  distanceFeet: 60
+components:
+  verbal: true
+  somatic: true
+  material: true
+  materialDescription: "a black pebble carved into a pyramid"
+  materialConsumed: false
+duration:
+  type: "oneMinute"
+  concentration: true
+classIds:
+  - 10
+tagIds: []
+savingThrow: "none"
+attackType: "none"
+sourceFileId: 4
+sourcePage: 1
 ---
+
+## Description
 
 You point at a free space on the ground that you can see within range, and conjure a 5 feet long, 5 feet large and 10 feet high black pillar at this location. The unsettling Obelisk is covered in old runes and blocks the lines of sight and movements. It has 16 AC and 20 hit points.
 When a creature moves within 10 feet of the Obelisk, it becomes [[RPG Manager/Conditions/Poisoned]] until it is no longer within 10 feet of the black pillar, as the Dark Obelisk absorbs all wills and desires of those who dare to approach.
