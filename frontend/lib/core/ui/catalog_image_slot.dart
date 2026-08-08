@@ -73,6 +73,7 @@ Widget _networkImage({
   required String url,
   required Widget Function(BuildContext, Object, StackTrace?) errorBuilder,
   BoxFit fit = BoxFit.cover,
+  Alignment alignment = Alignment.center,
   double? width,
   double? height,
   ImageLoadingBuilder? loadingBuilder,
@@ -80,6 +81,7 @@ Widget _networkImage({
   return Image.network(
     url,
     fit: fit,
+    alignment: alignment,
     width: width,
     height: height,
     // Prefer HTML <img> on web: CanvasKit cannot decode cross-origin bytes
@@ -90,14 +92,17 @@ Widget _networkImage({
   );
 }
 
-/// 4:3 image slot for overview / detail panels. Falls back to [placeholder]
-/// when [imageUrl] is empty or fails to load.
+/// Full-width image for overview / detail side panels.
+///
+/// Once loaded, the frame height matches the image's own aspect ratio (no
+/// letterboxing or cropping). [aspectRatio] is only used for the empty,
+/// loading, and error placeholders.
 class CatalogImageSlot extends StatelessWidget {
   const CatalogImageSlot({
     super.key,
     required this.imageUrl,
     required this.placeholder,
-    this.aspectRatio = 4 / 3,
+    this.aspectRatio = 3 / 4,
     this.borderRadius = 8,
     this.borderColor,
   });
@@ -115,19 +120,36 @@ class CatalogImageSlot extends StatelessWidget {
     final url = normalizeCatalogImageUrl(imageUrl);
     final radius = BorderRadius.circular(borderRadius);
 
-    Widget child;
+    Widget frame(Widget child) {
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainer,
+          borderRadius: radius,
+          border: Border.all(color: border),
+        ),
+        child: child,
+      );
+    }
+
+    Widget placeholderFrame() {
+      return AspectRatio(aspectRatio: aspectRatio, child: placeholder);
+    }
+
     if (url.isEmpty) {
-      child = placeholder;
-    } else {
-      final image = _networkImage(
-        url: url,
-        fit: BoxFit.cover,
-        width: double.infinity,
-        height: double.infinity,
-        errorBuilder: (_, _, _) => placeholder,
-        loadingBuilder: (context, child, progress) {
-          if (progress == null) return child;
-          return Center(
+      return frame(placeholderFrame());
+    }
+
+    final image = _networkImage(
+      url: url,
+      // Width fills the panel; height follows the image's intrinsic ratio.
+      fit: BoxFit.fitWidth,
+      width: double.infinity,
+      errorBuilder: (_, _, _) => placeholderFrame(),
+      loadingBuilder: (context, child, progress) {
+        if (progress == null) return child;
+        return AspectRatio(
+          aspectRatio: aspectRatio,
+          child: Center(
             child: SizedBox(
               width: 28,
               height: 28,
@@ -139,24 +161,15 @@ class CatalogImageSlot extends StatelessWidget {
                     : null,
               ),
             ),
-          );
-        },
-      );
-      // ClipRRect hides HTML platform-view images on Flutter web.
-      child = kIsWeb ? image : ClipRRect(borderRadius: radius, child: image);
-    }
-
-    return AspectRatio(
-      aspectRatio: aspectRatio,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: scheme.surfaceContainer,
-          borderRadius: radius,
-          border: Border.all(color: border),
-        ),
-        child: child,
-      ),
+          ),
+        );
+      },
     );
+    // ClipRRect hides HTML platform-view images on Flutter web.
+    final clipped =
+        kIsWeb ? image : ClipRRect(borderRadius: radius, child: image);
+
+    return frame(clipped);
   }
 }
 
