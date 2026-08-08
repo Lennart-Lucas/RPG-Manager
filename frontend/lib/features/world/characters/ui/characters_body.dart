@@ -212,7 +212,9 @@ class _CharactersBodyState extends State<CharactersBody> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Tap + to add your first character.',
+                              widget.auth.canMutateCatalog
+                                  ? 'Tap + to add your first character.'
+                                  : 'No characters yet.',
                               textAlign: TextAlign.center,
                               style: textTheme.bodyMedium?.copyWith(
                                 color: scheme.onSurfaceVariant,
@@ -262,14 +264,16 @@ class _CharactersBodyState extends State<CharactersBody> {
                   ),
                   title: item.name,
                   subtitle: parts.isEmpty ? 'Character' : parts.join(' · '),
-                  trailing: IconButton(
-                    tooltip: 'Delete',
-                    onPressed: () => _delete(item),
-                    icon: Icon(
-                      Icons.delete_outline,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
+                  trailing: widget.auth.canMutateCatalog
+                      ? IconButton(
+                          tooltip: 'Delete',
+                          onPressed: () => _delete(item),
+                          icon: Icon(
+                            Icons.delete_outline,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        )
+                      : null,
                   onTap: () => _open(item),
                   children: [
                     if (record.mtgAlignment.isNotEmpty) ...[
@@ -293,17 +297,18 @@ class _CharactersBodyState extends State<CharactersBody> {
               },
             ),
           ),
-        Positioned(
-          right: 20,
-          bottom: 20,
-          child: CatalogCreateSpeedDial(
-            auth: widget.auth,
-            kind: CatalogKind.characters,
-            heroTagPrefix: 'characters-create',
-            onManualCreate: _create,
-            onAfterGenerate: _reload,
+        if (widget.auth.canMutateCatalog)
+          Positioned(
+            right: 20,
+            bottom: 20,
+            child: CatalogCreateSpeedDial(
+              auth: widget.auth,
+              kind: CatalogKind.characters,
+              heroTagPrefix: 'characters-create',
+              onManualCreate: _create,
+              onAfterGenerate: _reload,
+            ),
           ),
-        ),
       ],
     );
   }

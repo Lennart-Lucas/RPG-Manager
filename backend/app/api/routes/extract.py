@@ -2,7 +2,11 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.routes.auth import limiter
-from app.dependencies import get_current_active_user, get_db
+from app.dependencies import (
+    campaign_scope_user_id,
+    get_current_dm_user,
+    get_db,
+)
 from app.models.user import User
 from app.schemas.extract import ExtractJobRequest, ExtractJobResponse
 from app.services.extract import claude_client
@@ -31,7 +35,7 @@ async def create_extract_job(
     request: Request,
     body: ExtractJobRequest,
     session: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_active_user),
+    user: User = Depends(get_current_dm_user),
     api_key: str = Depends(_require_anthropic_key),
 ) -> ExtractJobResponse:
     if not user.ai_integration:
@@ -53,7 +57,7 @@ async def create_extract_job(
     try:
         return await run_extract_job(
             session=session,
-            user_id=user.id,
+            user_id=await campaign_scope_user_id(session, user),
             api_key=api_key,
             request=body,
         )

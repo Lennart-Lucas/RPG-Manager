@@ -30,7 +30,13 @@ Compose project: `rpg-manager-dev`.
 .\scripts\prod.ps1 up
 ```
 
-Compose project: `rpg-manager-prod`. API on host port **8011**.
+Compose project: `rpg-manager-prod`. API + player website on host port **8011**.
+
+- Website: http://localhost:8011/
+- API docs (dev image only): not exposed in production
+- Health: http://localhost:8011/health
+
+The Docker image builds the Flutter **web** UI and FastAPI serves it from the same origin as `/api/v1`. First build downloads the Flutter SDK image and can take several minutes; later builds reuse the layer cache when `frontend/` is unchanged.
 
 ## Remote server deployment
 
@@ -53,7 +59,7 @@ Requires **OpenSSH** (`ssh` on PATH). `.deploy.local` holds **VPS** SSH access o
 git clone git@github.com:Lennart-Lucas/RPG-Manager.git ~/RPG-Manager
 cd ~/RPG-Manager/backend
 cp .env.prod.example .env.prod
-nano .env.prod          # set POSTGRES_PASSWORD and matching DATABASE_* URLs
+nano .env.prod          # set POSTGRES_PASSWORD, JWT_SECRET, matching DATABASE_* URLs
 docker compose -p rpg-manager-prod -f docker-compose.prod.yml up --build -d
 ```
 
@@ -113,5 +119,26 @@ The script SSHs to the VPS, ensures the SSH git remote, runs `git fetch` + `git 
 
 ```bash
 curl -s http://localhost:8011/health
+curl -sI http://localhost:8011/ | head
 docker compose -p rpg-manager-prod -f docker-compose.prod.yml ps
 ```
+
+Player website: `http://YOUR_IP:8011/` (register as a player on web; use the desktop app as DM).
+
+### Shared campaign (1-campaign server)
+
+Catalog data is shared across accounts on this server:
+
+- The **earliest active DM** (`is_dm=true`) owns the campaign catalog automatically.
+- **Players** read that catalog; only DMs can create / edit / delete.
+- Desktop register creates a DM; web register creates a player.
+
+Promote an existing user to DM if needed:
+
+```sql
+UPDATE users SET is_dm = true WHERE email = 'dm@example.com';
+```
+
+Optional escape hatch (rarely needed): pin a specific owner in `.env.prod` with
+`CAMPAIGN_OWNER_USER_ID=<id>`. If no DM exists yet, each user keeps their own
+catalog (solo/local).

@@ -414,16 +414,17 @@ class _ResourcesBodyState extends State<ResourcesBody> {
               },
             ),
           ),
-        Positioned(
-          right: 20,
-          bottom: 20,
-          child: _ResourcesFab(
-            open: _fabOpen,
-            onToggle: () => setState(() => _fabOpen = !_fabOpen),
-            onAuthor: _createAuthor,
-            onFile: _createFile,
+        if (widget.auth.canMutateCatalog)
+          Positioned(
+            right: 20,
+            bottom: 20,
+            child: _ResourcesFab(
+              open: _fabOpen,
+              onToggle: () => setState(() => _fabOpen = !_fabOpen),
+              onAuthor: _createAuthor,
+              onFile: _createFile,
+            ),
           ),
-        ),
       ],
     );
   }

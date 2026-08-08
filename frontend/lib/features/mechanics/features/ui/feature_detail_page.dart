@@ -138,16 +138,18 @@ class _FeatureDetailPageState extends State<FeatureDetailPage> {
       appBar: AppBar(
         title: Text(_item.name),
         actions: [
-          IconButton(
-            tooltip: 'Edit',
-            onPressed: _edit,
-            icon: const Icon(Icons.edit_outlined),
-          ),
-          IconButton(
-            tooltip: 'Delete',
-            onPressed: _delete,
-            icon: const Icon(Icons.delete_outline),
-          ),
+          if (widget.auth.canMutateCatalog) ...[
+            IconButton(
+              tooltip: 'Edit',
+              onPressed: _edit,
+              icon: const Icon(Icons.edit_outlined),
+            ),
+            IconButton(
+              tooltip: 'Delete',
+              onPressed: _delete,
+              icon: const Icon(Icons.delete_outline),
+            ),
+          ],
         ],
       ),
       body: ListView(

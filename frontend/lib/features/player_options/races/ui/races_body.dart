@@ -197,7 +197,9 @@ class _RacesBodyState extends State<RacesBody> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Tap + to add your first race.',
+                              widget.auth.canMutateCatalog
+                                  ? 'Tap + to add your first race.'
+                                  : 'No races yet.',
                               textAlign: TextAlign.center,
                               style: textTheme.bodyMedium?.copyWith(
                                 color: scheme.onSurfaceVariant,
@@ -242,14 +244,16 @@ class _RacesBodyState extends State<RacesBody> {
                   ),
                   title: item.name,
                   subtitle: 'Race',
-                  trailing: IconButton(
-                    tooltip: 'Delete',
-                    onPressed: () => _delete(item),
-                    icon: Icon(
-                      Icons.delete_outline,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
+                  trailing: widget.auth.canMutateCatalog
+                      ? IconButton(
+                          tooltip: 'Delete',
+                          onPressed: () => _delete(item),
+                          icon: Icon(
+                            Icons.delete_outline,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        )
+                      : null,
                   onTap: () => _open(item),
                   children: [
                     if (preview.isNotEmpty) ...[
@@ -269,16 +273,17 @@ class _RacesBodyState extends State<RacesBody> {
               },
             ),
           ),
-        Positioned(
-          right: 20,
-          bottom: 20,
-          child: FloatingActionButton(
-            onPressed: _create,
-            backgroundColor: scheme.primary,
-            foregroundColor: scheme.onPrimary,
-            child: const Icon(Icons.add),
+        if (widget.auth.canMutateCatalog)
+          Positioned(
+            right: 20,
+            bottom: 20,
+            child: FloatingActionButton(
+              onPressed: _create,
+              backgroundColor: scheme.primary,
+              foregroundColor: scheme.onPrimary,
+              child: const Icon(Icons.add),
+            ),
           ),
-        ),
       ],
     );
   }

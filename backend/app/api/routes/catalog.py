@@ -1,7 +1,12 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies import get_current_active_user, get_db
+from app.dependencies import (
+    campaign_scope_user_id,
+    get_current_active_user,
+    get_current_dm_user,
+    get_db,
+)
 from app.models.catalog_item import CatalogKind
 from app.models.user import User
 from app.schemas.catalog import (
@@ -25,7 +30,7 @@ async def search_catalog_items(
     user: User = Depends(get_current_active_user),
 ) -> list[CatalogSearchHit]:
     items = await catalog_service.search_items(
-        session, user.id, q, limit=limit
+        session, await campaign_scope_user_id(session, user), q, limit=limit
     )
     return [CatalogSearchHit.model_validate(item) for item in items]
 
@@ -36,7 +41,9 @@ async def list_catalog_items(
     session: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_active_user),
 ) -> list[CatalogItemResponse]:
-    items = await catalog_service.list_items(session, user.id, kind)
+    items = await catalog_service.list_items(
+        session, await campaign_scope_user_id(session, user), kind
+    )
     return [CatalogItemResponse.model_validate(item) for item in items]
 
 
@@ -45,9 +52,11 @@ async def create_catalog_item(
     kind: CatalogKind,
     body: CatalogItemCreate,
     session: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_active_user),
+    user: User = Depends(get_current_dm_user),
 ) -> CatalogItemResponse:
-    item = await catalog_service.create_item(session, user.id, kind, body)
+    item = await catalog_service.create_item(
+        session, await campaign_scope_user_id(session, user), kind, body
+    )
     return CatalogItemResponse.model_validate(item)
 
 
@@ -58,7 +67,9 @@ async def get_catalog_item(
     session: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_active_user),
 ) -> CatalogItemResponse:
-    item = await catalog_service.get_item(session, user.id, kind, item_id)
+    item = await catalog_service.get_item(
+        session, await campaign_scope_user_id(session, user), kind, item_id
+    )
     return CatalogItemResponse.model_validate(item)
 
 
@@ -68,10 +79,10 @@ async def update_catalog_item(
     item_id: int,
     body: CatalogItemUpdate,
     session: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_active_user),
+    user: User = Depends(get_current_dm_user),
 ) -> CatalogItemResponse:
     item = await catalog_service.update_item(
-        session, user.id, kind, item_id, body
+        session, await campaign_scope_user_id(session, user), kind, item_id, body
     )
     return CatalogItemResponse.model_validate(item)
 
@@ -81,6 +92,8 @@ async def delete_catalog_item(
     kind: CatalogKind,
     item_id: int,
     session: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_active_user),
+    user: User = Depends(get_current_dm_user),
 ) -> None:
-    await catalog_service.delete_item(session, user.id, kind, item_id)
+    await catalog_service.delete_item(
+        session, await campaign_scope_user_id(session, user), kind, item_id
+    )

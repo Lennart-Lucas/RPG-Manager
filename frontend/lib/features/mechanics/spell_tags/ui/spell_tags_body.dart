@@ -263,7 +263,9 @@ class _SpellTagsBodyState extends State<SpellTagsBody> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Tap + to add your first spell tag.',
+                              widget.auth.canMutateCatalog
+                                  ? 'Tap + to add your first spell tag.'
+                                  : 'No spell tags yet.',
                               textAlign: TextAlign.center,
                               style: Theme.of(context)
                                   .textTheme
@@ -313,14 +315,16 @@ class _SpellTagsBodyState extends State<SpellTagsBody> {
                   title:
                       tag.name.trim().isEmpty ? 'Spell tag' : tag.name.trim(),
                   subtitle: 'Spell tag',
-                  trailing: IconButton(
-                    tooltip: 'Delete',
-                    onPressed: () => _delete(item),
-                    icon: Icon(
-                      Icons.delete_outline,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
+                  trailing: widget.auth.canMutateCatalog
+                      ? IconButton(
+                          tooltip: 'Delete',
+                          onPressed: () => _delete(item),
+                          icon: Icon(
+                            Icons.delete_outline,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        )
+                      : null,
                   onTap: () => _openDetail(item),
                   children: [
                     if (preview.isNotEmpty) ...[
@@ -340,16 +344,17 @@ class _SpellTagsBodyState extends State<SpellTagsBody> {
               },
             ),
           ),
-        Positioned(
-          right: 20,
-          bottom: 20,
-          child: FloatingActionButton(
-            onPressed: _create,
-            backgroundColor: scheme.primary,
-            foregroundColor: scheme.onPrimary,
-            child: const Icon(Icons.add),
+        if (widget.auth.canMutateCatalog)
+          Positioned(
+            right: 20,
+            bottom: 20,
+            child: FloatingActionButton(
+              onPressed: _create,
+              backgroundColor: scheme.primary,
+              foregroundColor: scheme.onPrimary,
+              child: const Icon(Icons.add),
+            ),
           ),
-        ),
       ],
     );
   }

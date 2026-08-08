@@ -438,7 +438,9 @@ class _CatalogBodyState extends State<CatalogBody> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Tap + to add your first ${widget.kind.singularLabel}.',
+                              widget.auth.canMutateCatalog
+                                  ? 'Tap + to add your first ${widget.kind.singularLabel}.'
+                                  : 'Nothing here yet.',
                               textAlign: TextAlign.center,
                               style: Theme.of(context)
                                   .textTheme
@@ -478,7 +480,7 @@ class _CatalogBodyState extends State<CatalogBody> {
                     leading: Icon(widget.icon, color: scheme.primary),
                     title: Text(item.name),
                     subtitle: subtitle == null ? null : Text(subtitle),
-                    trailing: isLockedDefault
+                    trailing: (!widget.auth.canMutateCatalog || isLockedDefault)
                         ? null
                         : IconButton(
                             tooltip: 'Delete',
@@ -488,23 +490,37 @@ class _CatalogBodyState extends State<CatalogBody> {
                               color: scheme.onSurfaceVariant,
                             ),
                           ),
-                    onTap: isLockedDefault ? null : () => _edit(item),
+                    onTap: isLockedDefault
+                        ? null
+                        : () {
+                            if (widget.auth.canMutateCatalog) {
+                              _edit(item);
+                            } else {
+                              openCatalogRecordDetail(
+                                context: context,
+                                auth: widget.auth,
+                                kindApiValue: item.kind.apiValue,
+                                itemId: item.id,
+                              );
+                            }
+                          },
                   ),
                 );
               },
 
             ),
           ),
-        Positioned(
-          right: 20,
-          bottom: 20,
-          child: FloatingActionButton(
-            onPressed: _create,
-            backgroundColor: scheme.primary,
-            foregroundColor: scheme.onPrimary,
-            child: const Icon(Icons.add),
+        if (widget.auth.canMutateCatalog)
+          Positioned(
+            right: 20,
+            bottom: 20,
+            child: FloatingActionButton(
+              onPressed: _create,
+              backgroundColor: scheme.primary,
+              foregroundColor: scheme.onPrimary,
+              child: const Icon(Icons.add),
+            ),
           ),
-        ),
       ],
     );
   }

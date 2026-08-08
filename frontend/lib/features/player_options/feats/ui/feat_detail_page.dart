@@ -222,21 +222,23 @@ class _FeatDetailPageState extends State<FeatDetailPage> {
       appBar: AppBar(
         title: Text(_entry.name.trim().isEmpty ? 'Feat' : _entry.name),
         actions: [
-          IconButton(
-            tooltip: 'Edit',
-            icon: const Icon(Icons.edit_outlined),
-            onPressed: _edit,
-          ),
+          if (widget.auth.canMutateCatalog)
+            IconButton(
+              tooltip: 'Edit',
+              icon: const Icon(Icons.edit_outlined),
+              onPressed: _edit,
+            ),
           IconButton(
             tooltip: 'Save as PNG',
             icon: const Icon(Icons.image_outlined),
             onPressed: _exportingPng ? null : _exportCardPng,
           ),
-          IconButton(
-            tooltip: 'Delete',
-            icon: const Icon(Icons.delete_outline),
-            onPressed: _delete,
-          ),
+          if (widget.auth.canMutateCatalog)
+            IconButton(
+              tooltip: 'Delete',
+              icon: const Icon(Icons.delete_outline),
+              onPressed: _delete,
+            ),
         ],
       ),
       body: Stack(

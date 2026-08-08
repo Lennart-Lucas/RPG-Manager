@@ -184,10 +184,14 @@ class _LocationsBodyState extends State<LocationsBody> {
                   child: ConstrainedBox(
                     constraints:
                         BoxConstraints(minHeight: constraints.maxHeight),
-                    child: const Center(
+                    child: Center(
                       child: Padding(
-                        padding: EdgeInsets.fromLTRB(24, 24, 24, 100),
-                        child: Text('No locations yet\nTap + to add one.'),
+                        padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
+                        child: Text(
+                          widget.auth.canMutateCatalog
+                              ? 'No locations yet\nTap + to add one.'
+                              : 'No locations yet.',
+                        ),
                       ),
                     ),
                   ),
@@ -209,26 +213,29 @@ class _LocationsBodyState extends State<LocationsBody> {
                     ),
                     child: LocationTreeView(
                       locations: _items,
-                      emptyLabel: 'No locations yet\nTap + to add one.',
+                      emptyLabel: widget.auth.canMutateCatalog
+                          ? 'No locations yet\nTap + to add one.'
+                          : 'No locations yet.',
                       onTap: _open,
-                      onDelete: _delete,
+                      onDelete: widget.auth.canMutateCatalog ? _delete : null,
                     ),
                   ),
                 );
               },
             ),
           ),
-        Positioned(
-          right: 20,
-          bottom: 20,
-          child: CatalogCreateSpeedDial(
-            auth: widget.auth,
-            kind: CatalogKind.locations,
-            heroTagPrefix: 'locations-create',
-            onManualCreate: _create,
-            onAfterGenerate: _reload,
+        if (widget.auth.canMutateCatalog)
+          Positioned(
+            right: 20,
+            bottom: 20,
+            child: CatalogCreateSpeedDial(
+              auth: widget.auth,
+              kind: CatalogKind.locations,
+              heroTagPrefix: 'locations-create',
+              onManualCreate: _create,
+              onAfterGenerate: _reload,
+            ),
           ),
-        ),
       ],
     );
   }

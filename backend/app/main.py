@@ -1,10 +1,11 @@
 from contextlib import asynccontextmanager
 import logging
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -15,6 +16,8 @@ from app.database import dispose_engine
 from app.middleware.security_headers import SecurityHeadersMiddleware
 
 logger = logging.getLogger(__name__)
+
+STATIC_WEB_DIR = Path(__file__).resolve().parent.parent / "static" / "web"
 
 
 @asynccontextmanager
@@ -72,6 +75,51 @@ def create_app() -> FastAPI:
     app.include_router(catalog.search_router, prefix=settings.api_prefix)
     app.include_router(catalog.router, prefix=settings.api_prefix)
     app.include_router(extract.router, prefix=settings.api_prefix)
+
+    if STATIC_WEB_DIR.is_dir():
+        index_html = STATIC_WEB_DIR / "index.html"
+        static_root = STATIC_WEB_DIR.resolve()
+
+        def _reserved_spa_path(full_path: str) -> bool:
+            p = full_path.lower().strip("/")
+            if not p:
+                return False
+            if p == "health" or p.startswith("health/"):
+                return True
+            if p == "api" or p.startswith("api/"):
+                return True
+            if p in {"docs", "redoc", "openapi.json"}:
+                return True
+            if p.startswith("docs/") or p.startswith("redoc/"):
+                return True
+            return False
+
+        @app.get("/")
+        async def serve_web_index() -> FileResponse:
+            if not index_html.is_file():
+                raise HTTPException(status_code=404, detail="Web UI not built")
+            return FileResponse(index_html)
+
+        @app.get("/{full_path:path}")
+        async def serve_web_spa(full_path: str) -> FileResponse:
+            if _reserved_spa_path(full_path):
+                raise HTTPException(status_code=404, detail="Not found")
+
+            candidate = (STATIC_WEB_DIR / full_path).resolve()
+            try:
+                candidate.relative_to(static_root)
+            except ValueError as exc:
+                raise HTTPException(status_code=404, detail="Not found") from exc
+
+            if candidate.is_file():
+                return FileResponse(candidate)
+            if index_html.is_file():
+                return FileResponse(index_html)
+            raise HTTPException(status_code=404, detail="Web UI not built")
+    else:
+        logger.warning(
+            "Flutter web build not found at %s — API-only mode", STATIC_WEB_DIR
+        )
 
     return app
 

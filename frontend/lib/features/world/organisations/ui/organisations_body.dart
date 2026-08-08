@@ -204,33 +204,38 @@ class _OrganisationsBodyState extends State<OrganisationsBody> {
                     child: _items.isEmpty
                         ? Center(
                             child: Text(
-                              'No organisations yet\nTap + to add one.',
+                              widget.auth.canMutateCatalog
+                                  ? 'No organisations yet\nTap + to add one.'
+                                  : 'No organisations yet.',
                               textAlign: TextAlign.center,
                               style: textTheme.headlineSmall,
                             ),
                           )
                         : OrganisationTreeView(
                             organisations: _items,
-                            emptyLabel: 'No organisations yet\nTap + to add one.',
+                            emptyLabel: widget.auth.canMutateCatalog
+                                ? 'No organisations yet\nTap + to add one.'
+                                : 'No organisations yet.',
                             onTap: _open,
-                            onDelete: _delete,
+                            onDelete: widget.auth.canMutateCatalog ? _delete : null,
                           ),
                   ),
                 );
               },
             ),
           ),
-        Positioned(
-          right: 20,
-          bottom: 20,
-          child: CatalogCreateSpeedDial(
-            auth: widget.auth,
-            kind: CatalogKind.organisations,
-            heroTagPrefix: 'organisations-create',
-            onManualCreate: _create,
-            onAfterGenerate: _reload,
+        if (widget.auth.canMutateCatalog)
+          Positioned(
+            right: 20,
+            bottom: 20,
+            child: CatalogCreateSpeedDial(
+              auth: widget.auth,
+              kind: CatalogKind.organisations,
+              heroTagPrefix: 'organisations-create',
+              onManualCreate: _create,
+              onAfterGenerate: _reload,
+            ),
           ),
-        ),
       ],
     );
   }

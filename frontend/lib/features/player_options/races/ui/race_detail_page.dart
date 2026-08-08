@@ -121,16 +121,18 @@ class _RaceDetailPageState extends State<RaceDetailPage> {
         title: Text(_item.name.trim().isEmpty ? 'Race' : _item.name),
         actions: [
           const OfflineAppBarMarker(),
-          IconButton(
-            tooltip: 'Edit',
-            icon: const Icon(Icons.edit_outlined),
-            onPressed: _edit,
-          ),
-          IconButton(
-            tooltip: 'Delete',
-            icon: const Icon(Icons.delete_outline),
-            onPressed: _delete,
-          ),
+          if (widget.auth.canMutateCatalog) ...[
+            IconButton(
+              tooltip: 'Edit',
+              icon: const Icon(Icons.edit_outlined),
+              onPressed: _edit,
+            ),
+            IconButton(
+              tooltip: 'Delete',
+              icon: const Icon(Icons.delete_outline),
+              onPressed: _delete,
+            ),
+          ],
         ],
       ),
       body: Stack(

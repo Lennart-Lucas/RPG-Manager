@@ -220,7 +220,7 @@ class _CatalogRecordDetailPageState extends State<CatalogRecordDetailPage> {
       appBar: AppBar(
         title: Text(_item.name.trim().isEmpty ? _item.kind.displayLabel : _item.name),
         actions: [
-          if (!isLockedDefault) ...[
+          if (!isLockedDefault && widget.auth.canMutateCatalog) ...[
             IconButton(
               tooltip: 'Edit',
               icon: const Icon(Icons.edit_outlined),

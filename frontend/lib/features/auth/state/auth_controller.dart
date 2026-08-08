@@ -32,6 +32,9 @@ class AuthController extends ChangeNotifier {
 
   String? get accessToken => _accessToken;
 
+  /// Players may browse; only Dungeon Masters may create/edit/delete catalog.
+  bool get canMutateCatalog => user?.isDm == true;
+
   /// True when [token] is missing exp or past exp (with a small skew).
   static bool _accessTokenNeedsRefresh(String? token, {int skewSeconds = 30}) {
     if (token == null || token.isEmpty) return true;

@@ -569,28 +569,30 @@ class _FileDetailPageState extends State<FileDetailPage> {
               onPressed: canExtract ? _extractFromPdf : null,
               icon: const Icon(Icons.auto_fix_high_outlined),
             ),
-          IconButton(
-            tooltip: 'Edit file',
-            onPressed: busy ? null : _editFile,
-            icon: _saving
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.edit_outlined),
-          ),
-          IconButton(
-            tooltip: 'Delete file',
-            onPressed: busy ? null : _deleteFile,
-            icon: _deleting
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.delete_outline),
-          ),
+          if (widget.auth.canMutateCatalog) ...[
+            IconButton(
+              tooltip: 'Edit file',
+              onPressed: busy ? null : _editFile,
+              icon: _saving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.edit_outlined),
+            ),
+            IconButton(
+              tooltip: 'Delete file',
+              onPressed: busy ? null : _deleteFile,
+              icon: _deleting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.delete_outline),
+            ),
+          ],
         ],
       ),
       body: Stack(

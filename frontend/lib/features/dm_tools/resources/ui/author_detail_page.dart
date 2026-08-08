@@ -157,28 +157,30 @@ class _AuthorDetailPageState extends State<AuthorDetailPage> {
       appBar: AppBar(
         title: Text(_author.name),
         actions: [
-          IconButton(
-            tooltip: 'Edit author',
-            onPressed: busy ? null : _editAuthor,
-            icon: _saving
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.edit_outlined),
-          ),
-          IconButton(
-            tooltip: 'Delete author',
-            onPressed: busy ? null : _deleteAuthor,
-            icon: _deleting
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.delete_outline),
-          ),
+          if (widget.auth.canMutateCatalog) ...[
+            IconButton(
+              tooltip: 'Edit author',
+              onPressed: busy ? null : _editAuthor,
+              icon: _saving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.edit_outlined),
+            ),
+            IconButton(
+              tooltip: 'Delete author',
+              onPressed: busy ? null : _deleteAuthor,
+              icon: _deleting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.delete_outline),
+            ),
+          ],
         ],
       ),
       body: Stack(

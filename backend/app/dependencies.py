@@ -2,6 +2,7 @@ from collections.abc import AsyncGenerator
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import async_session_factory
@@ -77,3 +78,29 @@ async def get_current_dm_user(
             detail="Dungeon Master access required",
         )
     return user
+
+
+async def campaign_scope_user_id(session: AsyncSession, user: User) -> int:
+    """Shared catalog owner for this server.
+
+    Priority:
+    1. Optional ``CAMPAIGN_OWNER_USER_ID`` override
+    2. Earliest active DM account
+    3. The authenticated caller (solo / no DM yet)
+    """
+    from app.config import settings
+
+    owner = settings.campaign_owner_user_id
+    if owner is not None and owner > 0:
+        return owner
+
+    result = await session.execute(
+        select(User.id)
+        .where(User.is_dm.is_(True), User.is_active.is_(True))
+        .order_by(User.id.asc())
+        .limit(1)
+    )
+    dm_id = result.scalar_one_or_none()
+    if dm_id is not None:
+        return int(dm_id)
+    return user.id

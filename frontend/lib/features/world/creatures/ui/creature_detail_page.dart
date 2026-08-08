@@ -173,16 +173,18 @@ class _CreatureDetailPageState extends State<CreatureDetailPage> {
           _creature.name.trim().isEmpty ? 'Creature' : _creature.name,
         ),
         actions: [
-          IconButton(
-            tooltip: 'Edit',
-            icon: const Icon(Icons.edit_outlined),
-            onPressed: _edit,
-          ),
-          IconButton(
-            tooltip: 'Delete',
-            icon: const Icon(Icons.delete_outline),
-            onPressed: _delete,
-          ),
+          if (widget.auth.canMutateCatalog) ...[
+            IconButton(
+              tooltip: 'Edit',
+              icon: const Icon(Icons.edit_outlined),
+              onPressed: _edit,
+            ),
+            IconButton(
+              tooltip: 'Delete',
+              icon: const Icon(Icons.delete_outline),
+              onPressed: _delete,
+            ),
+          ],
         ],
       ),
       body: Stack(

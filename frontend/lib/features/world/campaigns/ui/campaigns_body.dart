@@ -229,10 +229,14 @@ class _CampaignsBodyState extends State<CampaignsBody> {
                   child: ConstrainedBox(
                     constraints:
                         BoxConstraints(minHeight: constraints.maxHeight),
-                    child: const Center(
+                    child: Center(
                       child: Padding(
-                        padding: EdgeInsets.fromLTRB(24, 24, 24, 100),
-                        child: Text('No campaigns yet\nTap + to add one.'),
+                        padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
+                        child: Text(
+                          widget.auth.canMutateCatalog
+                              ? 'No campaigns yet\nTap + to add one.'
+                              : 'No campaigns yet.',
+                        ),
                       ),
                     ),
                   ),
@@ -271,14 +275,16 @@ class _CampaignsBodyState extends State<CampaignsBody> {
                   title: item.name,
                   subtitle:
                       '${record.playerCharacterIds.length} players · $sessionCount session${sessionCount == 1 ? '' : 's'}',
-                  trailing: IconButton(
-                    tooltip: 'Delete',
-                    onPressed: () => _delete(item),
-                    icon: Icon(
-                      Icons.delete_outline,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
+                  trailing: widget.auth.canMutateCatalog
+                      ? IconButton(
+                          tooltip: 'Delete',
+                          onPressed: () => _delete(item),
+                          icon: Icon(
+                            Icons.delete_outline,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        )
+                      : null,
                   onTap: () => _open(item),
                   children: [
                     if (record.descriptionPreview.isNotEmpty) ...[
@@ -297,16 +303,17 @@ class _CampaignsBodyState extends State<CampaignsBody> {
               },
             ),
           ),
-        Positioned(
-          right: 20,
-          bottom: 20,
-          child: FloatingActionButton(
-            onPressed: _create,
-            backgroundColor: scheme.primary,
-            foregroundColor: scheme.onPrimary,
-            child: const Icon(Icons.add),
+        if (widget.auth.canMutateCatalog)
+          Positioned(
+            right: 20,
+            bottom: 20,
+            child: FloatingActionButton(
+              onPressed: _create,
+              backgroundColor: scheme.primary,
+              foregroundColor: scheme.onPrimary,
+              child: const Icon(Icons.add),
+            ),
           ),
-        ),
       ],
     );
   }

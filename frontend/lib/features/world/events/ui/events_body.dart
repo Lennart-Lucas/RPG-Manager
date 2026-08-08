@@ -202,7 +202,9 @@ class _EventsBodyState extends State<EventsBody> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Tap + to add your first event.',
+                              widget.auth.canMutateCatalog
+                                  ? 'Tap + to add your first event.'
+                                  : 'No events yet.',
                               textAlign: TextAlign.center,
                               style: textTheme.bodyMedium?.copyWith(
                                 color: scheme.onSurfaceVariant,
@@ -247,14 +249,16 @@ class _EventsBodyState extends State<EventsBody> {
                   ),
                   title: item.name,
                   subtitle: 'Event',
-                  trailing: IconButton(
-                    tooltip: 'Delete',
-                    onPressed: () => _delete(item),
-                    icon: Icon(
-                      Icons.delete_outline,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
+                  trailing: widget.auth.canMutateCatalog
+                      ? IconButton(
+                          tooltip: 'Delete',
+                          onPressed: () => _delete(item),
+                          icon: Icon(
+                            Icons.delete_outline,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        )
+                      : null,
                   onTap: () => _open(item),
                   children: [
                     if (preview.isNotEmpty) ...[
@@ -274,17 +278,18 @@ class _EventsBodyState extends State<EventsBody> {
               },
             ),
           ),
-        Positioned(
-          right: 20,
-          bottom: 20,
-          child: CatalogCreateSpeedDial(
-            auth: widget.auth,
-            kind: CatalogKind.events,
-            heroTagPrefix: 'events-create',
-            onManualCreate: _create,
-            onAfterGenerate: _reload,
+        if (widget.auth.canMutateCatalog)
+          Positioned(
+            right: 20,
+            bottom: 20,
+            child: CatalogCreateSpeedDial(
+              auth: widget.auth,
+              kind: CatalogKind.events,
+              heroTagPrefix: 'events-create',
+              onManualCreate: _create,
+              onAfterGenerate: _reload,
+            ),
           ),
-        ),
       ],
     );
   }

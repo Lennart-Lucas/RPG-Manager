@@ -223,7 +223,9 @@ class _FeaturesBodyState extends State<FeaturesBody> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Tap + to add your first feature.',
+                              widget.auth.canMutateCatalog
+                                  ? 'Tap + to add your first feature.'
+                                  : 'No features yet.',
                               textAlign: TextAlign.center,
                               style: Theme.of(context)
                                   .textTheme
@@ -268,16 +270,17 @@ class _FeaturesBodyState extends State<FeaturesBody> {
               },
             ),
           ),
-        Positioned(
-          right: 20,
-          bottom: 20,
-          child: FloatingActionButton(
-            onPressed: _create,
-            backgroundColor: scheme.primary,
-            foregroundColor: scheme.onPrimary,
-            child: const Icon(Icons.add),
+        if (widget.auth.canMutateCatalog)
+          Positioned(
+            right: 20,
+            bottom: 20,
+            child: FloatingActionButton(
+              onPressed: _create,
+              backgroundColor: scheme.primary,
+              foregroundColor: scheme.onPrimary,
+              child: const Icon(Icons.add),
+            ),
           ),
-        ),
       ],
     );
   }

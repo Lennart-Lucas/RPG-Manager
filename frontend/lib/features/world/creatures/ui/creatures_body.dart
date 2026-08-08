@@ -418,7 +418,9 @@ class _CreaturesBodyState extends State<CreaturesBody> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Tap + to add a creature type or statblock.',
+                              widget.auth.canMutateCatalog
+                                  ? 'Tap + to add a creature type or statblock.'
+                                  : 'No creatures yet.',
                               textAlign: TextAlign.center,
                               style: Theme.of(context)
                                   .textTheme
@@ -506,7 +508,9 @@ class _CreaturesBodyState extends State<CreaturesBody> {
                                     typeNamesById: _typeNamesById,
                                   ),
                                   onTap: () => _openCreatureDetail(entry),
-                                  onLongPress: () => _editCreature(entry.item),
+                                  onLongPress: widget.auth.canMutateCatalog
+                                      ? () => _editCreature(entry.item)
+                                      : null,
                                   minWidth: minItemWidth,
                                   maxWidth: maxItemWidth,
                                 ),
@@ -519,16 +523,17 @@ class _CreaturesBodyState extends State<CreaturesBody> {
               },
             ),
           ),
-        Positioned(
-          right: 20,
-          bottom: 20,
-          child: _CreaturesFab(
-            open: _fabOpen,
-            onToggle: () => setState(() => _fabOpen = !_fabOpen),
-            onStatblock: _createCreature,
-            onCreatureType: _createType,
+        if (widget.auth.canMutateCatalog)
+          Positioned(
+            right: 20,
+            bottom: 20,
+            child: _CreaturesFab(
+              open: _fabOpen,
+              onToggle: () => setState(() => _fabOpen = !_fabOpen),
+              onStatblock: _createCreature,
+              onCreatureType: _createType,
+            ),
           ),
-        ),
       ],
     );
   }

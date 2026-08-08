@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000,http://localhost:8011"
     cors_allow_origin_regex: str | None = None
 
+    # Optional override for the shared catalog owner. When unset, the earliest
+    # active DM account is used automatically (1-campaign server).
+    campaign_owner_user_id: int | None = None
+
     # Default Claude model for extract jobs (API key is per-request from client).
     # claude-sonnet-4-20250514 retired 2026-06-15; use recommended replacement.
     anthropic_model: str = "claude-sonnet-4-6"

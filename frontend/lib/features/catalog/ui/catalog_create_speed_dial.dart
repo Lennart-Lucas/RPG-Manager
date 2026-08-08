@@ -128,6 +128,9 @@ class _CatalogCreateSpeedDialState extends State<CatalogCreateSpeedDial> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.auth.canMutateCatalog) {
+      return const SizedBox.shrink();
+    }
     final scheme = Theme.of(context).colorScheme;
     final useDial = !_loading && _generators.isNotEmpty;
 

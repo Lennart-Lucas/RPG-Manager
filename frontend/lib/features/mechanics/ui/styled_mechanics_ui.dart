@@ -327,16 +327,18 @@ class _StyledMechanicsDetailPageState extends State<StyledMechanicsDetailPage> {
         title: Text(_item.name.trim().isEmpty ? widget.singularLabel : _item.name),
         actions: [
           const OfflineAppBarMarker(),
-          IconButton(
-            tooltip: 'Edit',
-            icon: const Icon(Icons.edit_outlined),
-            onPressed: _edit,
-          ),
-          IconButton(
-            tooltip: 'Delete',
-            icon: const Icon(Icons.delete_outline),
-            onPressed: _delete,
-          ),
+          if (widget.auth.canMutateCatalog) ...[
+            IconButton(
+              tooltip: 'Edit',
+              icon: const Icon(Icons.edit_outlined),
+              onPressed: _edit,
+            ),
+            IconButton(
+              tooltip: 'Delete',
+              icon: const Icon(Icons.delete_outline),
+              onPressed: _delete,
+            ),
+          ],
         ],
       ),
       body: Stack(
@@ -645,21 +647,24 @@ class _StyledMechanicsBodyState extends State<StyledMechanicsBody> {
                   fallbackIcon: widget.fallbackIcon,
                   kindLabel: widget.singularLabel,
                   onTap: () => _open(item),
-                  onDelete: () => _delete(item),
+                  onDelete: widget.auth.canMutateCatalog
+                      ? () => _delete(item)
+                      : null,
                 );
               },
             ),
           ),
-        Positioned(
-          right: 20,
-          bottom: 20,
-          child: FloatingActionButton(
-            onPressed: _create,
-            backgroundColor: scheme.primary,
-            foregroundColor: scheme.onPrimary,
-            child: const Icon(Icons.add),
+        if (widget.auth.canMutateCatalog)
+          Positioned(
+            right: 20,
+            bottom: 20,
+            child: FloatingActionButton(
+              onPressed: _create,
+              backgroundColor: scheme.primary,
+              foregroundColor: scheme.onPrimary,
+              child: const Icon(Icons.add),
+            ),
           ),
-        ),
       ],
     );
   }

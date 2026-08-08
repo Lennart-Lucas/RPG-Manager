@@ -169,15 +169,16 @@ class _GeneratorsBodyState extends State<GeneratorsBody> {
               );
             },
           ),
-        Positioned(
-          right: 20,
-          bottom: 20,
-          child: FloatingActionButton(
-            onPressed: _create,
-            tooltip: 'New generator',
-            child: const Icon(Icons.add),
+        if (widget.auth.canMutateCatalog)
+          Positioned(
+            right: 20,
+            bottom: 20,
+            child: FloatingActionButton(
+              onPressed: _create,
+              tooltip: 'New generator',
+              child: const Icon(Icons.add),
+            ),
           ),
-        ),
       ],
     );
   }

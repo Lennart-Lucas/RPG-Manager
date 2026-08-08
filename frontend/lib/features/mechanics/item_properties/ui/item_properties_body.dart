@@ -612,7 +612,9 @@ class _ItemPropertiesBodyState extends State<ItemPropertiesBody>
                                               ),
                                               const SizedBox(height: 8),
                                               Text(
-                                                'Tap + to add your first item property.',
+                                                widget.auth.canMutateCatalog
+                                                    ? 'Tap + to add your first item property.'
+                                                    : 'No item properties yet.',
                                                 textAlign: TextAlign.center,
                                                 style: Theme.of(context)
                                                     .textTheme
@@ -695,16 +697,17 @@ class _ItemPropertiesBodyState extends State<ItemPropertiesBody>
           ],
         ),
         if (!_selectionMode)
-          Positioned(
-            right: 20,
-            bottom: 20,
-            child: FloatingActionButton(
-              onPressed: _create,
-              backgroundColor: scheme.primary,
-              foregroundColor: scheme.onPrimary,
-              child: const Icon(Icons.add),
+          if (widget.auth.canMutateCatalog)
+            Positioned(
+              right: 20,
+              bottom: 20,
+              child: FloatingActionButton(
+                onPressed: _create,
+                backgroundColor: scheme.primary,
+                foregroundColor: scheme.onPrimary,
+                child: const Icon(Icons.add),
+              ),
             ),
-          ),
       ],
     );
   }
