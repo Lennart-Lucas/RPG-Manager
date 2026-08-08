@@ -17,6 +17,7 @@ import '../../../dm_tools/resources/data/resources_api.dart';
 import '../../../export/card_export_pdf.dart';
 import '../../../export/card_export_theme.dart';
 import '../../../export/card_pdf_export_sheet.dart';
+import '../../../export/card_png_export_present.dart';
 import '../../../shell/app_page.dart';
 import '../../../shell/shell_page_app_bar.dart';
 import '../../data/styled_mechanics_record.dart';
@@ -694,6 +695,7 @@ class _ConditionDetailPageState extends State<ConditionDetailPage> {
   late CatalogItem _item = widget.item;
   List<ResourceFile> _resourceFiles = const [];
   String? _sourceFileName;
+  bool _exportingPng = false;
 
   Future<String?> _token() => widget.auth.requireAccessToken();
 
@@ -783,6 +785,37 @@ class _ConditionDetailPageState extends State<ConditionDetailPage> {
     }
   }
 
+  Future<void> _exportCardPng() async {
+    if (_exportingPng) return;
+    setState(() => _exportingPng = true);
+    try {
+      final bytes = await rasterizeConditionCard(
+        context: context,
+        record: _record,
+        theme: Theme.of(context),
+        resolveWikiLinkLabel: (kind, id) => resolveCatalogWikiLinkLabel(
+          auth: widget.auth,
+          kindApiValue: kind,
+          target: id,
+        ),
+      );
+      if (!mounted) return;
+      await presentCardPngExport(
+        bytes,
+        '${cardExportSafeBaseName(_record.name)}.png',
+      );
+    } catch (e, st) {
+      debugPrint('Condition card PNG export failed: $e\n$st');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not save image: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _exportingPng = false);
+    }
+  }
+
   Future<void> _delete() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -842,18 +875,23 @@ class _ConditionDetailPageState extends State<ConditionDetailPage> {
         ),
         actions: [
           const OfflineAppBarMarker(),
-          if (widget.auth.canMutateCatalog) ...[
+          if (widget.auth.canMutateCatalog)
             IconButton(
               tooltip: 'Edit',
               icon: const Icon(Icons.edit_outlined),
               onPressed: _edit,
             ),
+          IconButton(
+            tooltip: 'Save as PNG',
+            icon: const Icon(Icons.image_outlined),
+            onPressed: _exportingPng ? null : _exportCardPng,
+          ),
+          if (widget.auth.canMutateCatalog)
             IconButton(
               tooltip: 'Delete',
               icon: const Icon(Icons.delete_outline),
               onPressed: _delete,
             ),
-          ],
         ],
       ),
       body: Stack(

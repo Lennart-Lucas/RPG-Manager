@@ -13,18 +13,6 @@ Color _darkerVariant(Color base, {double amount = 0.08}) {
   return hsl.withLightness(adjusted).toColor();
 }
 
-Color _headerFill(Color accent, ColorScheme colors) {
-  return Color.alphaBlend(
-    accent.withValues(alpha: 0.55),
-    colors.surfaceContainerHigh,
-  );
-}
-
-Color _onHeader(Color fill, ColorScheme colors) {
-  final luminance = fill.computeLuminance();
-  return luminance > 0.45 ? colors.onSurface : colors.onPrimary;
-}
-
 double _conditionCardBandIconSize(double maxFontSize) =>
     (maxFontSize * 14 / kMtgCardRulesMaxFontSize).clamp(13.0, 19.0);
 
@@ -66,9 +54,6 @@ class ConditionSheet extends StatelessWidget {
     final hasDescription = effectiveDescription.trim().isNotEmpty;
     final accent = record.resolvedColor(fallback: colors.primary);
     final icon = record.resolvedIcon(fallback: fallbackIcon);
-    final headerBg = _headerFill(accent, colors);
-    final onHeader = _onHeader(headerBg, colors);
-    final secondaryBand = _darkerVariant(headerBg, amount: 0.10);
 
     const radius = 14.0;
 
@@ -96,9 +81,7 @@ class ConditionSheet extends StatelessWidget {
                     _ConditionHeaderBand(
                       name: headerName,
                       icon: icon,
-                      headerBg: headerBg,
-                      secondaryBand: secondaryBand,
-                      onHeader: onHeader,
+                      colors: colors,
                       topRadius: radius,
                       maxFontSize: maxFontSize,
                       continuationIndex: continuationIndex,
@@ -147,10 +130,10 @@ class ConditionSheet extends StatelessWidget {
                     ),
                     _ConditionFooterBand(
                       icon: icon,
-                      footerBg: secondaryBand,
-                      onFooter: onHeader,
+                      colors: colors,
                       bottomRadius: radius,
                       maxFontSize: maxFontSize,
+                      sourcePage: record.sourcePage,
                     ),
                   ],
                 ),
@@ -208,9 +191,7 @@ List<ConditionSheet> buildConditionSheets(
 class _ConditionHeaderBand extends StatelessWidget {
   final String name;
   final IconData icon;
-  final Color headerBg;
-  final Color secondaryBand;
-  final Color onHeader;
+  final ColorScheme colors;
   final double topRadius;
   final double maxFontSize;
   final int? continuationIndex;
@@ -219,9 +200,7 @@ class _ConditionHeaderBand extends StatelessWidget {
   const _ConditionHeaderBand({
     required this.name,
     required this.icon,
-    required this.headerBg,
-    required this.secondaryBand,
-    required this.onHeader,
+    required this.colors,
     required this.topRadius,
     required this.maxFontSize,
     this.continuationIndex,
@@ -230,14 +209,16 @@ class _ConditionHeaderBand extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final secondaryBandColor = _darkerVariant(
+      colors.primaryContainer,
+      amount: 0.12,
+    );
     final summaryFontSize = maxFontSize;
     final titleFontSize = maxFontSize * kMtgCardTitleToRulesMaxFontScale;
     final continuationText =
         continuationIndex != null && continuationTotal != null
-            ? 'Part $continuationIndex/$continuationTotal'
+            ? ' · Part $continuationIndex/$continuationTotal'
             : '';
-    final subheaderText =
-        continuationText.isEmpty ? 'Condition' : 'Condition · $continuationText';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -245,7 +226,7 @@ class _ConditionHeaderBand extends StatelessWidget {
       children: [
         Container(
           decoration: BoxDecoration(
-            color: headerBg,
+            color: colors.primaryContainer,
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(topRadius),
               topRight: Radius.circular(topRadius),
@@ -257,7 +238,7 @@ class _ConditionHeaderBand extends StatelessWidget {
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: onHeader,
+              color: colors.onPrimaryContainer,
               fontWeight: FontWeight.w700,
               fontSize: titleFontSize,
               letterSpacing: 0.75,
@@ -266,37 +247,27 @@ class _ConditionHeaderBand extends StatelessWidget {
           ),
         ),
         Container(
-          color: secondaryBand,
+          color: secondaryBandColor,
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               catalogAppearanceIconWidget(
                 icon,
-                size: (maxFontSize * 11 / kMtgCardRulesMaxFontSize).clamp(
-                  10.0,
-                  16.0,
-                ),
-                color: onHeader,
+                size: _conditionCardBandIconSize(maxFontSize),
+                color: colors.onPrimaryContainer,
               ),
               const SizedBox(width: 5),
               Expanded(
                 child: Text(
-                  subheaderText,
-                  maxLines: 2,
+                  'Condition$continuationText',
+                  maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: onHeader,
+                    color: colors.onPrimaryContainer,
                     fontSize: summaryFontSize,
                     fontWeight: FontWeight.w600,
                     height: 1.0,
-                  ),
-                  strutStyle: StrutStyle(
-                    fontSize: summaryFontSize,
-                    height: 1.0,
-                    leading: 0,
-                    fontWeight: FontWeight.w600,
-                    forceStrutHeight: true,
                   ),
                 ),
               ),
@@ -310,24 +281,30 @@ class _ConditionHeaderBand extends StatelessWidget {
 
 class _ConditionFooterBand extends StatelessWidget {
   final IconData icon;
-  final Color footerBg;
-  final Color onFooter;
+  final ColorScheme colors;
   final double bottomRadius;
   final double maxFontSize;
+  final int? sourcePage;
 
   const _ConditionFooterBand({
     required this.icon,
-    required this.footerBg,
-    required this.onFooter,
+    required this.colors,
     required this.bottomRadius,
     required this.maxFontSize,
+    this.sourcePage,
   });
 
   @override
   Widget build(BuildContext context) {
+    final footerColor = _darkerVariant(
+      colors.primaryContainer,
+      amount: 0.12,
+    );
     final footerFontSize = maxFontSize;
+    final footerText = sourcePage != null ? 'Page $sourcePage' : 'Condition';
+
     return Material(
-      color: footerBg,
+      color: footerColor,
       borderRadius: BorderRadius.only(
         bottomLeft: Radius.circular(bottomRadius),
         bottomRight: Radius.circular(bottomRadius),
@@ -341,26 +318,19 @@ class _ConditionFooterBand extends StatelessWidget {
             catalogAppearanceIconWidget(
               icon,
               size: _conditionCardBandIconSize(maxFontSize),
-              color: onFooter,
+              color: colors.onPrimaryContainer,
             ),
             const SizedBox(width: 5),
             Expanded(
               child: Text(
-                'Condition',
-                maxLines: 1,
+                footerText,
+                maxLines: 4,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: onFooter,
+                  color: colors.onPrimaryContainer,
                   fontSize: footerFontSize,
                   fontWeight: FontWeight.w600,
                   height: 1.2,
-                ),
-                strutStyle: StrutStyle(
-                  fontSize: footerFontSize,
-                  height: 1.2,
-                  leading: 0,
-                  fontWeight: FontWeight.w600,
-                  forceStrutHeight: true,
                 ),
               ),
             ),
