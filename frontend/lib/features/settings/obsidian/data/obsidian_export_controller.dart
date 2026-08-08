@@ -4,7 +4,6 @@ import 'package:flutter/widgets.dart';
 
 import '../../../auth/data/auth_api.dart';
 import '../../../catalog/data/catalog_api.dart';
-import '../../../catalog/data/catalog_kind.dart';
 import '../../../../core/offline/offline_sync_controller.dart';
 import '../../../../core/platform/client_platform.dart';
 import 'obsidian_export_service.dart';
@@ -209,18 +208,20 @@ class ObsidianExportController extends ChangeNotifier
     }
   }
 
-  /// Reverse-imports a single Obsidian `.md` note into the database.
+  /// Reverse-imports one or more Obsidian `.md` notes into the database.
   ///
-  /// Returns a user-facing error message, or null on success. On success,
-  /// [onSuccess] receives a short summary (record name + kind label).
-  Future<String?> importNoteFile(
-    String absolutePath, {
+  /// Returns a user-facing error message when the whole batch cannot start,
+  /// or null when the batch ran (individual file failures are included in
+  /// [onSuccess] summary). On success, [onSuccess] receives a short summary.
+  Future<String?> importNoteFiles(
+    List<String> absolutePaths, {
     void Function(String summary)? onSuccess,
   }) async {
     if (!_enabled) {
       return 'Obsidian import is only available on desktop';
     }
     if (_importing) return 'An import is already in progress';
+    if (absolutePaths.isEmpty) return 'No files selected';
     final tokenProvider = _tokenProvider;
     if (tokenProvider == null) return 'Not signed in';
 
@@ -229,13 +230,14 @@ class ObsidianExportController extends ChangeNotifier
     try {
       final token = await tokenProvider();
       if (token == null) return 'Not signed in';
-      final result = await _importService.importFile(
+      final batch = await _importService.importFiles(
         accessToken: token,
-        absolutePath: absolutePath,
+        absolutePaths: absolutePaths,
       );
-      onSuccess?.call(
-        '${result.name} (${result.kind.singularLabel})',
-      );
+      onSuccess?.call(batch.summary);
+      if (batch.successCount == 0) {
+        return batch.summary;
+      }
       return null;
     } catch (e) {
       if (e is AuthApiException) return e.message;
@@ -245,5 +247,13 @@ class ObsidianExportController extends ChangeNotifier
       _importing = false;
       notifyListeners();
     }
+  }
+
+  /// Convenience wrapper for a single path.
+  Future<String?> importNoteFile(
+    String absolutePath, {
+    void Function(String summary)? onSuccess,
+  }) {
+    return importNoteFiles([absolutePath], onSuccess: onSuccess);
   }
 }

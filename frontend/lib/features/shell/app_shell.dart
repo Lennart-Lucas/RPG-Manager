@@ -57,6 +57,7 @@ class _AppShellState extends State<AppShell> {
         AppPage.characters => 'Characters',
         AppPage.organisations => 'Organisations',
         AppPage.events => 'Events',
+        AppPage.lore => 'Lore',
         AppPage.story => 'Story',
       };
 

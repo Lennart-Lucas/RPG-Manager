@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "RPG Manager/Items/Cannon.md",
+                "file": "RPG Manager/Organisations/Althania's Holy Inquisition.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Cannon"
+              "title": "Althania's Holy Inquisition"
             }
           }
         ]
@@ -183,12 +183,23 @@
       "bases:Create new base": false
     }
   },
-  "active": "f53c72818ce21c13",
+  "active": "4880d2d1842efa3c",
   "lastOpenFiles": [
-    "RPG Manager/Organisations/Althania's Holy Inquisition/The 3rd Sacrament - The Watchers of the Threshold.md.tmp.31344.26e65f09ddf6",
-    "RPG Manager/Lore/The Canon of Saints.md",
-    "RPG Manager/Lore/The Canon of Saints.md.tmp.31344.6fd305e045f8",
     "RPG Manager/Lore/Chronicle of the Rising.md",
+    "RPG Manager/Organisations/Althania's Holy Inquisition/The 1st Sacrament - The Keepers of Doctrine.md",
+    "RPG Manager/Organisations/Church of Orzhova.md",
+    "RPG Manager/Lore/The Canon of Saints.md",
+    "RPG Manager/Locations/Valmoria/Althania/Weissturm.md",
+    "RPG Manager/Locations/Valmoria/Althania/Salvamont.md",
+    "RPG Manager/Locations/Valmoria/Althania/Knarrholt.md",
+    "RPG Manager/Locations/Valmoria/Althania/Eichenwacht.md",
+    "RPG Manager/Locations/Valmoria/Althania/Dunvicum.md",
+    "RPG Manager/Locations/Valmoria/Althania/Dornwald.md",
+    "RPG Manager/Locations/Valmoria/Althania.md",
+    "RPG Manager/Locations/Valmoria.md",
+    "RPG Manager/Items/Cannon.md",
+    "RPG Manager/Organisations/Althania's Holy Inquisition/The 3rd Sacrament - The Watchers of the Threshold.md.tmp.31344.26e65f09ddf6",
+    "RPG Manager/Lore/The Canon of Saints.md.tmp.31344.6fd305e045f8",
     "RPG Manager/Lore/Chronicle of the Rising.md.tmp.31344.718e4cc8a252",
     "RPG Manager/Locations/Valmoria/Althania/Eichenwacht.md.tmp.31344.f792a331ab8e",
     "RPG Manager/Locations/Valmoria/Althania/Dunvicum.md.tmp.31344.fb80142c9b95",
@@ -197,13 +208,10 @@
     "RPG Manager/Locations/Valmoria/Althania/Salvamont.md.tmp.31344.f34f4a7f86ca",
     "RPG Manager/Locations/Valmoria/Althania/Weissturm.md.tmp.31344.01094dfea650",
     "RPG Manager/Organisations/Althania's Holy Inquisition/The 6th Sacrament - The Keepers of the Last Flame.md.tmp.31344.83f4c2522a99",
-    "RPG Manager/Organisations/Althania's Holy Inquisition/The 5th Sacrament - The Wardens of the Argent Hunt.md.tmp.31344.5c10ba8aadfa",
-    "RPG Manager/Organisations/Church of Orzhova.md",
     "RPG Manager/Lore/_sync-test.md",
     "RPG Manager/Lore/test.md",
     "RPG Manager/Organisations/Althania's Holy Inquisition/The 3rd Sacrament - The Stewards of Providence.md",
     "RPG Manager/Organisations/Althania's Holy Inquisition/The 3rd Sacrament - The Watchers of the Threshold.md",
-    "RPG Manager/Organisations/Althania's Holy Inquisition/The 1st Sacrament - The Keepers of Doctrine.md",
     "RPG Manager/Organisations/Althania's Holy Inquisition/The 2nd Sacrament - The Shepherds of the Host.md",
     "RPG Manager/Organisations/Althania's Holy Inquisition/The 4th Sacrament - The Arbiters of Judgment.md",
     "RPG Manager/Organisations/Althania's Holy Inquisition/The 5th Sacrament - The Wardens of the Argent Hunt.md",
@@ -212,14 +220,6 @@
     "RPG Manager/Organisations/Althania's Holy Inquisition.md",
     "RPG Manager/Organisations/Vor'Ghal.md",
     "RPG Manager/Organisations/House Sinistra.md",
-    "RPG Manager/Organisations/House Drach'on.md",
-    "RPG Manager/Organisations/House Archon.md",
-    "RPG Manager/Organisations/Althania's Holy Inquisition/6th Sacrament - The Custodians of the Black Pyre.md",
-    "RPG Manager/Organisations/The Band of Bob.md",
-    "RPG Manager/Organisations/Althania's Holy Inquisition/1st Sacrament – The Keepers of Doctrine.md",
-    "RPG Manager/Organisations/Althania's Holy Inquisition/5th Sacrament – The Wardens of the Argent Hunt.md",
-    "RPG Manager/Events/The Rising at Salvamont.md",
-    "RPG Manager/Characters/Aurelien Sarre.md",
-    "RPG Manager/Events/Reform of the Sixth.md"
+    "RPG Manager/Organisations/House Drach'on.md"
   ]
 }

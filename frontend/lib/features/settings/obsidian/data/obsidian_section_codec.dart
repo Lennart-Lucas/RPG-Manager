@@ -9,6 +9,10 @@ final _featureMetaComment = RegExp(
 );
 
 /// Renders markdown body sections for export (no frontmatter).
+///
+/// The `description` field is written as leading body text without a
+/// `## Description` heading so the note body is the description again.
+/// Other markdown fields and nested blocks keep `##` / `###` sections.
 String renderObsidianBody({
   required ObsidianKindFieldMap map,
   required Map<String, dynamic> payload,
@@ -19,9 +23,14 @@ String renderObsidianBody({
   for (final field in map.markdownFields) {
     final raw = '${payload[field.payloadKey] ?? ''}'.trim();
     if (raw.isEmpty) continue;
-    _writeH2(buffer, field.sectionTitle);
-    buffer.writeln(rewriteLinks(raw).trimRight());
-    buffer.writeln();
+    if (field.payloadKey == 'description') {
+      buffer.writeln(rewriteLinks(raw).trimRight());
+      buffer.writeln();
+    } else {
+      _writeH2(buffer, field.sectionTitle);
+      buffer.writeln(rewriteLinks(raw).trimRight());
+      buffer.writeln();
+    }
   }
 
   if (map.spellHigherLevels) {
@@ -79,7 +88,7 @@ ParsedObsidianBody parseObsidianBody(
   String body, {
   required ObsidianKindFieldMap map,
 }) {
-  final blocks = _splitH2Blocks(body);
+  final split = _splitH2BlocksWithPreamble(body);
   final sections = <String, String>{};
   Map<String, dynamic>? featuresByLevel;
   List<Map<String, dynamic>>? namedFeatures;
@@ -87,7 +96,7 @@ ParsedObsidianBody parseObsidianBody(
   List<Map<String, dynamic>>? typeTraits;
   List<Map<String, dynamic>>? creatureFeatures;
 
-  for (final block in blocks) {
+  for (final block in split.blocks) {
     final title = block.title.trim();
     final titleLower = title.toLowerCase();
     final content = block.body.trim();
@@ -119,6 +128,27 @@ ParsedObsidianBody parseObsidianBody(
     }
 
     sections[title] = content;
+  }
+
+  // Leading body (no ## heading) maps to description when that field exists
+  // and there is no explicit ## Description section (legacy-friendly).
+  final preamble = split.preamble.trim();
+  if (preamble.isNotEmpty) {
+    ObsidianMarkdownField? descriptionField;
+    for (final f in map.markdownFields) {
+      if (f.payloadKey == 'description') {
+        descriptionField = f;
+        break;
+      }
+    }
+    if (descriptionField != null) {
+      final hasExplicit = sections.keys.any(
+        (k) => k.toLowerCase() == descriptionField!.sectionTitle.toLowerCase(),
+      );
+      if (!hasExplicit) {
+        sections[descriptionField.sectionTitle] = preamble;
+      }
+    }
   }
 
   return ParsedObsidianBody(
@@ -321,8 +351,15 @@ class _H2Block {
 }
 
 List<_H2Block> _splitH2Blocks(String body) {
+  return _splitH2BlocksWithPreamble(body).blocks;
+}
+
+({String preamble, List<_H2Block> blocks}) _splitH2BlocksWithPreamble(
+  String body,
+) {
   final lines = body.replaceAll('\r\n', '\n').split('\n');
   final blocks = <_H2Block>[];
+  final preamble = StringBuffer();
   String? currentTitle;
   final current = StringBuffer();
 
@@ -341,10 +378,12 @@ List<_H2Block> _splitH2Blocks(String body) {
     }
     if (currentTitle != null) {
       current.writeln(line);
+    } else {
+      preamble.writeln(line);
     }
   }
   flush();
-  return blocks;
+  return (preamble: preamble.toString(), blocks: blocks);
 }
 
 List<({String title, String body})> _splitH3Blocks(String body) {

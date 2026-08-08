@@ -28,6 +28,7 @@ LINKABLE_FIELDS: dict[str, tuple[str, ...]] = {
     "characters": ("description",),
     "organisations": ("description", "founding", "type", "motto"),
     "events": ("description",),
+    "lore": ("description",),
     "campaigns": ("description",),
     "sessions": ("description",),
 }

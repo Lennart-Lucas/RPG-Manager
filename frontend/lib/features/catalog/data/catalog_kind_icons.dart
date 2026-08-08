@@ -29,6 +29,7 @@ extension CatalogKindIcons on CatalogKind {
         CatalogKind.characters => charactersPageIcon,
         CatalogKind.organisations => organisationsPageIcon,
         CatalogKind.events => eventsPageIcon,
+        CatalogKind.lore => lorePageIcon,
         CatalogKind.generators => generatorPageIcon,
         CatalogKind.campaigns => storyPageIcon,
         CatalogKind.sessions => sessionsPageIcon,

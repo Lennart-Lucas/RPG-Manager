@@ -4,18 +4,19 @@ import '../../../catalog/data/catalog_kind.dart';
 import 'obsidian_field_map.dart';
 import 'obsidian_section_codec.dart';
 
-/// Parsed Obsidian note written by [ObsidianNoteMapper].
+/// Parsed Obsidian note written by [ObsidianNoteMapper] (or an orphan vault note).
 class ParsedObsidianNote {
   const ParsedObsidianNote({
-    required this.id,
     required this.kind,
     required this.frontmatter,
     required this.body,
     required this.parsedBody,
+    this.id,
     this.name,
   });
 
-  final int id;
+  /// Catalog id when `rpg_manager_id` is present; null for new-note imports.
+  final int? id;
   final CatalogKind kind;
   final String? name;
 
@@ -28,28 +29,46 @@ class ParsedObsidianNote {
   final ParsedObsidianBody parsedBody;
 }
 
-/// Parses YAML frontmatter + markdown body from an exported note.
-ParsedObsidianNote? parseObsidianNote(String contents) {
+/// Parses YAML frontmatter + markdown body from an exported or orphan note.
+///
+/// Requires a resolvable [CatalogKind]: from `rpg_manager_kind`, or [kindHint]
+/// (e.g. inferred from the vault path). [id] may be absent for creates.
+ParsedObsidianNote? parseObsidianNote(
+  String contents, {
+  CatalogKind? kindHint,
+}) {
   final text = contents.replaceFirst(RegExp(r'^\uFEFF'), '');
   final match = RegExp(
     r'^---\r?\n([\s\S]*?)\r?\n---\r?\n?',
   ).firstMatch(text);
-  if (match == null) return null;
 
-  final fm = _parseYamlFrontmatter(match.group(1) ?? '');
-  final idRaw = fm['rpg_manager_id'];
+  Map<String, dynamic> fm;
+  String body;
+  if (match != null) {
+    fm = _parseYamlFrontmatter(match.group(1) ?? '');
+    body = text.substring(match.end).replaceAll('\r\n', '\n').trim();
+  } else if (kindHint != null) {
+    // Plain markdown with no frontmatter — treat whole file as body.
+    fm = <String, dynamic>{};
+    body = text.replaceAll('\r\n', '\n').trim();
+  } else {
+    return null;
+  }
+
   final kindRaw = fm['rpg_manager_kind'];
-  if (idRaw == null || kindRaw == null) return null;
+  final kind = kindRaw != null
+      ? CatalogKind.tryParseApiValue('$kindRaw'.trim())
+      : kindHint;
+  if (kind == null) return null;
 
-  final id = idRaw is int
-      ? idRaw
-      : int.tryParse(idRaw.toString().trim());
-  final kind = CatalogKind.tryParseApiValue('${kindRaw}'.trim());
-  if (id == null || kind == null) return null;
+  final idRaw = fm['rpg_manager_id'];
+  int? id;
+  if (idRaw != null) {
+    id = idRaw is int ? idRaw : int.tryParse(idRaw.toString().trim());
+  }
 
   final nameRaw = fm['name'];
   final name = nameRaw == null ? null : '$nameRaw'.trim();
-  final body = text.substring(match.end).replaceAll('\r\n', '\n').trim();
   final map = obsidianFieldMapFor(kind);
   final parsedBody = parseObsidianBody(body, map: map);
 
@@ -61,6 +80,61 @@ ParsedObsidianNote? parseObsidianNote(String contents) {
     body: body,
     parsedBody: parsedBody,
   );
+}
+
+/// Updates or inserts system frontmatter keys; preserves the markdown body and
+/// any other frontmatter fields (including nested YAML).
+String writeObsidianSystemFrontmatter(
+  String contents, {
+  required int id,
+  required CatalogKind kind,
+  required String name,
+}) {
+  final text = contents.replaceFirst(RegExp(r'^\uFEFF'), '');
+  final match = RegExp(
+    r'^---\r?\n([\s\S]*?)\r?\n---\r?\n?',
+  ).firstMatch(text);
+
+  final escapedName = name.replaceAll(r'\', r'\\').replaceAll('"', r'\"');
+  final idLine = 'rpg_manager_id: $id';
+  final kindLine = 'rpg_manager_kind: "${kind.apiValue}"';
+  final nameLine = 'name: "$escapedName"';
+
+  if (match == null) {
+    final body = text.replaceAll('\r\n', '\n').trimRight();
+    final buffer = StringBuffer()
+      ..writeln('---')
+      ..writeln(idLine)
+      ..writeln(kindLine)
+      ..writeln(nameLine)
+      ..writeln('---')
+      ..writeln();
+    if (body.isNotEmpty) {
+      buffer.writeln(body);
+    }
+    return buffer.toString();
+  }
+
+  var yaml = match.group(1)!;
+  yaml = _upsertFrontmatterLine(yaml, 'rpg_manager_id', idLine);
+  yaml = _upsertFrontmatterLine(yaml, 'rpg_manager_kind', kindLine);
+  yaml = _upsertFrontmatterLine(yaml, 'name', nameLine);
+
+  final rest = text.substring(match.end);
+  return '---\n$yaml\n---\n$rest';
+}
+
+String _upsertFrontmatterLine(String yaml, String key, String fullLine) {
+  final pattern = RegExp(
+    '^${RegExp.escape(key)}\\s*:.*\$',
+    multiLine: true,
+  );
+  if (pattern.hasMatch(yaml)) {
+    return yaml.replaceFirst(pattern, fullLine);
+  }
+  final trimmed = yaml.trimRight();
+  if (trimmed.isEmpty) return fullLine;
+  return '$trimmed\n$fullLine';
 }
 
 Map<String, dynamic> _parseYamlFrontmatter(String yamlText) {

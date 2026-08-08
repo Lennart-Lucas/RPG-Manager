@@ -50,6 +50,7 @@ abstract final class AppPaths {
         AppPage.characters => catalogList(CatalogKind.characters),
         AppPage.organisations => catalogList(CatalogKind.organisations),
         AppPage.events => catalogList(CatalogKind.events),
+        AppPage.lore => catalogList(CatalogKind.lore),
         AppPage.story => catalogList(CatalogKind.campaigns),
       };
 

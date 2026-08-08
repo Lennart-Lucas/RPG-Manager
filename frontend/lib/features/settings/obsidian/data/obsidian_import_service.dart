@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import '../../../auth/data/auth_api.dart';
 import '../../../catalog/data/catalog_api.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
@@ -12,14 +13,78 @@ class ObsidianImportResult {
     required this.item,
     required this.name,
     required this.kind,
+    this.created = false,
   });
 
   final CatalogItem item;
   final String name;
   final CatalogKind kind;
+  final bool created;
 }
 
-/// Imports a single Obsidian note (with RPG Manager frontmatter) into the DB.
+class ObsidianImportFileOutcome {
+  const ObsidianImportFileOutcome({
+    required this.path,
+    this.result,
+    this.error,
+  });
+
+  final String path;
+  final ObsidianImportResult? result;
+  final String? error;
+
+  bool get ok => error == null && result != null;
+}
+
+class ObsidianImportBatchResult {
+  const ObsidianImportBatchResult({required this.outcomes});
+
+  final List<ObsidianImportFileOutcome> outcomes;
+
+  int get successCount => outcomes.where((o) => o.ok).length;
+  int get createdCount =>
+      outcomes.where((o) => o.result?.created == true).length;
+  int get updatedCount =>
+      outcomes.where((o) => o.result != null && !o.result!.created).length;
+  int get failureCount => outcomes.where((o) => !o.ok).length;
+
+  String get summary => summarizeObsidianImportBatch(this);
+}
+
+/// Short user-facing summary for a batch import.
+String summarizeObsidianImportBatch(ObsidianImportBatchResult batch) {
+  final ok = batch.successCount;
+  final failed = batch.failureCount;
+  if (ok == 0 && failed == 0) return 'No notes imported';
+  if (ok == 0) {
+    final errors =
+        batch.outcomes.map((o) => o.error).whereType<String>().toList();
+    final first = errors.isEmpty ? null : errors.first;
+    return first == null ? 'Import failed' : 'Import failed: $first';
+  }
+  final parts = <String>[
+    'Imported $ok',
+    if (batch.updatedCount > 0 || batch.createdCount > 0)
+      '(${batch.updatedCount} updated, ${batch.createdCount} created)',
+  ];
+  var summary = parts.join(' ');
+  if (failed > 0) {
+    final errors =
+        batch.outcomes.map((o) => o.error).whereType<String>().toList();
+    final first = errors.isEmpty ? null : errors.first;
+    summary += first == null
+        ? '; $failed failed'
+        : '; $failed failed ($first)';
+  }
+  return summary;
+}
+
+typedef ObsidianLinkMap = ({
+  Map<String, ({String kind, int id})> byPath,
+  Map<String, int> idsByKindName,
+});
+
+/// Imports Obsidian notes into the catalog (create or update).
 class ObsidianImportService {
   ObsidianImportService({
     CatalogApi? api,
@@ -30,10 +95,11 @@ class ObsidianImportService {
   final CatalogApi _api;
   final ObsidianNoteMapper _mapper;
 
-  /// Reads [absolutePath], merges frontmatter + sections into payload, PATCHes.
+  /// Reads [absolutePath] and creates or updates the matching catalog record.
   Future<ObsidianImportResult> importFile({
     required String accessToken,
     required String absolutePath,
+    ObsidianLinkMap? linkMap,
   }) async {
     final file = File(absolutePath);
     if (!file.existsSync()) {
@@ -43,40 +109,146 @@ class ObsidianImportService {
       throw StateError('Choose a Markdown (.md) note');
     }
 
+    final kindHint = ObsidianNoteMapper.inferKindFromVaultPath(absolutePath);
     final contents = await file.readAsString();
-    final parsed = parseObsidianNote(contents);
+    final parsed = parseObsidianNote(contents, kindHint: kindHint);
     if (parsed == null) {
       throw StateError(
-        'Not an RPG Manager note (missing rpg_manager_id / rpg_manager_kind)',
+        'Could not determine record type '
+        '(set rpg_manager_kind or place the note under RPG Manager/<Kind>/)',
       );
     }
     if (parsed.kind == CatalogKind.generators) {
       throw StateError('Generators cannot be imported from Obsidian');
     }
 
-    final existing = await _api.get(accessToken, parsed.kind, parsed.id);
-    final linkMap = await _buildReverseLinkMap(accessToken);
-    final fieldMap = obsidianFieldMapFor(parsed.kind);
-
+    final resolvedLinkMap = linkMap ?? await _buildReverseLinkMap(accessToken);
     String rewrite(String text) => rewriteWikiLinksFromObsidian(
           text,
-          targetsByWikiPath: linkMap.byPath,
-          idsByKindName: linkMap.idsByKindName,
+          targetsByWikiPath: resolvedLinkMap.byPath,
+          idsByKindName: resolvedLinkMap.idsByKindName,
         );
 
-    final payload = Map<String, dynamic>.from(existing.payload ?? const {});
+    final recordName = () {
+      final fromFm = parsed.name?.trim();
+      if (fromFm != null && fromFm.isNotEmpty) return fromFm;
+      return ObsidianNoteMapper.nameFromFilePath(absolutePath);
+    }();
 
-    // 1) Overlay non-system frontmatter onto payload.
+    CatalogItem? existing;
+    final id = parsed.id;
+    if (id != null) {
+      try {
+        existing = await _api.get(accessToken, parsed.kind, id);
+      } on AuthApiException catch (e) {
+        if (e.statusCode != 404) rethrow;
+        existing = null;
+      }
+    }
+
+    if (existing != null) {
+      final payload = _buildPayload(
+        base: Map<String, dynamic>.from(existing.payload ?? const {}),
+        parsed: parsed,
+        rewrite: rewrite,
+      );
+      final updated = await _api.update(
+        accessToken: accessToken,
+        kind: parsed.kind,
+        itemId: existing.id,
+        name: recordName != existing.name ? recordName : null,
+        payload: payload,
+      );
+      return ObsidianImportResult(
+        item: updated,
+        name: updated.name,
+        kind: parsed.kind,
+        created: false,
+      );
+    }
+
+    final payload = _buildPayload(
+      base: <String, dynamic>{},
+      parsed: parsed,
+      rewrite: rewrite,
+    );
+    final created = await _api.create(
+      accessToken: accessToken,
+      kind: parsed.kind,
+      name: recordName,
+      payload: payload,
+    );
+
+    final rewritten = writeObsidianSystemFrontmatter(
+      contents,
+      id: created.id,
+      kind: parsed.kind,
+      name: created.name,
+    );
+    await file.writeAsString(rewritten);
+
+    return ObsidianImportResult(
+      item: created,
+      name: created.name,
+      kind: parsed.kind,
+      created: true,
+    );
+  }
+
+  /// Imports many notes, building the wiki link map once.
+  Future<ObsidianImportBatchResult> importFiles({
+    required String accessToken,
+    required List<String> absolutePaths,
+  }) async {
+    final linkMap = await _buildReverseLinkMap(accessToken);
+    final outcomes = <ObsidianImportFileOutcome>[];
+    for (final path in absolutePaths) {
+      try {
+        final result = await importFile(
+          accessToken: accessToken,
+          absolutePath: path,
+          linkMap: linkMap,
+        );
+        outcomes.add(ObsidianImportFileOutcome(path: path, result: result));
+      } catch (e) {
+        final message = e is AuthApiException
+            ? e.message
+            : e is StateError
+                ? e.message
+                : '$e';
+        outcomes.add(ObsidianImportFileOutcome(path: path, error: message));
+      }
+    }
+    return ObsidianImportBatchResult(outcomes: outcomes);
+  }
+
+  Map<String, dynamic> _buildPayload({
+    required Map<String, dynamic> base,
+    required ParsedObsidianNote parsed,
+    required String Function(String) rewrite,
+  }) {
+    final payload = Map<String, dynamic>.from(base);
+    final fieldMap = obsidianFieldMapFor(parsed.kind);
+
     for (final entry in parsed.frontmatter.entries) {
       if (obsidianSystemFrontmatterKeys.contains(entry.key)) continue;
       payload[entry.key] = _normalizeYamlValue(entry.value);
     }
 
-    // 2) Overlay ## sections onto markdown keys (only when present).
     final body = parsed.parsedBody;
+    final hasDescriptionField =
+        fieldMap.markdownPayloadKeys.contains('description');
+    final unmappedForDescription = <({String title, String body})>[];
     for (final entry in body.sections.entries) {
       final key = markdownFieldKeyForTitle(fieldMap, entry.key);
-      if (key == null) continue;
+      if (key == null) {
+        // Custom ## headings (not Founding/Motto/etc.) stay in description.
+        if (hasDescriptionField &&
+            entry.key.toLowerCase() != 'description') {
+          unmappedForDescription.add((title: entry.key, body: entry.value));
+        }
+        continue;
+      }
       final text = rewrite(entry.value);
       if (key == '__higherLevels.description__') {
         final higher = payload['higherLevels'];
@@ -90,7 +262,22 @@ class ObsidianImportService {
       }
     }
 
-    // 3) Nested prose blocks (only when those ## parents exist).
+    if (unmappedForDescription.isNotEmpty) {
+      final buffer = StringBuffer();
+      final existing = '${payload['description'] ?? ''}'.trim();
+      if (existing.isNotEmpty) {
+        buffer.writeln(existing);
+        buffer.writeln();
+      }
+      for (final chunk in unmappedForDescription) {
+        buffer.writeln('## ${chunk.title}');
+        buffer.writeln();
+        buffer.writeln(rewrite(chunk.body).trimRight());
+        buffer.writeln();
+      }
+      payload['description'] = buffer.toString().trimRight();
+    }
+
     if (body.featuresByLevel != null) {
       payload['featuresByLevel'] = _rewriteNestedStrings(
         body.featuresByLevel!,
@@ -127,33 +314,10 @@ class ObsidianImportService {
       ];
     }
 
-    // Spells: if Description section present but higher-levels section absent,
-    // keep existing higherLevels.description (sections overlay is additive).
-
-    final name = parsed.name?.trim();
-    final updated = await _api.update(
-      accessToken: accessToken,
-      kind: parsed.kind,
-      itemId: parsed.id,
-      name: (name != null && name.isNotEmpty && name != existing.name)
-          ? name
-          : null,
-      payload: payload,
-    );
-
-    return ObsidianImportResult(
-      item: updated,
-      name: updated.name,
-      kind: parsed.kind,
-    );
+    return payload;
   }
 
-  Future<({
-    Map<String, ({String kind, int id})> byPath,
-    Map<String, int> idsByKindName,
-  })> _buildReverseLinkMap(
-    String accessToken,
-  ) async {
+  Future<ObsidianLinkMap> _buildReverseLinkMap(String accessToken) async {
     final itemsByKind = <CatalogKind, List<CatalogItem>>{};
     for (final kind in ObsidianNoteMapper.exportKinds) {
       itemsByKind[kind] = await _api.list(accessToken, kind);

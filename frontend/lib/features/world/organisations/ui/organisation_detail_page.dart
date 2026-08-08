@@ -38,7 +38,6 @@ class _OrganisationDetailPageState extends State<OrganisationDetailPage> {
   Map<int, String> _locationNames = const {};
   Map<int, CatalogItem> _locationsById = const {};
   List<CatalogItem> _all = const [];
-  List<CatalogItem> _breadcrumb = const [];
 
   Future<String?> _token() => widget.auth.requireAccessToken();
 
@@ -71,27 +70,8 @@ class _OrganisationDetailPageState extends State<OrganisationDetailPage> {
         _locationNames = {for (final l in locations) l.id: l.name};
         _locationsById = {for (final l in locations) l.id: l};
         _all = orgs;
-        _breadcrumb = _buildBreadcrumb(orgs);
       });
     } catch (_) {}
-  }
-
-  List<CatalogItem> _buildBreadcrumb(List<CatalogItem> all) {
-    final byId = {for (final i in all) i.id: i};
-    final chain = <CatalogItem>[];
-    var current = _record.parentId;
-    final seen = <int>{};
-    while (current != null && !seen.contains(current)) {
-      seen.add(current);
-      final parent = byId[current];
-      if (parent == null) break;
-      chain.insert(0, parent);
-      current = OrganisationRecord.fromCatalogPayload(
-        name: parent.name,
-        payload: parent.payload,
-      ).parentId;
-    }
-    return chain;
   }
 
   Future<void> _edit() async {
@@ -203,44 +183,7 @@ class _OrganisationDetailPageState extends State<OrganisationDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (_breadcrumb.isNotEmpty) ...[
-          Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              for (var i = 0; i < _breadcrumb.length; i++) ...[
-                if (i > 0)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Icon(
-                      Icons.chevron_right,
-                      size: 16,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                InkWell(
-                  onTap: () => _openOrganisation(_breadcrumb[i]),
-                  child: Text(
-                    _breadcrumb[i].name,
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: scheme.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 12),
-        ],
         Text(_item.name, style: textTheme.headlineSmall),
-        const SizedBox(height: 4),
-        Text(
-          'Organisation',
-          style: textTheme.titleMedium?.copyWith(
-            color: scheme.primary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
         if (record.aliases.isNotEmpty) ...[
           const SizedBox(height: 6),
           Text(
@@ -298,17 +241,9 @@ class _OrganisationDetailPageState extends State<OrganisationDetailPage> {
 
   Widget _description(OrganisationRecord record) {
     if (record.description.trim().isEmpty) return const SizedBox.shrink();
-    final textTheme = Theme.of(context).textTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text('Description', style: textTheme.titleSmall),
-        const SizedBox(height: 8),
-        CatalogRichText(
-          auth: widget.auth,
-          content: record.description,
-        ),
-      ],
+    return CatalogRichText(
+      auth: widget.auth,
+      content: record.description,
     );
   }
 

@@ -190,28 +190,37 @@ class _PreferencesBodyState extends State<PreferencesBody> {
     if (export.isImporting) return;
 
     final picked = await FilePicker.platform.pickFiles(
-      dialogTitle: 'Import one Obsidian note',
+      dialogTitle: 'Import Obsidian notes',
       type: FileType.custom,
       allowedExtensions: const ['md'],
-      allowMultiple: false,
+      allowMultiple: true,
       lockParentWindow: true,
     );
     if (picked == null || picked.files.isEmpty || !mounted) return;
-    final path = picked.files.single.path;
-    if (path == null || path.isEmpty) {
+    final paths = [
+      for (final f in picked.files)
+        if (f.path != null && f.path!.isNotEmpty) f.path!,
+    ];
+    if (paths.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not read the selected file')),
+        const SnackBar(content: Text('Could not read the selected file(s)')),
       );
       return;
     }
 
+    final count = paths.length;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Import note into database?'),
+        title: Text(count == 1 ? 'Import note into database?' : 'Import $count notes into database?'),
         content: Text(
-          'Overwrite the matching catalog record with the body of:\n\n$path\n\n'
-          'Only this one file is imported. Other vault notes are ignored.',
+          count == 1
+              ? 'Import:\n\n${paths.single}\n\n'
+                  'Existing rpg_manager_id values overwrite matching records. '
+                  'Notes without a matching id create new catalog records.'
+              : 'Import $count Markdown notes.\n\n'
+                  'Existing rpg_manager_id values overwrite matching records. '
+                  'Notes without a matching id create new catalog records.',
         ),
         actions: [
           TextButton(
@@ -228,8 +237,8 @@ class _PreferencesBodyState extends State<PreferencesBody> {
     if (confirm != true || !mounted) return;
 
     String? summary;
-    final error = await export.importNoteFile(
-      path,
+    final error = await export.importNoteFiles(
+      paths,
       onSuccess: (value) => summary = value,
     );
     if (!mounted) return;
@@ -241,9 +250,7 @@ class _PreferencesBodyState extends State<PreferencesBody> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            summary == null
-                ? 'Imported note into the database'
-                : 'Imported $summary',
+            summary ?? 'Imported notes into the database',
           ),
         ),
       );
@@ -534,10 +541,10 @@ class _PreferencesBodyState extends State<PreferencesBody> {
                         ? Icons.hourglass_top
                         : Icons.upload_file_outlined,
                   ),
-                  title: const Text('Import note'),
+                  title: const Text('Import notes'),
                   subtitle: const Text(
-                    'Choose one exported .md file to overwrite its matching '
-                    'catalog record (body + name from frontmatter).',
+                    'Choose one or more .md files. Matching ids overwrite '
+                    'catalog records; notes without an id create new ones.',
                   ),
                   trailing: FilledButton(
                     onPressed: export.isImporting ? null : _importObsidianNote,

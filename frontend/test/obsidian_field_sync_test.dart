@@ -33,7 +33,8 @@ void main() {
     expect(md, contains('rpg_manager_id: 12'));
     expect(md, contains('parentId: 3'));
     expect(md, contains('imageUrl:'));
-    expect(md, contains('## Description'));
+    // Description is leading body (no ## Description heading).
+    expect(md, isNot(contains('## Description')));
     expect(md, contains('A powerful guild.'));
     expect(md, contains('## Founding'));
     expect(md, contains('## Motto'));
@@ -63,7 +64,8 @@ void main() {
       payload: payload,
       rewriteLinks: (t) => t,
     );
-    expect(body, contains('## Description'));
+    expect(body, isNot(contains('## Description')));
+    expect(body, startsWith('Deal fire damage.'));
     expect(body, contains('## At higher levels'));
     expect(body, contains('Extra die.'));
 
@@ -79,5 +81,14 @@ void main() {
       parsedBody.sections['At higher levels'],
       contains('Extra die'),
     );
+  });
+
+  test('legacy ## Description section still imports', () {
+    final map = obsidianFieldMapFor(CatalogKind.conditions);
+    final parsedBody = parseObsidianBody(
+      '## Description\n\nYou cannot be seen.\n',
+      map: map,
+    );
+    expect(parsedBody.sections['Description'], contains('cannot be seen'));
   });
 }

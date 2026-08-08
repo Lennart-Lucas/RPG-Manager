@@ -36,13 +36,60 @@ class ObsidianNoteMapper {
       .where((k) => k != CatalogKind.generators)
       .toList(growable: false);
 
-  /// Title-cased folder label for a kind (e.g. `Spell tags`).
+  /// Title-cased folder label for a kind (e.g. `Spell Tags`).
   static String kindFolderName(CatalogKind kind) {
     return kind.pluralLabel
         .split(RegExp(r'\s+'))
         .where((w) => w.isNotEmpty)
         .map((w) => '${w[0].toUpperCase()}${w.substring(1)}')
         .join(' ');
+  }
+
+  /// Infer catalog kind from a vault file path via kind folder segments.
+  ///
+  /// Prefers the last matching folder under `RPG Manager/` so nested paths like
+  /// `…/Classes/Wizard/Subclasses/Foo.md` resolve to subclasses.
+  static CatalogKind? inferKindFromVaultPath(String absolutePath) {
+    final folders = <String, CatalogKind>{
+      for (final k in exportKinds) kindFolderName(k).toLowerCase(): k,
+    };
+    final segments = absolutePath
+        .replaceAll('\\', '/')
+        .split('/')
+        .where((s) => s.isNotEmpty)
+        .toList();
+
+    CatalogKind? fromManaged;
+    var inManaged = false;
+    for (final seg in segments) {
+      if (seg.toLowerCase() == obsidianManagedFolderName.toLowerCase()) {
+        inManaged = true;
+        continue;
+      }
+      if (!inManaged) continue;
+      final kind = folders[seg.toLowerCase()];
+      if (kind != null) fromManaged = kind;
+    }
+    if (fromManaged != null) return fromManaged;
+
+    CatalogKind? fromAny;
+    for (final seg in segments) {
+      final kind = folders[seg.toLowerCase()];
+      if (kind != null) fromAny = kind;
+    }
+    return fromAny;
+  }
+
+  /// Display name from a note filename (strips `.md` and ` (id)` suffixes).
+  static String nameFromFilePath(String absolutePath) {
+    var base = absolutePath.replaceAll('\\', '/');
+    final slash = base.lastIndexOf('/');
+    if (slash >= 0) base = base.substring(slash + 1);
+    if (base.toLowerCase().endsWith('.md')) {
+      base = base.substring(0, base.length - 3);
+    }
+    base = base.replaceFirst(RegExp(r' \(\d+\)$'), '').trim();
+    return base.isEmpty ? 'untitled' : base;
   }
 
   static String sanitizeFileName(String name) {

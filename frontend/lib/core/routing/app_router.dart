@@ -31,6 +31,7 @@ import '../../features/world/campaigns/ui/campaigns_body.dart';
 import '../../features/world/characters/ui/characters_body.dart';
 import '../../features/world/creatures/ui/creatures_body.dart';
 import '../../features/world/events/ui/events_body.dart';
+import '../../features/world/lore/ui/lore_body.dart';
 import '../../features/world/locations/ui/locations_body.dart';
 import '../../features/world/organisations/ui/organisations_body.dart';
 import '../theme/theme_controller.dart';
@@ -240,6 +241,7 @@ List<RouteBase> _catalogSectionRoutes(AuthController auth) {
       CatalogKind.characters => CharactersBody(auth: auth),
       CatalogKind.organisations => OrganisationsBody(auth: auth),
       CatalogKind.events => EventsBody(auth: auth),
+      CatalogKind.lore => LoreBody(auth: auth),
       CatalogKind.campaigns => CampaignsBody(auth: auth),
       _ => CatalogBody(
           auth: auth,
@@ -269,6 +271,7 @@ List<RouteBase> _catalogSectionRoutes(AuthController auth) {
     CatalogKind.characters,
     CatalogKind.organisations,
     CatalogKind.events,
+    CatalogKind.lore,
     CatalogKind.campaigns,
   ];
 

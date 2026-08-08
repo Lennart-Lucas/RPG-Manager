@@ -1,14 +1,14 @@
 ---
-rpg_manager_id: 168
+rpg_manager_id: 169
 rpg_manager_kind: "organisations"
 name: "Church of Orzhova"
 aliases:
-  - "The Undivided Church"
-  - "The Orzhovan Communion"
-  - "The Church"
+  - The Undivided Church
+  - The Orzhovan Communion
+  - The Church
 seatId: 112
 memberIds: []
-parentId: null
+parentId:
 imageUrl: ""
 ---
 

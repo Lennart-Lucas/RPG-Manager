@@ -149,6 +149,7 @@ class _AppSidebarState extends State<AppSidebar> {
       AppPage.characters ||
       AppPage.organisations ||
       AppPage.events ||
+      AppPage.lore ||
       AppPage.story =>
         true,
       _ => false,
@@ -384,6 +385,12 @@ class _AppSidebarState extends State<AppSidebar> {
                           icon: eventsPageIcon,
                           label: 'Events',
                           page: AppPage.events,
+                        ),
+                        _navTile(
+                          context,
+                          icon: lorePageIcon,
+                          label: 'Lore',
+                          page: AppPage.lore,
                         ),
                         _navTile(
                           context,

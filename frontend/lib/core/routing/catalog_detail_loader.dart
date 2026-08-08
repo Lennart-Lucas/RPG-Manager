@@ -34,6 +34,7 @@ import '../../features/world/creature_types/ui/creature_type_detail_page.dart';
 import '../../features/world/creatures/data/creature_model.dart';
 import '../../features/world/creatures/ui/creature_detail_page.dart';
 import '../../features/world/events/ui/event_detail_page.dart';
+import '../../features/world/lore/ui/lore_detail_page.dart';
 import '../../features/world/locations/ui/location_detail_page.dart';
 import '../../features/world/organisations/ui/organisation_detail_page.dart';
 
@@ -171,6 +172,8 @@ Future<Widget> buildCatalogDetailPage({
       return OrganisationDetailPage(auth: auth, item: item);
     case CatalogKind.events:
       return EventDetailPage(auth: auth, item: item);
+    case CatalogKind.lore:
+      return LoreDetailPage(auth: auth, item: item);
     case CatalogKind.locations:
       return LocationDetailPage(auth: auth, item: item);
     case CatalogKind.campaigns:
