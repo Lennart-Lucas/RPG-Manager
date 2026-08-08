@@ -6,7 +6,7 @@ Private repo auth failed on the server (git fetch / SSH to GitHub).
 
 One-time fix on the VPS — see backend/README.md (Private repository setup):
   1. ssh-keygen -t ed25519 -f ~/.ssh/rpg_manager_deploy -N ""
-  2. Add the public key as a read-only GitHub Deploy key on RPG-Manager
+  2. Add the public key as a read-only Deploy key on RPG-Manager
   3. Point ~/.ssh/config Host github.com at that IdentityFile
   4. Ensure origin is $GitHubSshUrl and run: git fetch origin
 "@
@@ -47,27 +47,6 @@ function Resolve-DeployPath {
     }
 
     return (Join-Path $BackendRoot $expanded)
-}
-
-function Invoke-ExternalCommand {
-    param(
-        [string]$Executable,
-        [Parameter(ValueFromRemainingArguments = $true)]
-        [string[]]$Arguments
-    )
-
-    $previousPreference = $ErrorActionPreference
-    $ErrorActionPreference = "Continue"
-    try {
-        $output = & $Executable @Arguments 2>&1
-        return @{
-            Output = ($output | ForEach-Object { "$_" }) -join [Environment]::NewLine
-            ExitCode = $LASTEXITCODE
-        }
-    }
-    finally {
-        $ErrorActionPreference = $previousPreference
-    }
 }
 
 function Get-DeployConfig {
@@ -115,19 +94,26 @@ function Get-RemoteDeployCommand {
     $repoPath = $RepoPath.TrimEnd("/")
     $sshUrl = $GitHubSshUrl
     # Single-line remote script so PowerShell → OpenSSH quoting stays reliable.
+    # Echoes mark each phase; Docker build is the long step (Flutter web).
     return (
         "set -e; " +
+        "echo '==> [1/4] Checking git remote...'; " +
         "cd $repoPath; " +
         "current=`$(git remote get-url origin 2>/dev/null || true); " +
         "if [ `"`$current`" != `"$sshUrl`" ]; then " +
         "git remote set-url origin $sshUrl 2>/dev/null || git remote add origin $sshUrl; " +
         "fi; " +
+        "echo '==> [2/4] Fetching origin/main...'; " +
         "if ! git fetch origin; then " +
         "echo RPG_MANAGER_DEPLOY_GIT_AUTH_FAILED >&2; exit 42; " +
         "fi; " +
+        "echo '==> [3/4] Resetting working tree to origin/main...'; " +
         "git reset --hard origin/main; " +
         "cd backend; " +
-        "docker compose -p rpg-manager-prod -f docker-compose.prod.yml up --build -d"
+        "echo '==> [4/4] Building containers (Flutter web can take 10-20+ min on first build)...'; " +
+        "echo '    Live Docker output follows; idle gaps during layer downloads are normal.'; " +
+        "DOCKER_BUILDKIT=1 docker compose --progress=plain -p rpg-manager-prod -f docker-compose.prod.yml up --build -d; " +
+        "echo '==> Remote deploy steps finished.'"
     )
 }
 
@@ -145,26 +131,54 @@ function Invoke-RemoteViaOpenSsh {
     }
 
     Write-Host "Using OpenSSH to connect to ${User}@${DeployHost}..."
+    Write-Host "Streaming remote output live (this can take a long time during Docker/Flutter builds)."
+    Write-Host ""
+
     $sshArgs = @(
         "-i", $SshKeyPath,
         "-o", "BatchMode=yes",
         "-o", "ConnectTimeout=15",
         "-o", "StrictHostKeyChecking=accept-new",
+        # Force remote stdout/stderr through without TTY allocation issues.
+        "-o", "RequestTTY=no",
         "${User}@${DeployHost}",
         $RemoteCommand
     )
-    $result = Invoke-ExternalCommand -Executable $ssh.Source -Arguments $sshArgs
-    if ($result.Output) {
-        Write-Host $result.Output
+
+    $lines = New-Object System.Collections.Generic.List[string]
+    $previousPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        & $ssh.Source @sshArgs 2>&1 | ForEach-Object {
+            $text = "$_"
+            [void]$lines.Add($text)
+            Write-Host $text
+        }
+        $exitCode = $LASTEXITCODE
     }
-    if ($result.ExitCode -eq 42 -or ($result.Output -match "RPG_MANAGER_DEPLOY_GIT_AUTH_FAILED")) {
+    finally {
+        $ErrorActionPreference = $previousPreference
+    }
+
+    $output = ($lines -join [Environment]::NewLine)
+
+    if ($exitCode -eq 42 -or ($output -match "RPG_MANAGER_DEPLOY_GIT_AUTH_FAILED")) {
         throw $PrivateRepoHint
     }
-    if ($result.ExitCode -ne 0) {
-        if ($result.Output -match "Permission denied \(publickey\)|Could not read from remote repository|Repository not found|Authentication failed") {
+    if ($exitCode -ne 0) {
+        # Only blame GitHub deploy-key setup when the failure looks like git auth,
+        # not a generic SSH BatchMode/passphrase denial during VPS login.
+        if ($output -match "RPG_MANAGER_DEPLOY_GIT_AUTH_FAILED|Could not read from remote repository|Repository not found") {
             throw $PrivateRepoHint
         }
-        throw "Remote deploy failed (ssh exit code $($result.ExitCode))."
+        if ($output -match "Permission denied \(publickey\)" -and $output -notmatch "docker|Building|Dockerfile") {
+            throw (
+                "SSH to the VPS failed (publickey). " +
+                "If your key has a passphrase, run: ssh-add `"$SshKeyPath`" " +
+                "then retry. Interactive ssh works; this script cannot prompt for a passphrase."
+            )
+        }
+        throw "Remote deploy failed (ssh exit code $exitCode)."
     }
 }
 
