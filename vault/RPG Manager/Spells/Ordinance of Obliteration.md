@@ -4,36 +4,34 @@ rpg_manager_kind: "spells"
 name: "Ordinance of Obliteration"
 id: "ordinance-of-obliteration"
 level: 5
-school: "evocation"
-castingTime:
-  amount: 1
-  unit: "action"
 range:
   type: "ranged"
   distanceFeet: 300
-components:
-  verbal: true
-  somatic: true
-  material: true
-  materialDescription: "a piece of sunstone"
-  materialConsumed: false
-duration:
-  type: "oneMinute"
-  concentration: true
+school: "evocation"
+tagIds: []
 classIds:
   - 2
   - 5
   - 6
   - 7
   - 10
-tagIds: []
-savingThrow: "none"
+duration:
+  type: "oneMinute"
+  concentration: true
 attackType: "none"
-sourceFileId: 1
+components:
+  verbal: true
+  somatic: true
+  material: true
+  materialConsumed: false
+  materialDescription: "a piece of sunstone"
 sourcePage: 4
+castingTime:
+  unit: "action"
+  amount: 1
+savingThrow: "none"
+sourceFileId: 1
 ---
-
-## Description
 
 You shed Bright Light in a 30-foot radius, and Dim Light for an additional 30 feet.
 When you cast the spell, and as a Magic Action on each of your turns thereafter, you can manifest a Medium spear of resplendent flame to launch at a point or creature within range. If a creature was chosen, make a ranged spell attack. If the target is more than 120 feet away, the attack is made with Disadvantage. On a hit, the target takes 5d6 [[RPG Manager/Damage Types/Piercing]] or [[RPG Manager/Damage Types/Fire]] damage (your choice for each attack).

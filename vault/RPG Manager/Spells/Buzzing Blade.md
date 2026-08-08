@@ -4,34 +4,32 @@ rpg_manager_kind: "spells"
 name: "Buzzing Blade"
 id: "buzzing-blade"
 level: 0
-school: "transmutation"
-castingTime:
-  amount: 1
-  unit: "bonus action"
 range:
   type: "self"
-components:
-  verbal: true
-  somatic: true
-  material: true
-  materialDescription: "a melee weapon that deals piercing damage worth at least 1sp"
-  materialCostGp: 0.05
-  materialConsumed: false
-duration:
-  type: "oneRound"
-  concentration: false
+school: "transmutation"
+tagIds: []
 classIds:
   - 4
   - 5
   - 6
-tagIds: []
-savingThrow: "none"
+duration:
+  type: "oneRound"
+  concentration: false
 attackType: "none"
-sourceFileId: 5
+components:
+  verbal: true
+  somatic: true
+  material: true
+  materialCostGp: 0.05
+  materialConsumed: false
+  materialDescription: "a melee weapon that deals piercing damage worth at least 1sp"
 sourcePage: 1
+castingTime:
+  unit: "bonus action"
+  amount: 1
+savingThrow: "none"
+sourceFileId: 5
 ---
-
-## Description
 
 You brandish the weapon used in the spell's casting and make a melee attack with it against one creature within 5 feet of you, with all the power of an angry swarm of hornets. On a hit, the target suffers the weapon attack's normal effects and it takes 2d4 [[RPG Manager/Damage Types/Poison]] damage the next time it uses its reaction before the end of your next turn.
 

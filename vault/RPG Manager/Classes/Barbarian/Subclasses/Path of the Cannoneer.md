@@ -5,8 +5,6 @@ name: "Path of the Cannoneer"
 parentClassId: 11
 ---
 
-## Description
-
 The path of the Cannoneer is tempting to those barbarians mad or stupid enough to enjoy drenching both themselves and their enemies in fire. Cannoneers die in battle at the hands of their opponents as commonly as from the misfires of their boomsticks. However, as long as the misfire is bright, brilliant, and as devastating to a Cannoneer's foes as it is to the Cannoneer, this is a wholesome death.
 
 ## Features

@@ -4,32 +4,30 @@ rpg_manager_kind: "spells"
 name: "Shadow Monster"
 id: "shadow-monster"
 level: 7
-school: "illusion"
-castingTime:
-  amount: 1
-  unit: "action"
 range:
   type: "ranged"
   distanceFeet: 90
+school: "illusion"
+tagIds: []
+classIds:
+  - 10
+duration:
+  type: "oneMinute"
+  concentration: true
+attackType: "none"
 components:
   verbal: true
   somatic: true
   material: true
-  materialDescription: "a candle"
   materialConsumed: false
-duration:
-  type: "oneMinute"
-  concentration: true
-classIds:
-  - 10
-tagIds: []
-savingThrow: "none"
-attackType: "none"
-sourceFileId: 4
+  materialDescription: "a candle"
 sourcePage: 3
+castingTime:
+  unit: "action"
+  amount: 1
+savingThrow: "none"
+sourceFileId: 4
 ---
-
-## Description
 
 A huge and frightening monster made of unholy shadows forms around you. It can take many forms: a giant wolf, a black dragon, a demon, or a hungry shark flying around you for instance. Each creature within 15 feet of you when you cast that spell must succeed a Wisdom saving throw or be [[RPG Manager/Conditions/Frightened]] of you for the duration of the spell. A [[RPG Manager/Conditions/Frightened]] creature can make a new Wisdom saving throw at the end of each of its turns. On a success, it is no longer [[RPG Manager/Conditions/Frightened]].
 In addition, for the duration of the spell, the Shadow Monster turns around you. As a bonus action, you can command it to attack a target within 15 feet of you. Make a melee spell attack against the target. On a hit, it takes 5d10 [[RPG Manager/Damage Types/Necrotic]] damage.

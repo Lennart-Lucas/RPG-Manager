@@ -4,36 +4,34 @@ rpg_manager_kind: "spells"
 name: "Ordinance of Humility"
 id: "ordinance-of-humility"
 level: 3
-school: "evocation"
-castingTime:
-  amount: 1
-  unit: "action"
 range:
   type: "ranged"
   distanceFeet: 120
-components:
-  verbal: true
-  somatic: false
-  material: true
-  materialDescription: "a bell"
-  materialConsumed: false
-duration:
-  type: "instantaneous"
-  concentration: false
+school: "evocation"
+tagIds: []
 classIds:
   - 2
   - 5
   - 6
   - 7
   - 10
-tagIds: []
-savingThrow: "none"
+duration:
+  type: "instantaneous"
+  concentration: false
 attackType: "none"
-sourceFileId: 1
+components:
+  verbal: true
+  somatic: false
+  material: true
+  materialConsumed: false
+  materialDescription: "a bell"
 sourcePage: 4
+castingTime:
+  unit: "action"
+  amount: 1
+savingThrow: "none"
+sourceFileId: 1
 ---
-
-## Description
 
 You project one word in a 20-foot-radius Sphere centred on a point you choose within range. Each creature in the Sphere makes a Constitution saving throw. On a failed save, a creature takes 3d8 [[RPG Manager/Damage Types/Thunder]] damage and is knocked [[RPG Manager/Conditions/Prone]]. On a successful save, a creature takes half as much damage only.
 If this spell causes a creature to make a Constitution saving throw to maintain Concentration, it is made with Disadvantage.

@@ -21,7 +21,7 @@ defenses: "The old watch-tower on the ridge; twelve men-at-arms; the levy, on pa
 
 > *The oak watch. Nobody in the village can tell you what it was watching, and every one of them will tell you it was not the road.*
 
-A border village in the northern marches on the ridge road toward the [[Dornwald]], eleven miles from the iron stakes. The Church name is **Eichenwacht**, the Oak Watch. The older name, still used by the family that holds the manor and by anyone over sixty, is **Velmorne**.
+A border village in the northern marches on the ridge road toward the [[RPG Manager/Locations/Valmoria/Althania/Dornwald]], eleven miles from the iron stakes. The Church name is **Eichenwacht**, the Oak Watch. The older name, still used by the family that holds the manor and by anyone over sixty, is **Velmorne**.
 
 **At a glance.** 310 people, down from 540 two winters ago. A sworn manor of House Velmorne under the see of Hohenfurt. The baron is nine years old.
 

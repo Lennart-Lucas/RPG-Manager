@@ -4,35 +4,33 @@ rpg_manager_kind: "spells"
 name: "Kukulkan's Wrath"
 id: "kukulkan-s-wrath"
 level: 4
-school: "evocation"
-castingTime:
-  amount: 1
-  unit: "action"
 range:
   type: "self"
-components:
-  verbal: true
-  somatic: true
-  material: true
-  materialDescription: "the engraved skull of a snake"
-  materialConsumed: false
-duration:
-  type: "tenMinutes"
-  concentration: true
+school: "evocation"
+tagIds: []
 classIds:
   - 2
   - 3
   - 4
   - 5
   - 6
-tagIds: []
-savingThrow: "none"
+duration:
+  type: "tenMinutes"
+  concentration: true
 attackType: "none"
-sourceFileId: 5
+components:
+  verbal: true
+  somatic: true
+  material: true
+  materialConsumed: false
+  materialDescription: "the engraved skull of a snake"
 sourcePage: 2
+castingTime:
+  unit: "action"
+  amount: 1
+savingThrow: "none"
+sourceFileId: 5
 ---
-
-## Description
 
 For the duration, you create a moderate wind and light obscuration within a 30-foot radius around you that moves with you. You gain a flying speed equal to your walking speed and when you should deal [[RPG Manager/Damage Types/Lightning]] or [[RPG Manager/Damage Types/Thunder]] damage to a creature, you deal an extra 2d6 [[RPG Manager/Damage Types/Lightning]] damage.
 Additionally, on each of your turns you can, as a bonus action, make a range spell attack against a creature within the area of that spell. On a hit, the target takes 1d8 [[RPG Manager/Damage Types/Lightning]] damage (plus the extra [[RPG Manager/Damage Types/Lightning]] damage granted by that spell).

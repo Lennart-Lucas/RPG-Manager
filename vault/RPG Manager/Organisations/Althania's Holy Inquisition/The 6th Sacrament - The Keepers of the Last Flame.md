@@ -37,7 +37,7 @@ By the eighth century's end the domestic covens were, as near as makes no differ
 
 An order of several hundred trained infiltrators, forgers, poisoners and network-mappers, with no remaining domestic enemy, was not disbanded. It was pointed east.
 
-Everything the Sixth learned about covens transferred with unpleasant precision to states. A heretic ring and a foreign chancery are the same object: a closed group, held together by shared secrets, penetrable through the weakest member. Since the Schism of 872 the Sixth has been Althania's intelligence service, and the [[Church of Orzhova|Church]] has never once used that word.
+Everything the Sixth learned about covens transferred with unpleasant precision to states. A heretic ring and a foreign chancery are the same object: a closed group, held together by shared secrets, penetrable through the weakest member. Since the Schism of 872 the Sixth has been Althania's intelligence service, and the [[RPG Manager/Organisations/Church of Orzhova|Church]] has never once used that word.
 
 What they do abroad, in the Sundered Communion and past the northern marches: **place** people, over years; **turn** clerks and confessors; **replace** officials rather than kill them; **map**; and only at the end, **burn** — and by then the fire is a formality performed on something already dead.
 

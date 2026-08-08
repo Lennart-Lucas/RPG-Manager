@@ -4,36 +4,34 @@ rpg_manager_kind: "spells"
 name: "Ascendant Crucible"
 id: "ascendant-crucible"
 level: 4
-school: "evocation"
-castingTime:
-  amount: 1
-  unit: "action"
 range:
   type: "ranged"
   distanceFeet: 60
-components:
-  verbal: true
-  somatic: true
-  material: true
-  materialDescription: "a bit of phosphorus"
-  materialConsumed: false
-duration:
-  type: "tenMinutes"
-  concentration: false
+school: "evocation"
+tagIds: []
 classIds:
   - 2
   - 5
   - 6
   - 7
   - 10
-tagIds: []
-savingThrow: "none"
+duration:
+  type: "tenMinutes"
+  concentration: false
 attackType: "none"
-sourceFileId: 1
+components:
+  verbal: true
+  somatic: true
+  material: true
+  materialConsumed: false
+  materialDescription: "a bit of phosphorus"
 sourcePage: 4
+castingTime:
+  unit: "action"
+  amount: 1
+savingThrow: "none"
+sourceFileId: 1
 ---
-
-## Description
 
 Choose a willing creature that you can see within range. For the spell's duration, the target is encircled by snaking streaks of heatless flame shedding Dim Light in a 5-foot Radius. The target can at any point end this spell on itself (no action required).
 Each time the target is attacked by an enemy, after a hit or miss, the target and each creature within a 5-foot Emanation makes a Constitution saving throw, as the flames flare. On a failed save, a creature takes 2d8 [[RPG Manager/Damage Types/Fire]] damage, or half as much damage on a successful one.

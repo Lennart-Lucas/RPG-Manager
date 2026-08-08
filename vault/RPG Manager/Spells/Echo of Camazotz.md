@@ -32,8 +32,6 @@ sourceFileId: 5
 sourcePage: 2
 ---
 
-## Description
-
 This spell lets you use the echolocation powers of bats as the legendary Camazotz. When you cast this spell, and then as a bonus action on each of your turns until the spell ends, you can use echolocation to see every creatures and objects that aren't behind a total cover within a 30-foot cone before you. If there are illusions in that cone, you can roll intelligence checks or saving throws against them with advantage.
 
 ## At higher levels

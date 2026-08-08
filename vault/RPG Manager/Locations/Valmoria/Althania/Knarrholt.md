@@ -21,7 +21,7 @@ defenses: "Palisade and ditch; the chapter-house; forty billmen of the town levy
 
 > *The wood does not creak in the wind. That is the first thing they tell you, and they tell you as if it were a joke.*
 
-A timber and charcoal town on the northern edge of the **Creakwood**, and the seat of a chapter-house of [[The 5th Sacrament - The Wardens of the Argent Hunt]]. It exists because the realm needs charcoal, and it survives because of the men in the long grey house at the top of the street.
+A timber and charcoal town on the northern edge of the **Creakwood**, and the seat of a chapter-house of [[RPG Manager/Organisations/Althania's Holy Inquisition/The 5th Sacrament - The Wardens of the Argent Hunt]]. It exists because the realm needs charcoal, and it survives because of the men in the long grey house at the top of the street.
 
 **At a glance.** 1,900 in the town, three thousand more scattered across the charcoal camps. A charter town of the see of Hohenfurt, under Reeve Halma Storr — and, in every way that matters after dark, under Master of the Kill **Berent Ossel**.
 
@@ -55,7 +55,7 @@ Nobody in the town regards these as superstitions. The Wardens do not correct th
 
 The circuit has lost **four Wardens in two years** — four times its usual rate — and Master of the Hunt Ottilie Reyn moved her own household to Knarrholt last spring, which Wardens do not do for ordinary bad luck.
 
-Two of the four were lost at the same place, eleven months apart, on the ride toward the [[Dornwald]] border.
+Two of the four were lost at the same place, eleven months apart, on the ride toward the [[RPG Manager/Locations/Valmoria/Althania/Dornwald]] border.
 
 The charcoal camps in the deep cut have taken to keeping a fire that is never allowed out, and to leaving a portion of every meal at the edge of the light. Ossel has been told. Ossel has filed it as *practice of uncertain origin, harmless*, which is a lie, and he knows what filing a lie makes him.
 

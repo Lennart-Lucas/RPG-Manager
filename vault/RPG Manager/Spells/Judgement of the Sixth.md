@@ -4,33 +4,31 @@ rpg_manager_kind: "spells"
 name: "Judgement of the Sixth"
 id: "black-pyre-of-the-condemned"
 level: 4
-school: "evocation"
-castingTime:
-  amount: 1
-  unit: "action"
 range:
   type: "ranged"
   distanceFeet: 60
-components:
-  verbal: true
-  somatic: true
-  material: true
-  materialDescription: "an iron nail and a pinch of ash"
-  materialConsumed: false
-duration:
-  type: "oneMinute"
-  concentration: true
+school: "evocation"
+tagIds: []
 classIds:
   - 2
   - 6
   - 7
   - 10
-tagIds: []
-savingThrow: "none"
+duration:
+  type: "oneMinute"
+  concentration: true
 attackType: "none"
+components:
+  verbal: true
+  somatic: true
+  material: true
+  materialConsumed: false
+  materialDescription: "an iron nail and a pinch of ash"
+castingTime:
+  unit: "action"
+  amount: 1
+savingThrow: "none"
 ---
-
-## Description
 
 You condemn a creature you can see within range. A blackened stake bursts from the ground beneath it, spectral chains lashing it in place as kindling catches at its feet.
 The target must make a Dexterity saving throw. On a failed save, it takes 4d6 [[RPG Manager/Damage Types/Fire]] damage and is [[RPG Manager/Conditions/Restrained]] by the chains. On a successful save, it takes half as much damage, isn't [[RPG Manager/Conditions/Restrained]], and the spell ends.

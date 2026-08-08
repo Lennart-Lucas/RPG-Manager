@@ -4,8 +4,6 @@ rpg_manager_kind: "spell_tags"
 name: "Formula"
 ---
 
-## Description
-
 Certain spells in this chapter have a special tag: formula. Such a spell draws upon universal principles that allow them to function even for non-spellcasters. Formula magic uses science and mathematics beyond most mortal understanding to power the casting of highly specialized spells. Most formulas are held only in shunned books and in the minds of dangerous eccentrics who know more than is safe about the secrets of reality. Generally, these spells depend upon knowledge of the alien sciences, extradimensional mathematics, and incomprehensible iconography of the cosmic forces underlying the Mythos.
 A spell with the formula tag can be cast normally, as a formula, or (if it also has the ritual tag and the character has a feature to allow casting rituals) as a ritual. Casting a spell as a formula takes the normal casting time but it carries a risk of failure (see **Formula Ability Checks**, below).
 Casting a spell as a formula doesn’t expend a spell slot, so it can’t be cast at a higher spell level.

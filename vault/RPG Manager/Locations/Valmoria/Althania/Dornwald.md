@@ -29,7 +29,7 @@ Black thorn and dead oak in the far northern marches, forty miles across, growin
 
 In 563 AR something came out of it. Over eight winters forty-one villages emptied — not sacked; **emptied**, doors shut, tables laid, livestock in the byres. Two levies marched north and did not come back in any number worth counting.
 
-[[The 5th Sacrament - The Wardens of the Argent Hunt]] was founded in 570 to end it. The Season ended in 571. In nine hundred years the order has never once claimed it was responsible, which is not modesty; the Fifth claims everything it kills, in writing, in the Ledger of the Circuit, and the entry for 571 is blank.
+[[RPG Manager/Organisations/Althania's Holy Inquisition/The 5th Sacrament - The Wardens of the Argent Hunt]] was founded in 570 to end it. The Season ended in 571. In nine hundred years the order has never once claimed it was responsible, which is not modesty; the Fifth claims everything it kills, in writing, in the Ledger of the Circuit, and the entry for 571 is blank.
 
 ## The Boundary
 
@@ -46,7 +46,7 @@ Between 572 and 953 the Wardens entered it on average twice a decade. The entrie
 ## What Is Known
 
 - The thorn is black-barked, grows in rings rather than stands, and does not burn well even in a dry year — which was tested exhaustively in 566, 567 and 601.
-- Inside the outer mile there are stones: capped stumps, like the Whiteroot Stone at [[Weissturm]], but smaller and older and far more numerous.
+- Inside the outer mile there are stones: capped stumps, like the Whiteroot Stone at [[RPG Manager/Locations/Valmoria/Althania/Weissturm]], but smaller and older and far more numerous.
 - Compasses are reliable. Dogs are not. The argent hounds will work the boundary and will not cross it, and no Houndmaster has ever made one do so.
 - There are four village sites within the wood that appear on no map because they were struck from the register in 571. Their names are in the Silent Shelf at Lucerna.
 
@@ -54,7 +54,7 @@ Between 572 and 953 the Wardens entered it on average twice a decade. The entrie
 
 The march-posts have filed eleven "irregularities" in two years, against a nine-hundred-year average of about one. The see of Hohenfurt has asked the Conclave twice for a Warden detachment on the boundary and been told the boundary is not a circuit.
 
-And the two Wardens the [[Knarrholt]] chapter-house lost in the same spot, eleven months apart, were lost on the ride that runs toward the stakes.
+And the two Wardens the [[RPG Manager/Locations/Valmoria/Althania/Knarrholt]] chapter-house lost in the same spot, eleven months apart, were lost on the ride that runs toward the stakes.
 
 ## Errors Commonly Repeated
 

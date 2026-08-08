@@ -16,7 +16,7 @@ imageUrl: ""
 
 > *The Wardens of the Argent Hunt are set against that which is not of natural creation. Beasts, demons, and aberrations of corrupted flesh or will fall within their charge. Where doctrine ends and survival begins, they are granted sanction to pursue, to endure, and to eradicate.*
 
-**Founded 570 AR**, in the seventh year of the **Season of Teeth**, when something came out of the [[Dornwald]] and, over eight winters, emptied forty-one villages in the northern marches. Levies were sent and did not come back. The Fifth was raised out of what was left: foresters, poachers, houndsmen, two apostate physicians and a man who had survived three encounters and would not say how.
+**Founded 570 AR**, in the seventh year of the **Season of Teeth**, when something came out of the [[RPG Manager/Locations/Valmoria/Althania/Dornwald]] and, over eight winters, emptied forty-one villages in the northern marches. Levies were sent and did not come back. The Fifth was raised out of what was left: foresters, poachers, houndsmen, two apostate physicians and a man who had survived three encounters and would not say how.
 
 **They heal the division of flesh.** One creation, whole as it was made. What is stitched, doubled, or made of parts is not creation, and has no claim on mercy.
 
@@ -35,7 +35,7 @@ They work alone or in pairs, ride a circuit of the marches, take the Church's si
 - Curses, hauntings, blighted ground, and the burial of what will not stay buried.
 - Sanction to enter any land, break any door, dig any grave, and burn any building, without a bishop's leave and without compensation.
 
-They are explicitly **not** charged with cults, witches, or covens. Human heresy belongs to [[The 6th Sacrament - The Keepers of the Last Flame]]. This division was clean for two hundred years and has not been clean for eighty.
+They are explicitly **not** charged with cults, witches, or covens. Human heresy belongs to [[RPG Manager/Organisations/Althania's Holy Inquisition/The 6th Sacrament - The Keepers of the Last Flame]]. This division was clean for two hundred years and has not been clean for eighty.
 
 ## Ranks
 
@@ -55,11 +55,11 @@ The **argent hounds** of the chapter-houses are bred for a nose that finds what 
 
 Chronically under-funded, chronically over-committed, and the only Sacrament the common people are actually glad to see. A village will hide a Steward's cart and feed a Warden.
 
-Its quarrel with the Sixth is the great open wound of the Conclave. The Sixth's turn outward has left domestic cults to sprout in the emptied villages, and by long custom no Warden may open a case against people. So the Wardens have taken to arriving late, calling a coven a *beast-haunt* in the filing, and dealing with it — which is a lie in a Church document, which is a matter for [[The 4th Sacrament - The Arbiters of Judgment]], and everyone concerned knows it.
+Its quarrel with the Sixth is the great open wound of the Conclave. The Sixth's turn outward has left domestic cults to sprout in the emptied villages, and by long custom no Warden may open a case against people. So the Wardens have taken to arriving late, calling a coven a *beast-haunt* in the filing, and dealing with it — which is a lie in a Church document, which is a matter for [[RPG Manager/Organisations/Althania's Holy Inquisition/The 4th Sacrament - The Arbiters of Judgment]], and everyone concerned knows it.
 
 ## In 958 AR
 
-The [[Knarrholt|Creakwood]] circuit has lost four Wardens in two years, which is four times its normal rate. Reyn has moved her own chapter-house north. The [[Dornwald]] has been formally *unentered* since 953 — no writ will be issued for it, no Warden is permitted in, and the order will not say who made that decision.
+The [[RPG Manager/Locations/Valmoria/Althania/Knarrholt|Creakwood]] circuit has lost four Wardens in two years, which is four times its normal rate. Reyn has moved her own chapter-house north. The [[RPG Manager/Locations/Valmoria/Althania/Dornwald]] has been formally *unentered* since 953 — no writ will be issued for it, no Warden is permitted in, and the order will not say who made that decision.
 
 And in the emptied villages of Veldenau, Wardens keep finding shrines that are not to anything they have a name for, and filing them as beast-haunts, and going home.
 

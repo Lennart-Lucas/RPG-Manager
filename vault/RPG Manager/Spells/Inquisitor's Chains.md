@@ -4,36 +4,34 @@ rpg_manager_kind: "spells"
 name: "Inquisitor's Chains"
 id: "inquisitor-s-chains"
 level: 1
-school: "conjuration"
-castingTime:
-  amount: 1
-  unit: "action"
 range:
   type: "ranged"
   distanceFeet: 60
-components:
-  verbal: true
-  somatic: true
-  material: true
-  materialDescription: "a piece of silver chain"
-  materialConsumed: false
-duration:
-  type: "oneMinute"
-  concentration: true
+school: "conjuration"
+tagIds: []
 classIds:
   - 2
   - 5
   - 6
   - 7
   - 10
-tagIds: []
-savingThrow: "none"
+duration:
+  type: "oneMinute"
+  concentration: true
 attackType: "none"
-sourceFileId: 1
+components:
+  verbal: true
+  somatic: true
+  material: true
+  materialConsumed: false
+  materialDescription: "a piece of silver chain"
 sourcePage: 2
+castingTime:
+  unit: "action"
+  amount: 1
+savingThrow: "none"
+sourceFileId: 1
 ---
-
-## Description
 
 Chains of celestial steel burst from under a creature you choose and can see within range. The target must succeed on a Strength saving throw or be [[RPG Manager/Conditions/Restrained]] by the chains. Fiends have Disadvantage on saving throws for this spell.
 If a creature attempts to teleport the target, including itself, that creature must succeed on an ability check using their spellcasting ability against your spell save DC, or the teleport fails. If the teleport is from a spell of a level higher than the chains', the creature makes the check with Advantage. Creatures without a spellcasting ability make an Intelligence (Arcana) check instead.

@@ -4,34 +4,32 @@ rpg_manager_kind: "spells"
 name: "Hunger of Bontu"
 id: "hunger-of-citapli"
 level: 2
-school: "transmutation"
-castingTime:
-  amount: 1
-  unit: "action"
 range:
   type: "self"
-components:
-  verbal: false
-  somatic: true
-  material: false
-  materialConsumed: false
-duration:
-  type: "oneMinute"
-  concentration: true
+school: "transmutation"
+tagIds: []
 classIds:
   - 4
   - 5
   - 6
   - 8
   - 10
-tagIds: []
-savingThrow: "none"
+duration:
+  type: "oneMinute"
+  concentration: true
 attackType: "none"
-sourceFileId: 5
+components:
+  verbal: false
+  somatic: true
+  material: false
+  materialConsumed: false
 sourcePage: 2
+castingTime:
+  unit: "action"
+  amount: 1
+savingThrow: "none"
+sourceFileId: 5
 ---
-
-## Description
 
 As you conjure the endless hunger of Citapli, the entirety of one of your free arm is changed into the ferocious maw of a giant crocodile! For the duration, it counts as a martial weapon with which you are proficient, and deals 2d8 [[RPG Manager/Damage Types/Piercing]] damage on a hit. You can use your spellcasting ability modifier instead of strength for both attack and damage rolls, and when you hit a Large or smaller creature with the maw, it is grappled. While a creature is grappled by the maw, the DC to escape is equal to your spell save DC and you can't attack any other creature with the maw.
 

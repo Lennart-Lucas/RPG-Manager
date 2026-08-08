@@ -16,7 +16,7 @@ imageUrl: ""
 
 > *The Shepherds of the Host are appointed to the souls of the armed faithful. Within armies and warbands they walk unseen, guiding the will of steel toward righteous obedience. They ensure that no blade is raised without divine sanction, and no commander's ambition exceeds the dominion of the Church.*
 
-**Founded 137 AR**, three years after **Marshal Hedric Kaal** won the realm's northern war and then brought eleven thousand veterans to the gates of [[Weissturm]] to ask, politely, to be invested with the lands he had conquered. He was refused, and then he was killed by his own captains, and the Church has never wanted to find out whether that would work twice.
+**Founded 137 AR**, three years after **Marshal Hedric Kaal** won the realm's northern war and then brought eleven thousand veterans to the gates of [[RPG Manager/Locations/Valmoria/Althania/Weissturm]] to ask, politely, to be invested with the lands he had conquered. He was refused, and then he was killed by his own captains, and the Church has never wanted to find out whether that would work twice.
 
 **They heal the division of the sword.** One army, and it is not the Marshal's.
 
@@ -33,7 +33,7 @@ To the ranks the Shepherd is the only officer who will sit in the mud with them,
 
 It is also the mechanism. A Shepherd who **withdraws sanction** does not need to arrest a general. He steps into the yard, states that the campaign is no longer holy, and the man's own sergeants take him. The order teaches that the second face should be shown perhaps twice in a career, and that a Shepherd who needs it more often has failed at the first.
 
-Twice in nine hundred years has a company refused its Shepherd. Both times the [[The 4th Sacrament - The Arbiters of Judgment]] came, and both times the company ceased to exist as a legal entity — its colours effaced by the First, its pay struck by the Third, its survivors landless men with no name.
+Twice in nine hundred years has a company refused its Shepherd. Both times the [[RPG Manager/Organisations/Althania's Holy Inquisition/The 4th Sacrament - The Arbiters of Judgment]] came, and both times the company ceased to exist as a legal entity — its colours effaced by the First, its pay struck by the Third, its survivors landless men with no name.
 
 ## Ranks
 
@@ -50,7 +50,7 @@ Grey, crimson-corded. The mark is a shepherd's crook crossed with a bared blade.
 
 The Second is the reason Althania's nobility has never successfully rebelled. It is also, increasingly, the reason Althania loses wars: every sanction is a delay, and a Shepherd who is unsure will let a good opportunity die rather than risk an unholy one.
 
-Relations with [[The 3rd Sacrament - The Stewards of Providence]] have gone from cold to open in the last two years, since the Stewards began auditing the commissariat of the Penitent Campaign and found that the army had been fed, on paper, twice.
+Relations with [[RPG Manager/Organisations/Althania's Holy Inquisition/The 3rd Sacrament - The Stewards of Providence]] have gone from cold to open in the last two years, since the Stewards began auditing the commissariat of the Penitent Campaign and found that the army had been fed, on paper, twice.
 
 ## In 958 AR
 

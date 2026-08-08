@@ -29,7 +29,7 @@ A village of four hundred and sixty souls on a causeway through the wet fen coun
 
 Seventy-one in the community, mostly women. It keeps the shrine of Saint Elvine of the Fen — patron of hedge-wives, midwives and fevers — and it does what her cult has always done: it runs an infirmary that takes anyone, and it makes physic.
 
-The **fen-physic** of Dunvicum is the best in the realm and is sold as far as [[Weissturm]]. It is made from things that grow in standing water, by recipes the abbey has kept since 402 AR, and the recipes are copied by hand and have never been struck on an impression engine.
+The **fen-physic** of Dunvicum is the best in the realm and is sold as far as [[RPG Manager/Locations/Valmoria/Althania/Weissturm]]. It is made from things that grow in standing water, by recipes the abbey has kept since 402 AR, and the recipes are copied by hand and have never been struck on an impression engine.
 
 Abbey-lands answer to no bishop. Dunvicum has therefore had one Church visitor in the last forty years: a Steward, counting eel.
 
@@ -41,7 +41,7 @@ The people are polite, unhurried, and extremely good at answering a question wit
 
 ## What the Abbey Does Not Publish
 
-Saint Elvine was canonised in 402 AR after a cause the Attestors spent nine years trying to break. She is the patron of exactly the people [[The 6th Sacrament - The Keepers of the Last Flame]] was founded, three hundred years later, to burn.
+Saint Elvine was canonised in 402 AR after a cause the Attestors spent nine years trying to break. She is the patron of exactly the people [[RPG Manager/Organisations/Althania's Holy Inquisition/The 6th Sacrament - The Keepers of the Last Flame]] was founded, three hundred years later, to burn.
 
 The Century of Pyres never came to Dunvicum. Every neighbouring hundred lost people. This village lost none. The abbey's explanation, given once, in 794 AR, and never amended, is that there was nothing here to find.
 

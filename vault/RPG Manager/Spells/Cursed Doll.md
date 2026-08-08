@@ -4,33 +4,31 @@ rpg_manager_kind: "spells"
 name: "Cursed Doll"
 id: "cursed-doll"
 level: 6
-school: "necromancy"
-castingTime:
-  amount: 10
-  unit: "minute"
 range:
   type: "touch"
+school: "necromancy"
+tagIds:
+  - 62
+classIds:
+  - 10
+duration:
+  type: "untilDispelled"
+  concentration: false
+attackType: "none"
 components:
   verbal: true
   somatic: true
   material: true
-  materialDescription: "a doll worth at least 500 gp and a lock of hair from your target"
   materialCostGp: 500.0
   materialConsumed: true
-duration:
-  type: "untilDispelled"
-  concentration: false
-classIds:
-  - 10
-tagIds:
-  - 62
-savingThrow: "none"
-attackType: "none"
-sourceFileId: 4
+  materialDescription: "a doll worth at least 500 gp and a lock of hair from your target"
 sourcePage: 2
+castingTime:
+  unit: "minute"
+  amount: 10
+savingThrow: "none"
+sourceFileId: 4
 ---
-
-## Description
 
 You tie the lock of hair of a humanoid to the doll used as component for the spell. For the duration, the soul and the physical body of your target (the creature from which the hair comes) are linked to the doll. As long as the target is on the same plane as the doll, a creature with an Intelligence of 8 or higher that carries the doll can use it to perform the following rites:
 • **Spell Targeting:** When you cast a spell while holding the doll in your hand, you can target the creature that is linked to the doll even if it isn't in range, and even if you have no line of sight toward it.

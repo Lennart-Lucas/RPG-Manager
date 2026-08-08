@@ -4,35 +4,33 @@ rpg_manager_kind: "spells"
 name: "Inquisitor's Thurible"
 id: "inquisitor-s-thurible"
 level: 3
-school: "conjuration"
-castingTime:
-  amount: 1
-  unit: "bonus action"
 range:
   type: "self"
-components:
-  verbal: true
-  somatic: true
-  material: true
-  materialDescription: "incense"
-  materialConsumed: false
-duration:
-  type: "tenMinutes"
-  concentration: true
+school: "conjuration"
+tagIds: []
 classIds:
   - 2
   - 5
   - 6
   - 7
   - 10
-tagIds: []
-savingThrow: "none"
+duration:
+  type: "tenMinutes"
+  concentration: true
 attackType: "none"
-sourceFileId: 1
+components:
+  verbal: true
+  somatic: true
+  material: true
+  materialConsumed: false
+  materialDescription: "incense"
 sourcePage: 4
+castingTime:
+  unit: "bonus action"
+  amount: 1
+savingThrow: "none"
+sourceFileId: 1
 ---
-
-## Description
 
 You summon a thurible of celestial steel that hovers in your space.
 As a Magic action, you can make a melee spell attack at a creature within 10 feet, as the thurible whips toward the target. On a hit, the target takes [[RPG Manager/Damage Types/Bludgeoning]] or [[RPG Manager/Damage Types/Radiant]] damage (your choice for each attack) equal to 4d6 plus your spellcasting ability modifier. Fiends take an additional 2d4 [[RPG Manager/Damage Types/Radiant]] damage.

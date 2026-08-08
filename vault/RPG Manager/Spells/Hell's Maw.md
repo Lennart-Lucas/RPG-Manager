@@ -4,32 +4,30 @@ rpg_manager_kind: "spells"
 name: "Hell's Maw"
 id: "hell-s-maw"
 level: 8
-school: "conjuration"
-castingTime:
-  amount: 1
-  unit: "action"
 range:
   type: "ranged"
   distanceFeet: 150
+school: "conjuration"
+tagIds: []
+classIds:
+  - 10
+duration:
+  type: "oneMinute"
+  concentration: true
+attackType: "none"
 components:
   verbal: true
   somatic: true
   material: true
-  materialDescription: "a vial of blood from a recently murdered humanoid"
   materialConsumed: false
-duration:
-  type: "oneMinute"
-  concentration: true
-classIds:
-  - 10
-tagIds: []
-savingThrow: "none"
-attackType: "none"
-sourceFileId: 4
+  materialDescription: "a vial of blood from a recently murdered humanoid"
 sourcePage: 3
+castingTime:
+  unit: "action"
+  amount: 1
+savingThrow: "none"
+sourceFileId: 4
 ---
-
-## Description
 
 You point at a free space you can see on the ground within range. A 15 foot long and 15 feet wide monstrous maw opens there. The maw is a magical portal leading directly to the plane of a greater evil being, such as a fiend from the nine hells, a fey from the feywild, or an eldritch and sprawling being from the void for instance. It doesn't block the lines of sight but counts as a difficult terrain.
 When a creature starts its turn within 30 feet of the maw, it must succeed a charisma saving throw, or be [[RPG Manager/Conditions/Frightened]] of the maw until the start of its next turn.

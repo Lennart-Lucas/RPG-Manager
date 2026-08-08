@@ -4,36 +4,34 @@ rpg_manager_kind: "spells"
 name: "Cauterize"
 id: "cauterize"
 level: 1
-school: "evocation"
-castingTime:
-  amount: 1
-  unit: "bonus action"
 range:
   type: "ranged"
   distanceFeet: 30
-components:
-  verbal: true
-  somatic: true
-  material: true
-  materialDescription: "a match"
-  materialConsumed: false
-duration:
-  type: "instantaneous"
-  concentration: false
+school: "evocation"
+tagIds: []
 classIds:
   - 2
   - 4
   - 5
   - 6
   - 7
-tagIds: []
-savingThrow: "none"
+duration:
+  type: "instantaneous"
+  concentration: false
 attackType: "none"
-sourceFileId: 1
+components:
+  verbal: true
+  somatic: true
+  material: true
+  materialConsumed: false
+  materialDescription: "a match"
 sourcePage: 3
+castingTime:
+  unit: "bonus action"
+  amount: 1
+savingThrow: "none"
+sourceFileId: 1
 ---
-
-## Description
 
 A willing Bloodied creature that you can see within range takes [[RPG Manager/Damage Types/Fire]] or [[RPG Manager/Damage Types/Radiant]] damage (your choice) equal to 1d4 plus your spellcasting ability modifier, and gains Temporary Hit Points equal to three times the damage taken.
 
