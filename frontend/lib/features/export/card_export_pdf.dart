@@ -8,6 +8,9 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../../core/ui/mtg_card_layout.dart';
+import '../../core/markdown/wiki_link.dart';
+import '../mechanics/conditions/ui/condition_sheet.dart';
+import '../mechanics/data/styled_mechanics_record.dart';
 import '../mechanics/item_properties/data/item_property_model.dart';
 import '../mechanics/item_properties/ui/item_property_sheet.dart';
 import '../player_options/feats/data/feat_model.dart';
@@ -18,6 +21,86 @@ import '../player_options/spells/data/spell_model.dart';
 import '../player_options/spells/ui/spell_sheet.dart';
 
 export 'card_export_present.dart' show presentCardExportPdf;
+
+typedef WikiLinkLabelResolver = Future<String?> Function(
+  String kind,
+  String id,
+);
+
+Future<Spell> _spellWithResolvedLabels(
+  Spell spell,
+  WikiLinkLabelResolver? resolve,
+) async {
+  if (resolve == null) return spell;
+  final description = await materializeWikiLinkLabels(
+    spell.description,
+    resolveLabel: resolve,
+  );
+  final higher = spell.higherLevels;
+  if (higher == null) {
+    return spell.copyWith(description: description);
+  }
+  final higherDesc = higher.description;
+  final higherResolved = higherDesc == null
+      ? null
+      : await materializeWikiLinkLabels(higherDesc, resolveLabel: resolve);
+  return spell.copyWith(
+    description: description,
+    higherLevels: SpellScaling(
+      description: higherResolved ?? higher.description,
+      damageDiceIncrement: higher.damageDiceIncrement,
+      cantripLevelBreakpoints: higher.cantripLevelBreakpoints,
+    ),
+  );
+}
+
+Future<Item> _itemWithResolvedLabels(
+  Item item,
+  WikiLinkLabelResolver? resolve,
+) async {
+  if (resolve == null) return item;
+  final description = await materializeWikiLinkLabels(
+    item.description,
+    resolveLabel: resolve,
+  );
+  return item.copyWith(description: description);
+}
+
+Future<FeatRecord> _featWithResolvedLabels(
+  FeatRecord feat,
+  WikiLinkLabelResolver? resolve,
+) async {
+  if (resolve == null) return feat;
+  final description = await materializeWikiLinkLabels(
+    feat.description,
+    resolveLabel: resolve,
+  );
+  return feat.copyWith(description: description);
+}
+
+Future<ItemPropertyRecord> _propertyWithResolvedLabels(
+  ItemPropertyRecord property,
+  WikiLinkLabelResolver? resolve,
+) async {
+  if (resolve == null) return property;
+  final description = await materializeWikiLinkLabels(
+    property.description,
+    resolveLabel: resolve,
+  );
+  return property.copyWith(description: description);
+}
+
+Future<StyledMechanicsRecord> _conditionWithResolvedLabels(
+  StyledMechanicsRecord record,
+  WikiLinkLabelResolver? resolve,
+) async {
+  if (resolve == null) return record;
+  final description = await materializeWikiLinkLabels(
+    record.description,
+    resolveLabel: resolve,
+  );
+  return record.copyWith(description: description);
+}
 
 /// Light grayscale theme for low-ink / print-friendly PDF cards.
 ThemeData printFriendlyCardExportTheme() {
@@ -120,6 +203,7 @@ Future<Uint8List> rasterizeSpellCard({
   required ThemeData theme,
   List<String> classNames = const [],
   List<({int id, String name})> tags = const [],
+  WikiLinkLabelResolver? resolveWikiLinkLabel,
 }) async {
   final pages = await rasterizeSpellCards(
     context: context,
@@ -127,6 +211,7 @@ Future<Uint8List> rasterizeSpellCard({
     theme: theme,
     classNames: classNames,
     tags: tags,
+    resolveWikiLinkLabel: resolveWikiLinkLabel,
   );
   return pages.first;
 }
@@ -137,11 +222,13 @@ Future<List<Uint8List>> rasterizeSpellCards({
   required ThemeData theme,
   List<String> classNames = const [],
   List<({int id, String name})> tags = const [],
+  WikiLinkLabelResolver? resolveWikiLinkLabel,
 }) async {
+  final resolved = await _spellWithResolvedLabels(spell, resolveWikiLinkLabel);
   final key = GlobalKey();
   final out = <Uint8List>[];
   for (final sheet in buildSpellSheets(
-    spell,
+    resolved,
     classNames: classNames,
     tags: tags,
   )) {
@@ -161,11 +248,13 @@ Future<Uint8List> rasterizeItemCard({
   required BuildContext context,
   required Item item,
   required ThemeData theme,
+  WikiLinkLabelResolver? resolveWikiLinkLabel,
 }) async {
   final pages = await rasterizeItemCards(
     context: context,
     item: item,
     theme: theme,
+    resolveWikiLinkLabel: resolveWikiLinkLabel,
   );
   return pages.first;
 }
@@ -174,10 +263,12 @@ Future<List<Uint8List>> rasterizeItemCards({
   required BuildContext context,
   required Item item,
   required ThemeData theme,
+  WikiLinkLabelResolver? resolveWikiLinkLabel,
 }) async {
+  final resolved = await _itemWithResolvedLabels(item, resolveWikiLinkLabel);
   final key = GlobalKey();
   final out = <Uint8List>[];
-  for (final sheet in buildItemSheets(item)) {
+  for (final sheet in buildItemSheets(resolved)) {
     out.add(
       await _captureCardWidget(
         context: context,
@@ -194,11 +285,13 @@ Future<Uint8List> rasterizeFeatCard({
   required BuildContext context,
   required FeatRecord feat,
   required ThemeData theme,
+  WikiLinkLabelResolver? resolveWikiLinkLabel,
 }) async {
   final pages = await rasterizeFeatCards(
     context: context,
     feat: feat,
     theme: theme,
+    resolveWikiLinkLabel: resolveWikiLinkLabel,
   );
   return pages.first;
 }
@@ -207,10 +300,12 @@ Future<List<Uint8List>> rasterizeFeatCards({
   required BuildContext context,
   required FeatRecord feat,
   required ThemeData theme,
+  WikiLinkLabelResolver? resolveWikiLinkLabel,
 }) async {
+  final resolved = await _featWithResolvedLabels(feat, resolveWikiLinkLabel);
   final key = GlobalKey();
   final out = <Uint8List>[];
-  for (final sheet in buildFeatSheets(feat)) {
+  for (final sheet in buildFeatSheets(resolved)) {
     out.add(
       await _captureCardWidget(
         context: context,
@@ -227,11 +322,13 @@ Future<Uint8List> rasterizeItemPropertyCard({
   required BuildContext context,
   required ItemPropertyRecord property,
   required ThemeData theme,
+  WikiLinkLabelResolver? resolveWikiLinkLabel,
 }) async {
   final pages = await rasterizeItemPropertyCards(
     context: context,
     property: property,
     theme: theme,
+    resolveWikiLinkLabel: resolveWikiLinkLabel,
   );
   return pages.first;
 }
@@ -240,10 +337,51 @@ Future<List<Uint8List>> rasterizeItemPropertyCards({
   required BuildContext context,
   required ItemPropertyRecord property,
   required ThemeData theme,
+  WikiLinkLabelResolver? resolveWikiLinkLabel,
 }) async {
+  final resolved =
+      await _propertyWithResolvedLabels(property, resolveWikiLinkLabel);
   final key = GlobalKey();
   final out = <Uint8List>[];
-  for (final sheet in buildItemPropertySheets(property)) {
+  for (final sheet in buildItemPropertySheets(resolved)) {
+    out.add(
+      await _captureCardWidget(
+        context: context,
+        boundaryKey: key,
+        theme: theme,
+        card: sheet,
+      ),
+    );
+  }
+  return out;
+}
+
+Future<Uint8List> rasterizeConditionCard({
+  required BuildContext context,
+  required StyledMechanicsRecord record,
+  required ThemeData theme,
+  WikiLinkLabelResolver? resolveWikiLinkLabel,
+}) async {
+  final pages = await rasterizeConditionCards(
+    context: context,
+    record: record,
+    theme: theme,
+    resolveWikiLinkLabel: resolveWikiLinkLabel,
+  );
+  return pages.first;
+}
+
+Future<List<Uint8List>> rasterizeConditionCards({
+  required BuildContext context,
+  required StyledMechanicsRecord record,
+  required ThemeData theme,
+  WikiLinkLabelResolver? resolveWikiLinkLabel,
+}) async {
+  final resolved =
+      await _conditionWithResolvedLabels(record, resolveWikiLinkLabel);
+  final key = GlobalKey();
+  final out = <Uint8List>[];
+  for (final sheet in buildConditionSheets(resolved)) {
     out.add(
       await _captureCardWidget(
         context: context,

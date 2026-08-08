@@ -329,20 +329,247 @@ final kCatalogAppearanceIcons = <(String key, IconData icon, String label)>[
 bool catalogAppearanceIsFontAwesome(IconData icon) =>
     icon.fontPackage == 'font_awesome_flutter';
 
-/// Renders Material or Font Awesome catalog icons without clipping FA glyphs.
+/// Keys offered in the condition icon picker (subset of [kCatalogAppearanceIcons]).
+/// Saved keys outside this set still resolve via [catalogAppearanceIcon].
+const kConditionAppearanceIconKeys = <String>{
+  // Core / classic conditions
+  'favorite',
+  'monitor_heart',
+  'local_fire_department',
+  'ac_unit',
+  'bolt',
+  'water_drop',
+  'toxic',
+  'psychology',
+  'brightness_7',
+  'dark_mode',
+  'hearing_disabled',
+  'landscape',
+  'coronavirus',
+  'visibility_off',
+  'volume_off',
+  'sentiment_very_dissatisfied',
+  'hourglass_empty',
+  'lock',
+  'airline_seat_flat',
+  'flash_on',
+  'block',
+  'spa',
+  'shield',
+  'auto_awesome',
+  // Senses
+  'visibility',
+  'remove_red_eye',
+  'hearing',
+  'record_voice_over',
+  'voice_over_off',
+  'sensors',
+  'sensors_off',
+  // Mind / emotion
+  'memory',
+  'face',
+  'mood',
+  'mood_bad',
+  'sentiment_neutral',
+  'sentiment_dissatisfied',
+  'psychology_alt',
+  'self_improvement',
+  'crisis_alert',
+  'warning',
+  'error',
+  // Body / health
+  'sick',
+  'bloodtype',
+  'healing',
+  'medical_services',
+  'emergency',
+  'health_and_safety',
+  'vaccines',
+  'medication',
+  'hotel',
+  'bedtime',
+  'airline_seat_individual_suite',
+  // Control / movement
+  'link',
+  'link_off',
+  'do_not_touch',
+  'pan_tool',
+  'accessibility_new',
+  'directions_run',
+  'directions_walk',
+  'person_remove',
+  'person_off',
+  'do_not_disturb',
+  'do_not_disturb_on',
+  'cancel',
+  'stop_circle',
+  'pause_circle',
+  'timelapse',
+  'timer_off',
+  'frozen',
+  'snowing',
+  // Atmosphere / status
+  'whatshot',
+  'tornado',
+  'storm',
+  'cloudy_snowing',
+  'air',
+  'cyclone',
+  'wb_sunny',
+  'nightlight',
+  'blur_on',
+  'foggy',
+  'dehaze',
+  'pest_control',
+  'bug_report',
+  'dangerous',
+  'gpp_bad',
+  'gpp_good',
+  'verified_user',
+  'hexagon',
+  'all_inclusive',
+  'waves',
+  'graphic_eq',
+  'cable',
+  'balance',
+  // Font Awesome — status / affliction themed
+  'fa_skull_crossbones',
+  'fa_ghost',
+  'fa_handcuffs',
+  'fa_biohazard',
+  'fa_virus',
+  'fa_brain',
+  'fa_face_dizzy',
+  'fa_spider',
+  'fa_yin_yang',
+  'fa_book_skull',
+  'fa_shield_halved',
+  'fa_fire_flame_curved',
+  'fa_person_falling',
+  'fa_user_injured',
+  'fa_mask',
+  'fa_icicles',
+  'fa_hurricane',
+  'fa_radiation',
+  'fa_hand_fist',
+  'fa_link_slash',
+  'fa_ban',
+  'fa_moon',
+  'fa_sun',
+  'fa_snowflake',
+  'fa_bolt_lightning',
+  'fa_droplet',
+  'fa_flask',
+  'fa_vial',
+  'fa_eye_slash',
+  'fa_ear_deaf',
+  'fa_bed',
+  'fa_spa',
+  'fa_infinity',
+  'fa_heart_crack',
+  'fa_user_slash',
+  'fa_users_slash',
+  'fa_person_running',
+  'fa_person_walking',
+  'fa_hand_holding_heart',
+  'fa_hand_sparkles',
+  'fa_skull',
+  'fa_heart',
+  'fa_hand_dots',
+  'fa_wand_magic',
+  'fa_wand_magic_sparkles',
+  'fa_face_tired',
+  'fa_face_angry',
+  'fa_face_sad_tear',
+  'fa_face_meh_blank',
+  'fa_face_rolling_eyes',
+  'fa_person_burst',
+  'fa_person_rays',
+  'fa_person_drowning',
+  'fa_person_circle_exclamation',
+  'fa_person_circle_xmark',
+  'fa_person_praying',
+  'fa_bone',
+  'fa_hand_holding_medical',
+  'fa_hand_holding_droplet',
+  'fa_hand_back_fist',
+  'fa_face_flushed',
+  'fa_face_grimace',
+  'fa_face_surprise',
+  'fa_cloud_bolt',
+  'fa_wind',
+  'fa_tornado',
+  'fa_temperature_arrow_down',
+  'fa_temperature_high',
+  'fa_temperature_low',
+  'fa_fire_flame_simple',
+  'fa_fire',
+  'fa_radiation_circle',
+  'fa_syringe',
+  'fa_pills',
+  'fa_heart_circle_minus',
+  'fa_heart_circle_plus',
+  'fa_heart_circle_xmark',
+  'fa_lungs',
+  'fa_head_side_virus',
+  'fa_head_side_cough',
+  'fa_head_side_mask',
+  'fa_disease',
+  'fa_bacteria',
+  'fa_mosquito',
+  'fa_staff_snake',
+  'fa_shield_virus',
+  'fa_shield_heart',
+  'fa_handshake_slash',
+  'fa_face_frown',
+  'fa_face_frown_open',
+  'fa_face_meh',
+  'fa_face_grin_beam_sweat',
+  'fa_heart_pulse',
+  'fa_joint',
+  'fa_bandage',
+  'fa_wheelchair',
+  'fa_wheelchair_move',
+  'fa_person_cane',
+  'fa_person_circle_minus',
+  'fa_person_circle_plus',
+  'fa_person_falling_burst',
+  'fa_person_shelter',
+  'fa_head_side_cough_slash',
+  'fa_virus_covid',
+  'fa_virus_covid_slash',
+  'fa_ankh',
+  'fa_feather',
+};
+
+/// Condition picker entries in [kCatalogAppearanceIcons] order.
+List<(String key, IconData icon, String label)> get kConditionAppearanceIcons =>
+    [
+      for (final entry in kCatalogAppearanceIcons)
+        if (kConditionAppearanceIconKeys.contains(entry.$1)) entry,
+    ];
+
+/// Renders Material or Font Awesome catalog icons, centered in a square.
 Widget catalogAppearanceIconWidget(
   IconData icon, {
   double size = 24,
   Color? color,
 }) {
+  final Widget glyph;
   if (catalogAppearanceIsFontAwesome(icon)) {
-    return FaIcon(
+    glyph = FaIcon(
       FaIconData(icon),
-      size: size * 0.85,
+      size: size * 0.82,
       color: color,
     );
+  } else {
+    glyph = Icon(icon, size: size, color: color);
   }
-  return Icon(icon, size: size, color: color);
+  return SizedBox(
+    width: size,
+    height: size,
+    child: Center(child: glyph),
+  );
 }
 
 IconData catalogAppearanceIcon(String? key, {IconData fallback = Icons.circle_outlined}) {
@@ -387,6 +614,273 @@ const kCatalogAppearanceSwatches = <Color>[
   Color(0xFF37474F),
 ];
 
+typedef CatalogAppearanceIconEntry = (String key, IconData icon, String label);
+
+Future<({String iconKey, int? colorArgb})?> showCatalogAppearancePicker({
+  required BuildContext context,
+  required String iconKey,
+  required int? colorArgb,
+  required IconData fallbackIcon,
+  List<CatalogAppearanceIconEntry>? icons,
+  String title = 'Icon & color',
+}) {
+  return showModalBottomSheet<({String iconKey, int? colorArgb})>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    showDragHandle: true,
+    builder: (context) {
+      return _CatalogAppearancePickerSheet(
+        initialIconKey: iconKey,
+        initialColorArgb: colorArgb,
+        fallbackIcon: fallbackIcon,
+        icons: icons ?? kCatalogAppearanceIcons,
+        title: title,
+      );
+    },
+  );
+}
+
+class _CatalogAppearancePickerSheet extends StatefulWidget {
+  const _CatalogAppearancePickerSheet({
+    required this.initialIconKey,
+    required this.initialColorArgb,
+    required this.fallbackIcon,
+    required this.icons,
+    required this.title,
+  });
+
+  final String initialIconKey;
+  final int? initialColorArgb;
+  final IconData fallbackIcon;
+  final List<CatalogAppearanceIconEntry> icons;
+  final String title;
+
+  @override
+  State<_CatalogAppearancePickerSheet> createState() =>
+      _CatalogAppearancePickerSheetState();
+}
+
+class _CatalogAppearancePickerSheetState
+    extends State<_CatalogAppearancePickerSheet> {
+  late String _iconKey = widget.initialIconKey;
+  late int? _colorArgb = widget.initialColorArgb;
+  final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<CatalogAppearanceIconEntry> get _filtered {
+    final q = _searchController.text.trim().toLowerCase();
+    if (q.isEmpty) return widget.icons;
+    return [
+      for (final entry in widget.icons)
+        if (entry.$1.contains(q) || entry.$3.toLowerCase().contains(q)) entry,
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final selectedColor = catalogAppearanceColor(
+      _colorArgb,
+      fallback: scheme.primary,
+    );
+    final selectedIcon = catalogAppearanceIcon(
+      _iconKey,
+      fallback: widget.fallbackIcon,
+    );
+    final filtered = _filtered;
+    final maxH = MediaQuery.sizeOf(context).height * 0.88;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: SizedBox(
+        height: maxH,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 12, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.title,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(
+                      context,
+                      (iconKey: _iconKey, colorArgb: _colorArgb),
+                    ),
+                    child: const Text('Done'),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: selectedColor.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: selectedColor.withValues(alpha: 0.45),
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: catalogAppearanceIconWidget(
+                      selectedIcon,
+                      size: 28,
+                      color: selectedColor,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Preview',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Text('Color', style: Theme.of(context).textTheme.titleSmall),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final swatch in kCatalogAppearanceSwatches)
+                    InkWell(
+                      onTap: () => setState(
+                        () => _colorArgb = catalogAppearanceColorArgb(swatch),
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: swatch,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: _colorArgb ==
+                                    catalogAppearanceColorArgb(swatch)
+                                ? scheme.onSurface
+                                : scheme.outlineVariant,
+                            width: _colorArgb ==
+                                    catalogAppearanceColorArgb(swatch)
+                                ? 2.5
+                                : 1,
+                          ),
+                        ),
+                        child: _colorArgb == catalogAppearanceColorArgb(swatch)
+                            ? catalogAppearanceIconWidget(
+                                selectedIcon,
+                                size: 14,
+                                color: Colors.white,
+                              )
+                            : null,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: TextField(
+                controller: _searchController,
+                onChanged: (_) => setState(() {}),
+                decoration: const InputDecoration(
+                  labelText: 'Search icons',
+                  hintText: 'Name or keyword',
+                  prefixIcon: Icon(Icons.search),
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+            ),
+            Expanded(
+              child: filtered.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No icons match your search.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                      ),
+                    )
+                  : GridView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                      gridDelegate:
+                          const SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: 64,
+                        mainAxisSpacing: 8,
+                        crossAxisSpacing: 8,
+                        childAspectRatio: 1,
+                      ),
+                      itemCount: filtered.length,
+                      itemBuilder: (context, index) {
+                        final entry = filtered[index];
+                        final selected = _iconKey == entry.$1;
+                        return Tooltip(
+                          message: entry.$3,
+                          child: InkWell(
+                            onTap: () => setState(() => _iconKey = entry.$1),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: selected
+                                    ? selectedColor.withValues(alpha: 0.22)
+                                    : scheme.surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: selected
+                                      ? selectedColor
+                                      : scheme.outlineVariant,
+                                  width: selected ? 2 : 1,
+                                ),
+                              ),
+                              child: catalogAppearanceIconWidget(
+                                entry.$2,
+                                size: 22,
+                                color: selected
+                                    ? selectedColor
+                                    : scheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Compact form control: preview + button that opens [showCatalogAppearancePicker].
 class CatalogIconColorFields extends StatelessWidget {
   const CatalogIconColorFields({
     super.key,
@@ -395,6 +889,8 @@ class CatalogIconColorFields extends StatelessWidget {
     required this.fallbackIcon,
     required this.onIconChanged,
     required this.onColorChanged,
+    this.icons,
+    this.pickerTitle = 'Icon & color',
   });
 
   final String iconKey;
@@ -402,6 +898,22 @@ class CatalogIconColorFields extends StatelessWidget {
   final IconData fallbackIcon;
   final ValueChanged<String> onIconChanged;
   final ValueChanged<int?> onColorChanged;
+  final List<CatalogAppearanceIconEntry>? icons;
+  final String pickerTitle;
+
+  Future<void> _openPicker(BuildContext context) async {
+    final result = await showCatalogAppearancePicker(
+      context: context,
+      iconKey: iconKey,
+      colorArgb: colorArgb,
+      fallbackIcon: fallbackIcon,
+      icons: icons,
+      title: pickerTitle,
+    );
+    if (result == null) return;
+    onIconChanged(result.iconKey);
+    onColorChanged(result.colorArgb);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -411,81 +923,73 @@ class CatalogIconColorFields extends StatelessWidget {
       fallback: scheme.primary,
     );
     final selectedIcon = catalogAppearanceIcon(iconKey, fallback: fallbackIcon);
+    String? label;
+    for (final entry in icons ?? kCatalogAppearanceIcons) {
+      if (entry.$1 == iconKey) {
+        label = entry.$3;
+        break;
+      }
+    }
+    label ??= 'Custom';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Icon', style: Theme.of(context).textTheme.titleSmall),
+        Text('Appearance', style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final entry in kCatalogAppearanceIcons)
-              InkWell(
-                onTap: () => onIconChanged(entry.$1),
-                borderRadius: BorderRadius.circular(10),
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: iconKey == entry.$1
-                        ? selectedColor.withValues(alpha: 0.22)
-                        : scheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: iconKey == entry.$1
-                          ? selectedColor
-                          : scheme.outlineVariant,
+        Material(
+          color: scheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            onTap: () => _openPicker(context),
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: selectedColor.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: selectedColor.withValues(alpha: 0.4),
+                      ),
+                    ),
+                    child: catalogAppearanceIconWidget(
+                      selectedIcon,
+                      size: 24,
+                      color: selectedColor,
                     ),
                   ),
-                  child: catalogAppearanceIconWidget(
-                    entry.$2,
-                    size: 20,
-                    color: iconKey == entry.$1
-                        ? selectedColor
-                        : scheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Text('Color', style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final swatch in kCatalogAppearanceSwatches)
-              InkWell(
-                onTap: () => onColorChanged(catalogAppearanceColorArgb(swatch)),
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: swatch,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: colorArgb == catalogAppearanceColorArgb(swatch)
-                          ? scheme.onSurface
-                          : scheme.outlineVariant,
-                      width: colorArgb == catalogAppearanceColorArgb(swatch)
-                          ? 2.5
-                          : 1,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          label,
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Tap to choose icon and color',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ],
                     ),
                   ),
-                  child: colorArgb == catalogAppearanceColorArgb(swatch)
-                      ? catalogAppearanceIconWidget(
-                          selectedIcon,
-                          size: 14,
-                          color: Colors.white,
-                        )
-                      : null,
-                ),
+                  Icon(Icons.palette_outlined, color: scheme.onSurfaceVariant),
+                  const SizedBox(width: 4),
+                  Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+                ],
               ),
-          ],
+            ),
+          ),
         ),
       ],
     );

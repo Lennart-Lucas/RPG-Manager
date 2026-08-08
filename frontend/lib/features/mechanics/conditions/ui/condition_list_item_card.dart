@@ -10,7 +10,6 @@ class ConditionListItemCard extends StatelessWidget {
     required this.record,
     required this.onTap,
     this.onLongPress,
-    this.onDelete,
     this.minWidth = 280,
     this.maxWidth = 1060,
     this.selected = false,
@@ -22,7 +21,6 @@ class ConditionListItemCard extends StatelessWidget {
   final StyledMechanicsRecord record;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
-  final VoidCallback? onDelete;
   final double minWidth;
   final double maxWidth;
   final bool selected;
@@ -37,16 +35,13 @@ class ConditionListItemCard extends StatelessWidget {
         record.name.trim().isEmpty ? 'Condition' : record.name.trim();
     final accent = record.resolvedColor(fallback: colors.primary);
     final icon = record.resolvedIcon(fallback: fallbackIcon);
-    final infoBlockColor = Color.alphaBlend(
-      colors.shadow.withValues(alpha: 0.42),
-      colors.surfaceContainerLow,
-    );
     final descPreview = record.descriptionPreview;
     final descText = descPreview.isEmpty ? null : descPreview;
 
     final leading = Container(
       width: 42,
       height: 42,
+      alignment: Alignment.center,
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(13),
@@ -59,18 +54,12 @@ class ConditionListItemCard extends StatelessWidget {
       leading: leading,
       title: heading,
       subtitle: 'Condition',
-      trailing: onDelete != null
-          ? IconButton(
-              tooltip: 'Delete',
-              onPressed: onDelete,
-              icon: Icon(Icons.delete_outline, color: colors.onSurfaceVariant),
-            )
-          : selected && selectionEmphasis
-              ? Icon(Icons.check_circle, size: 22, color: colors.primary)
-              : Icon(
-                  Icons.chevron_right,
-                  color: colors.onSurfaceVariant,
-                ),
+      trailing: selected && selectionEmphasis
+          ? Icon(Icons.check_circle, size: 22, color: colors.primary)
+          : Icon(
+              Icons.chevron_right,
+              color: colors.onSurfaceVariant,
+            ),
       onTap: onTap,
       onLongPress: onLongPress,
       minWidth: minWidth,
@@ -78,34 +67,6 @@ class ConditionListItemCard extends StatelessWidget {
       selected: selected,
       selectionEmphasis: selectionEmphasis,
       children: [
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: infoBlockColor,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          padding: const EdgeInsets.fromLTRB(8, 7, 8, 7),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: RecordListCardMetaStat(
-                  label: 'Effect',
-                  value: descText == null ? 'None' : 'Described',
-                ),
-              ),
-              if (record.sourcePage != null) ...[
-                const SizedBox(width: 8),
-                Expanded(
-                  child: RecordListCardMetaStat(
-                    label: 'Page',
-                    value: '${record.sourcePage}',
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
         if (descText != null) ...[
           const SizedBox(height: 10),
           Text(

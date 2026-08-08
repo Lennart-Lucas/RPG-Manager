@@ -24,6 +24,8 @@ class FeatSheet extends StatelessWidget {
   final MtgCardRulesScaleController? rulesScaleController;
   final double maxFontSize;
   final double cardScale;
+  final void Function(String kind, String id)? onWikiLinkTap;
+  final Future<String?> Function(String kind, String id)? resolveWikiLinkLabel;
 
   const FeatSheet({
     required this.feat,
@@ -34,6 +36,8 @@ class FeatSheet extends StatelessWidget {
     this.continuationTotal,
     this.rulesScaleController,
     this.cardScale = 1.0,
+    this.onWikiLinkTap,
+    this.resolveWikiLinkLabel,
     super.key,
   });
 
@@ -110,6 +114,8 @@ class FeatSheet extends StatelessWidget {
                                   onSurface: colors.onSurface,
                                   maxFontSize: maxFontSize,
                                   scaleController: rulesScaleController,
+                                  onWikiLinkTap: onWikiLinkTap,
+                                  resolveWikiLinkLabel: resolveWikiLinkLabel,
                                 ),
                               ),
                           ],
@@ -137,6 +143,8 @@ List<FeatSheet> buildFeatSheets(
   EdgeInsetsGeometry padding = EdgeInsets.zero,
   double maxFontSize = kMtgCardRulesMaxFontSize,
   double cardScale = 1.0,
+  void Function(String kind, String id)? onWikiLinkTap,
+  Future<String?> Function(String kind, String id)? resolveWikiLinkLabel,
 }) {
   final pages = paginateCardBodyText(feat.description);
   final sharedScaleController =
@@ -148,6 +156,8 @@ List<FeatSheet> buildFeatSheets(
         padding: padding,
         maxFontSize: maxFontSize,
         cardScale: cardScale,
+        onWikiLinkTap: onWikiLinkTap,
+        resolveWikiLinkLabel: resolveWikiLinkLabel,
       ),
     ];
   }
@@ -161,6 +171,8 @@ List<FeatSheet> buildFeatSheets(
       continuationIndex: i + 1,
       continuationTotal: pages.length,
       rulesScaleController: sharedScaleController,
+      onWikiLinkTap: onWikiLinkTap,
+      resolveWikiLinkLabel: resolveWikiLinkLabel,
     );
   });
 }

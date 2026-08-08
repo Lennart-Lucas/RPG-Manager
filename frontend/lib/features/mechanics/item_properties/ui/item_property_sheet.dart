@@ -26,6 +26,7 @@ class ItemPropertySheet extends StatelessWidget {
   final double maxFontSize;
   final double cardScale;
   final void Function(String kind, String id)? onWikiLinkTap;
+  final Future<String?> Function(String kind, String id)? resolveWikiLinkLabel;
 
   const ItemPropertySheet({
     required this.property,
@@ -37,6 +38,7 @@ class ItemPropertySheet extends StatelessWidget {
     this.rulesScaleController,
     this.cardScale = 1.0,
     this.onWikiLinkTap,
+    this.resolveWikiLinkLabel,
     super.key,
   });
 
@@ -113,6 +115,7 @@ class ItemPropertySheet extends StatelessWidget {
                                   maxFontSize: maxFontSize,
                                   scaleController: rulesScaleController,
                                   onWikiLinkTap: onWikiLinkTap,
+                                  resolveWikiLinkLabel: resolveWikiLinkLabel,
                                 ),
                               ),
                           ],
@@ -141,6 +144,7 @@ List<ItemPropertySheet> buildItemPropertySheets(
   double maxFontSize = kMtgCardRulesMaxFontSize,
   double cardScale = 1.0,
   void Function(String kind, String id)? onWikiLinkTap,
+  Future<String?> Function(String kind, String id)? resolveWikiLinkLabel,
 }) {
   final pages = paginateCardBodyText(property.description);
   final sharedScaleController =
@@ -153,6 +157,7 @@ List<ItemPropertySheet> buildItemPropertySheets(
         maxFontSize: maxFontSize,
         cardScale: cardScale,
         onWikiLinkTap: onWikiLinkTap,
+        resolveWikiLinkLabel: resolveWikiLinkLabel,
       ),
     ];
   }
@@ -167,6 +172,7 @@ List<ItemPropertySheet> buildItemPropertySheets(
       continuationTotal: pages.length,
       rulesScaleController: sharedScaleController,
       onWikiLinkTap: onWikiLinkTap,
+      resolveWikiLinkLabel: resolveWikiLinkLabel,
     );
   });
 }

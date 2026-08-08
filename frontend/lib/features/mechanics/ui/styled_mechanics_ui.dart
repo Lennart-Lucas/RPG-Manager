@@ -24,6 +24,8 @@ Future<StyledMechanicsRecord?> showStyledMechanicsFormSheet(
   required String defaultIconKey,
   StyledMechanicsRecord? initial,
   List<ResourceFile> resourceFiles = const [],
+  List<CatalogAppearanceIconEntry>? appearanceIcons,
+  String appearancePickerTitle = 'Icon & color',
   CatalogLinkSearch? searchLinks,
   CatalogAutoLinkLoader? loadAutoLinkTargets,
 }) {
@@ -37,6 +39,8 @@ Future<StyledMechanicsRecord?> showStyledMechanicsFormSheet(
       defaultIconKey: defaultIconKey,
       initial: initial,
       resourceFiles: resourceFiles,
+      appearanceIcons: appearanceIcons,
+      appearancePickerTitle: appearancePickerTitle,
       searchLinks: searchLinks,
       loadAutoLinkTargets: loadAutoLinkTargets,
     ),
@@ -50,6 +54,8 @@ class _StyledMechanicsForm extends StatefulWidget {
     required this.defaultIconKey,
     this.initial,
     this.resourceFiles = const [],
+    this.appearanceIcons,
+    this.appearancePickerTitle = 'Icon & color',
     this.searchLinks,
     this.loadAutoLinkTargets,
   });
@@ -59,6 +65,8 @@ class _StyledMechanicsForm extends StatefulWidget {
   final String defaultIconKey;
   final StyledMechanicsRecord? initial;
   final List<ResourceFile> resourceFiles;
+  final List<CatalogAppearanceIconEntry>? appearanceIcons;
+  final String appearancePickerTitle;
   final CatalogLinkSearch? searchLinks;
   final CatalogAutoLinkLoader? loadAutoLinkTargets;
 
@@ -180,6 +188,8 @@ class _StyledMechanicsFormState extends State<_StyledMechanicsForm> {
             iconKey: _iconKey,
             colorArgb: _colorArgb,
             fallbackIcon: widget.fallbackIcon,
+            icons: widget.appearanceIcons,
+            pickerTitle: widget.appearancePickerTitle,
             onIconChanged: (key) => setState(() => _iconKey = key),
             onColorChanged: (argb) => setState(() => _colorArgb = argb),
           ),
@@ -231,6 +241,7 @@ class StyledMechanicsListItemCard extends StatelessWidget {
       leading: Container(
         width: 42,
         height: 42,
+        alignment: Alignment.center,
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.18),
           borderRadius: BorderRadius.circular(13),

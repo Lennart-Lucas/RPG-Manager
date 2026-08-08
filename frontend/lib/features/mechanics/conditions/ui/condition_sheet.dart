@@ -40,6 +40,7 @@ class ConditionSheet extends StatelessWidget {
   final double maxFontSize;
   final double cardScale;
   final void Function(String kind, String id)? onWikiLinkTap;
+  final Future<String?> Function(String kind, String id)? resolveWikiLinkLabel;
 
   const ConditionSheet({
     required this.record,
@@ -52,6 +53,7 @@ class ConditionSheet extends StatelessWidget {
     this.rulesScaleController,
     this.cardScale = 1.0,
     this.onWikiLinkTap,
+    this.resolveWikiLinkLabel,
     super.key,
   });
 
@@ -136,6 +138,7 @@ class ConditionSheet extends StatelessWidget {
                                   maxFontSize: maxFontSize,
                                   scaleController: rulesScaleController,
                                   onWikiLinkTap: onWikiLinkTap,
+                                  resolveWikiLinkLabel: resolveWikiLinkLabel,
                                 ),
                               ),
                           ],
@@ -167,6 +170,7 @@ List<ConditionSheet> buildConditionSheets(
   double maxFontSize = kMtgCardRulesMaxFontSize,
   double cardScale = 1.0,
   void Function(String kind, String id)? onWikiLinkTap,
+  Future<String?> Function(String kind, String id)? resolveWikiLinkLabel,
 }) {
   final pages = paginateCardBodyText(record.description);
   final sharedScaleController =
@@ -180,6 +184,7 @@ List<ConditionSheet> buildConditionSheets(
         maxFontSize: maxFontSize,
         cardScale: cardScale,
         onWikiLinkTap: onWikiLinkTap,
+        resolveWikiLinkLabel: resolveWikiLinkLabel,
       ),
     ];
   }
@@ -195,6 +200,7 @@ List<ConditionSheet> buildConditionSheets(
       continuationTotal: pages.length,
       rulesScaleController: sharedScaleController,
       onWikiLinkTap: onWikiLinkTap,
+      resolveWikiLinkLabel: resolveWikiLinkLabel,
     );
   });
 }

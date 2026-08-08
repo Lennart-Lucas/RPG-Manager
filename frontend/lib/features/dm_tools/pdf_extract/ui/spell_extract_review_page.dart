@@ -6,6 +6,7 @@ import '../../../catalog/data/catalog_api.dart';
 import '../../../catalog/data/catalog_auto_link.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
+import '../../../catalog/data/catalog_wiki_resolve.dart';
 import '../../../../core/ui/markdown_form_field.dart';
 import '../../../dm_tools/resources/data/local_resource_file_copy.dart';
 import '../../../dm_tools/resources/data/resource_models.dart';
@@ -628,6 +629,7 @@ class _SpellExtractReviewPageState extends State<SpellExtractReviewPage> {
                                     sourceFileId: widget.sourceFile.id,
                                   );
                                   return _DraftDetailPane(
+                                    auth: widget.auth,
                                     draft: draft,
                                     spell: spell,
                                     classNames: _namesForCatalogIds(
@@ -752,6 +754,7 @@ enum _DupAction { discard, rename, overwrite }
 
 class _DraftDetailPane extends StatelessWidget {
   const _DraftDetailPane({
+    required this.auth,
     required this.draft,
     required this.spell,
     required this.classNames,
@@ -759,6 +762,7 @@ class _DraftDetailPane extends StatelessWidget {
     this.libraryMatchLabel,
   });
 
+  final AuthController auth;
   final ExtractDraft draft;
   final Spell spell;
   final List<String> classNames;
@@ -784,6 +788,11 @@ class _DraftDetailPane extends StatelessWidget {
       classNames: classNames,
       tags: tags,
       cardScale: 1.05,
+      resolveWikiLinkLabel: (kind, id) => resolveCatalogWikiLinkLabel(
+        auth: auth,
+        kindApiValue: kind,
+        target: id,
+      ),
     );
 
     return Padding(

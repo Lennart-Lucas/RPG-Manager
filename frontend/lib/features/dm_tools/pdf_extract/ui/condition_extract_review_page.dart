@@ -6,6 +6,8 @@ import '../../../catalog/data/catalog_api.dart';
 import '../../../catalog/data/catalog_auto_link.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
+import '../../../catalog/data/catalog_wiki_resolve.dart';
+import '../../../catalog/ui/catalog_appearance.dart';
 import '../../../../core/ui/markdown_form_field.dart';
 import '../../../../core/ui/mtg_card_rules_text_fit.dart';
 import '../../../dm_tools/resources/data/local_resource_file_copy.dart';
@@ -201,6 +203,8 @@ class _ConditionExtractReviewPageState
       defaultIconKey: 'monitor_heart',
       initial: record,
       resourceFiles: [widget.sourceFile],
+      appearanceIcons: kConditionAppearanceIcons,
+      appearancePickerTitle: 'Condition icon & color',
       searchLinks: _searchLinks,
       loadAutoLinkTargets: () async => _autoLinkTargets,
     );
@@ -811,6 +815,12 @@ class _DraftDetailPane extends StatelessWidget {
                           record,
                           cardScale: 0.95,
                           maxFontSize: kMtgCardRulesMaxFontSize * 0.95,
+                          resolveWikiLinkLabel: (kind, id) =>
+                              resolveCatalogWikiLinkLabel(
+                            auth: auth,
+                            kindApiValue: kind,
+                            target: id,
+                          ),
                         ))
                           Padding(
                             padding: const EdgeInsets.only(bottom: 12),
