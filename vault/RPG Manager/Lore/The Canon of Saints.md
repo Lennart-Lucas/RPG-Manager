@@ -6,6 +6,9 @@ aliases:
 tags:
   - lore
   - althania
+rpg_manager_id: 171
+rpg_manager_kind: "lore"
+name: "The Canon of Saints"
 ---
 
 # The Canon of Saints

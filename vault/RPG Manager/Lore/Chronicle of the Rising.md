@@ -6,6 +6,9 @@ aliases:
 tags:
   - lore
   - althania
+rpg_manager_id: 170
+rpg_manager_kind: "lore"
+name: "Chronicle of the Rising"
 ---
 
 # The Chronicle of the Rising
