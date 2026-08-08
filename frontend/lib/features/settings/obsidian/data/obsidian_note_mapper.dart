@@ -1,7 +1,8 @@
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
-import '../../../catalog/data/catalog_primary_body.dart';
 import '../../../../core/markdown/wiki_link.dart';
+import 'obsidian_field_map.dart';
+import 'obsidian_section_codec.dart';
 import 'obsidian_vault_validator.dart';
 
 /// One planned note under the managed vault folder.
@@ -296,27 +297,31 @@ class ObsidianNoteMapper {
     required Map<int, CatalogItem> byId,
     required Map<String, String> linkTargets,
   }) {
-    final fm = <String, Object?>{
+    final fieldMap = obsidianFieldMapFor(item.kind);
+    final payload = Map<String, dynamic>.from(item.payload ?? const {});
+
+    final fm = <String, dynamic>{
       'rpg_manager_id': item.id,
       'rpg_manager_kind': item.kind.apiValue,
       'name': item.name,
+      ...frontmatterPayloadSlice(map: fieldMap, payload: payload),
     };
-    final payload = item.payload;
-    if (payload != null) {
-      _addFrontmatterRefs(fm, item.kind, payload, byId);
-    }
 
-    final bodyRaw = _primaryBody(item);
-    final body = rewriteWikiLinksForObsidian(
-      bodyRaw,
-      linkTargets: linkTargets,
+    String rewrite(String text) => rewriteWikiLinksForObsidian(
+          text,
+          linkTargets: linkTargets,
+        );
+
+    final body = renderObsidianBody(
+      map: fieldMap,
+      payload: payload,
+      rewriteLinks: rewrite,
     );
 
     final buffer = StringBuffer();
     buffer.writeln('---');
-    for (final entry in fm.entries) {
-      buffer.writeln(_yamlLine(entry.key, entry.value));
-    }
+    buffer.write(_encodeFrontmatter(fm));
+    if (!buffer.toString().endsWith('\n')) buffer.writeln();
     buffer.writeln('---');
     buffer.writeln();
     if (body.trim().isNotEmpty) {
@@ -326,57 +331,68 @@ class ObsidianNoteMapper {
     return buffer.toString();
   }
 
-  void _addFrontmatterRefs(
-    Map<String, Object?> fm,
-    CatalogKind kind,
-    Map<String, dynamic> payload,
-    Map<int, CatalogItem> byId,
-  ) {
-    void putId(String key, Object? raw) {
-      final id = (raw as num?)?.toInt();
-      if (id == null) return;
-      fm[key] = id;
-      final ref = byId[id];
-      if (ref != null) fm['${key}_name'] = ref.name;
-    }
-
-    switch (kind) {
-      case CatalogKind.locations:
-        putId('parent_id', payload['parentId']);
-        final type = payload['type'];
-        if (type is String && type.trim().isNotEmpty) {
-          fm['location_type'] = type.trim();
-        }
-      case CatalogKind.organisations:
-        putId('parent_id', payload['parentId']);
-        putId('seat_id', payload['seatId']);
-      case CatalogKind.characters:
-        putId('race_id', payload['raceId']);
-        final player = payload['playerName'];
-        if (player is String && player.trim().isNotEmpty) {
-          fm['player_name'] = player.trim();
-        }
-      case CatalogKind.sessions:
-        putId('campaign_id', payload['campaignId']);
-      case CatalogKind.subclasses:
-        putId('parent_class_id', payload['parentClassId']);
-      case CatalogKind.rules:
-        putId('parent_rule_id', payload['parentRuleId']);
-      case CatalogKind.creatureTypes:
-        putId('parent_creature_type_id', payload['parentCreatureTypeId']);
-      default:
-        break;
-    }
+  String _encodeFrontmatter(Map<String, dynamic> fm) {
+    // yaml package encodes a map; strip document markers if present.
+    final encoded = _yamlMapToString(fm);
+    return encoded.trimRight();
   }
 
-  String _primaryBody(CatalogItem item) => catalogPrimaryBody(item);
+  String _yamlMapToString(Map<String, dynamic> map) {
+    final buffer = StringBuffer();
+    for (final entry in map.entries) {
+      buffer.write(_yamlEntry(entry.key, entry.value, 0));
+    }
+    return buffer.toString();
+  }
 
-  static String _yamlLine(String key, Object? value) {
-    if (value == null) return '$key: null';
-    if (value is num || value is bool) return '$key: $value';
-    final text = '$value';
+  String _yamlEntry(String key, dynamic value, int indent) {
+    final pad = '  ' * indent;
+    if (value == null) return '$pad$key: null\n';
+    if (value is num || value is bool) return '$pad$key: $value\n';
+    if (value is String) {
+      return '$pad$key: ${_yamlQuote(value)}\n';
+    }
+    if (value is List) {
+      if (value.isEmpty) return '$pad$key: []\n';
+      final buffer = StringBuffer('$pad$key:\n');
+      for (final item in value) {
+        if (item is Map) {
+          buffer.writeln('$pad  -');
+          final map = Map<String, dynamic>.from(item);
+          for (final e in map.entries) {
+            buffer.write(_yamlEntry(e.key, e.value, indent + 2));
+          }
+        } else if (item is List) {
+          buffer.writeln('$pad  -');
+          // Rare nested list — dump as JSON-ish string.
+          buffer.write(_yamlEntry('value', item.toString(), indent + 2));
+        } else {
+          buffer.writeln('$pad  - ${_yamlScalar(item)}');
+        }
+      }
+      return buffer.toString();
+    }
+    if (value is Map) {
+      final map = Map<String, dynamic>.from(value);
+      if (map.isEmpty) return '$pad$key: {}\n';
+      final buffer = StringBuffer('$pad$key:\n');
+      for (final e in map.entries) {
+        buffer.write(_yamlEntry(e.key, e.value, indent + 1));
+      }
+      return buffer.toString();
+    }
+    return '$pad$key: ${_yamlQuote('$value')}\n';
+  }
+
+  String _yamlScalar(dynamic value) {
+    if (value == null) return 'null';
+    if (value is num || value is bool) return '$value';
+    return _yamlQuote('$value');
+  }
+
+  String _yamlQuote(String text) {
     final escaped = text.replaceAll(r'\', r'\\').replaceAll('"', r'\"');
-    return '$key: "$escaped"';
+    return '"$escaped"';
   }
 }
 

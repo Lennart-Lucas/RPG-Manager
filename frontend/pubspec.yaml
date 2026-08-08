@@ -25,6 +25,7 @@ dependencies:
     path: ../packages/random_table_engine
   connectivity_plus: ^7.3.0
   go_router: ^17.4.0
+  yaml: ^3.1.3
 
 dev_dependencies:
   flutter_test:

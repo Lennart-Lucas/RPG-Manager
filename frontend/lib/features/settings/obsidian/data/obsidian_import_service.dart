@@ -3,6 +3,7 @@ import 'dart:io';
 import '../../../catalog/data/catalog_api.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
+import 'obsidian_field_map.dart';
 import 'obsidian_note_mapper.dart';
 import 'obsidian_note_parser.dart';
 
@@ -29,7 +30,7 @@ class ObsidianImportService {
   final CatalogApi _api;
   final ObsidianNoteMapper _mapper;
 
-  /// Reads [absolutePath], maps body → primary payload field, PATCHes the record.
+  /// Reads [absolutePath], merges frontmatter + sections into payload, PATCHes.
   Future<ObsidianImportResult> importFile({
     required String accessToken,
     required String absolutePath,
@@ -55,13 +56,78 @@ class ObsidianImportService {
 
     final existing = await _api.get(accessToken, parsed.kind, parsed.id);
     final linkTargets = await _buildReverseLinkMap(accessToken);
-    final body = rewriteWikiLinksFromObsidian(
-      parsed.body,
-      targetsByWikiPath: linkTargets,
-    );
+    final fieldMap = obsidianFieldMapFor(parsed.kind);
+
+    String rewrite(String text) => rewriteWikiLinksFromObsidian(
+          text,
+          targetsByWikiPath: linkTargets,
+        );
 
     final payload = Map<String, dynamic>.from(existing.payload ?? const {});
-    _applyPrimaryBody(parsed.kind, payload, body);
+
+    // 1) Overlay non-system frontmatter onto payload.
+    for (final entry in parsed.frontmatter.entries) {
+      if (obsidianSystemFrontmatterKeys.contains(entry.key)) continue;
+      payload[entry.key] = _normalizeYamlValue(entry.value);
+    }
+
+    // 2) Overlay ## sections onto markdown keys (only when present).
+    final body = parsed.parsedBody;
+    for (final entry in body.sections.entries) {
+      final key = markdownFieldKeyForTitle(fieldMap, entry.key);
+      if (key == null) continue;
+      final text = rewrite(entry.value);
+      if (key == '__higherLevels.description__') {
+        final higher = payload['higherLevels'];
+        final map = higher is Map
+            ? Map<String, dynamic>.from(higher)
+            : <String, dynamic>{};
+        map['description'] = text;
+        payload['higherLevels'] = map;
+      } else {
+        payload[key] = text;
+      }
+    }
+
+    // 3) Nested prose blocks (only when those ## parents exist).
+    if (body.featuresByLevel != null) {
+      payload['featuresByLevel'] = _rewriteNestedStrings(
+        body.featuresByLevel!,
+        rewrite,
+        stringKeys: const {'description'},
+      );
+    }
+    if (body.namedFeatures != null) {
+      payload['features'] = [
+        for (final f in body.namedFeatures!)
+          _rewriteMapStrings(f, rewrite, stringKeys: const {'description'}),
+      ];
+    }
+    if (body.typeSections != null) {
+      payload['sections'] = [
+        for (final s in body.typeSections!)
+          _rewriteMapStrings(s, rewrite, stringKeys: const {'contents'}),
+      ];
+    }
+    if (body.typeTraits != null) {
+      payload['traits'] = [
+        for (final t in body.typeTraits!)
+          _rewriteMapStrings(t, rewrite, stringKeys: const {'description'}),
+      ];
+    }
+    if (body.creatureFeatures != null) {
+      payload['features'] = [
+        for (final f in body.creatureFeatures!)
+          _rewriteMapStrings(
+            f,
+            rewrite,
+            stringKeys: const {'text', 'snapshotText'},
+          ),
+      ];
+    }
+
+    // Spells: if Description section present but higher-levels section absent,
+    // keep existing higherLevels.description (sections overlay is additive).
 
     final name = parsed.name?.trim();
     final updated = await _api.update(
@@ -95,7 +161,6 @@ class ObsidianImportService {
       final target = note.wikiTarget.toLowerCase();
       final value = (kind: note.item.kind.apiValue, name: note.item.name);
       map[target] = value;
-      // Basename fallback when unique across the vault.
       final base = target.contains('/')
           ? target.substring(target.lastIndexOf('/') + 1)
           : target;
@@ -111,47 +176,56 @@ class ObsidianImportService {
     return map;
   }
 
-  void _applyPrimaryBody(
-    CatalogKind kind,
-    Map<String, dynamic> payload,
-    String body,
-  ) {
-    switch (kind) {
-      case CatalogKind.features:
-        payload['text'] = body;
-      case CatalogKind.creatures:
-        payload['trigger'] = body;
-      case CatalogKind.rules:
-        payload['body'] = body;
-      case CatalogKind.spells:
-        _applySpellBody(payload, body);
-      default:
-        payload['description'] = body;
+  dynamic _normalizeYamlValue(dynamic value) {
+    if (value is Map) {
+      return <String, dynamic>{
+        for (final e in value.entries)
+          '${e.key}': _normalizeYamlValue(e.value),
+      };
     }
+    if (value is List) {
+      return [for (final e in value) _normalizeYamlValue(e)];
+    }
+    return value;
   }
 
-  void _applySpellBody(Map<String, dynamic> payload, String body) {
-    final marker = RegExp(
-      r'\n##\s*At higher levels\s*\n+',
-      caseSensitive: false,
-    );
-    final match = marker.firstMatch(body);
-    if (match == null) {
-      payload['description'] = body;
-      return;
+  Map<String, dynamic> _rewriteNestedStrings(
+    Map<String, dynamic> root,
+    String Function(String) rewrite, {
+    required Set<String> stringKeys,
+  }) {
+    final out = <String, dynamic>{};
+    for (final entry in root.entries) {
+      final v = entry.value;
+      if (v is List) {
+        out[entry.key] = [
+          for (final item in v)
+            if (item is Map)
+              _rewriteMapStrings(
+                Map<String, dynamic>.from(item),
+                rewrite,
+                stringKeys: stringKeys,
+              )
+            else
+              item,
+        ];
+      } else {
+        out[entry.key] = v;
+      }
     }
-    payload['description'] = body.substring(0, match.start).trimRight();
-    final higherDesc = body.substring(match.end).trim();
-    final existing = payload['higherLevels'];
-    if (existing is Map) {
-      payload['higherLevels'] = {
-        ...Map<String, dynamic>.from(existing),
-        'description': higherDesc,
-      };
-    } else if (higherDesc.isNotEmpty) {
-      payload['higherLevels'] = {'description': higherDesc};
-    } else {
-      payload.remove('higherLevels');
+    return out;
+  }
+
+  Map<String, dynamic> _rewriteMapStrings(
+    Map<String, dynamic> map,
+    String Function(String) rewrite, {
+    required Set<String> stringKeys,
+  }) {
+    final out = Map<String, dynamic>.from(map);
+    for (final key in stringKeys) {
+      final v = out[key];
+      if (v is String) out[key] = rewrite(v);
     }
+    return out;
   }
 }
