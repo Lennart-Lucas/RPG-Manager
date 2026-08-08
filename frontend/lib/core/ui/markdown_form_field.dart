@@ -260,7 +260,7 @@ class _MarkdownFormFieldState extends State<MarkdownFormField> {
 
     final insertion = formatWikiLink(
       kind: target.kind,
-      name: target.name,
+      id: '${target.id}',
       embed: incomplete.isEmbed,
     );
     final newText = text.replaceRange(incomplete.start, cursor, insertion);
@@ -432,7 +432,9 @@ class _MarkdownFormFieldState extends State<MarkdownFormField> {
       if (!mounted) return;
       final linked = autoLinkCatalogNames(
         _controller.text,
-        targets: targets.map((t) => (kind: t.kind, name: t.name)),
+        targets: targets.map(
+          (t) => (kind: t.kind, id: '${t.id}', name: t.name),
+        ),
       );
       if (linked == _controller.text) {
         ScaffoldMessenger.maybeOf(context)?.showSnackBar(

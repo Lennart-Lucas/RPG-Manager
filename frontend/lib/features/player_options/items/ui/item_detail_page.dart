@@ -343,17 +343,17 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                         properties: _resolvedProperties,
                         cardScale: desktopScale,
                         maxFontSize: kMtgCardRulesMaxFontSize * desktopScale,
-                        onWikiLinkTap: (kind, name) => openCatalogWikiLink(
+                        onWikiLinkTap: (kind, id) => openCatalogWikiLink(
                           context: context,
                           auth: widget.auth,
                           kindApiValue: kind,
-                          name: name,
+                          target: id,
                         ),
                         onPropertyTap: (name) => openCatalogWikiLink(
                           context: context,
                           auth: widget.auth,
                           kindApiValue: CatalogKind.itemProperties.apiValue,
-                          name: name,
+                          target: name,
                         ),
                       ),
                       scaleFactor: desktopScale,

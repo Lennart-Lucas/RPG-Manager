@@ -39,12 +39,12 @@ Future<bool?> openCatalogRecordDetail({
   return context.push<bool>(AppPaths.catalogDetail(kind, itemId));
 }
 
-/// Opens a catalog record by wiki kind + name (first search match).
+/// Opens a catalog record by wiki kind + target (numeric id, or legacy name).
 Future<void> openCatalogWikiLink({
   required BuildContext context,
   required AuthController auth,
   required String kindApiValue,
-  required String name,
+  required String target,
 }) async {
   final kind = CatalogKind.tryParseApiValue(kindApiValue) ??
       CatalogKind.tryParseApiValue(kindApiValue.replaceAll('-', '_'));
@@ -61,12 +61,12 @@ Future<void> openCatalogWikiLink({
     final item = await resolveCatalogItemByWikiRef(
       auth: auth,
       kindApiValue: kindApiValue,
-      name: name,
+      target: target,
     );
     if (item == null) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No $kindApiValue named “$name”')),
+          SnackBar(content: Text('No $kindApiValue matching “$target”')),
         );
       }
       return;

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from copy import deepcopy
 from typing import Any
 
 from sqlalchemy import select
@@ -34,41 +33,56 @@ LINKABLE_FIELDS: dict[str, tuple[str, ...]] = {
 }
 
 WIKI_LINK_RE = re.compile(
-    r"\[\[([^\]|/]+)/([^\]|]+)(?:\|([^\]]+))?\]\]"
+    r"(!?)\[\[([^\]|/]+)/([^\]|]+)(?:\|([^\]]+))?\]\]"
 )
 
 
 def extract_wiki_refs(text: str) -> list[tuple[str, str]]:
-    """Return unique (kind, name) pairs referenced in text."""
+    """Return unique (kind, target) pairs referenced in text.
+
+    Target is normally a numeric id string; legacy name-based targets are
+    also returned until migration rewrites them.
+    """
     seen: set[tuple[str, str]] = set()
     refs: list[tuple[str, str]] = []
     for match in WIKI_LINK_RE.finditer(text or ""):
-        kind = match.group(1).strip()
-        name = match.group(2).strip()
-        key = (kind, name)
+        kind = match.group(2).strip()
+        target = match.group(3).strip()
+        key = (kind, target)
         if key not in seen:
             seen.add(key)
             refs.append(key)
     return refs
 
 
-def rewrite_wiki_names(
-    text: str, *, kind: str, old_name: str, new_name: str
+def rewrite_wiki_targets_to_ids(
+    text: str,
+    *,
+    resolve: dict[tuple[str, str], int],
 ) -> str:
-    if not text or old_name == new_name:
+    """Rewrite name-based wiki links to id-based using resolve[(kind, name_cf)] -> id.
+
+    Links whose second segment is already all digits are left unchanged.
+    Unresolved name links are left unchanged.
+    """
+    if not text:
         return text
-    pattern = re.compile(
-        rf"(!?)\[\[{re.escape(kind)}/{re.escape(old_name)}(?:\|([^\]]+))?\]\]"
-    )
 
     def _replace(match: re.Match[str]) -> str:
         bang = match.group(1) or ""
-        alias = match.group(2)
+        kind = match.group(2).strip()
+        target = match.group(3).strip()
+        alias = match.group(4)
+        if target.isdigit():
+            return match.group(0)
+        item_id = resolve.get((kind.lower(), target.casefold()))
+        if item_id is None:
+            return match.group(0)
         if alias:
-            return f"{bang}[[{kind}/{new_name}|{alias}]]"
-        return f"{bang}[[{kind}/{new_name}]]"
+            return f"{bang}[[{kind}/{item_id}|{alias}]]"
+        return f"{bang}[[{kind}/{item_id}]]"
 
-    return pattern.sub(_replace, text)
+    return WIKI_LINK_RE.sub(_replace, text)
 
 
 def _get_nested(payload: dict[str, Any] | None, path: str) -> str | None:
@@ -117,6 +131,43 @@ async def _find_by_alias(
     return None
 
 
+async def _resolve_wiki_target(
+    session: AsyncSession,
+    *,
+    user_id: int,
+    kind: str,
+    target: str,
+) -> CatalogItem | None:
+    """Resolve kind/target where target is an id string or legacy name/alias."""
+    if target.isdigit():
+        result = await session.execute(
+            select(CatalogItem).where(
+                CatalogItem.user_id == user_id,
+                CatalogItem.kind == kind,
+                CatalogItem.id == int(target),
+                CatalogItem.deleted_at.is_(None),
+            )
+        )
+        return result.scalar_one_or_none()
+
+    result = await session.execute(
+        select(CatalogItem).where(
+            CatalogItem.user_id == user_id,
+            CatalogItem.kind == kind,
+            CatalogItem.name == target,
+            CatalogItem.deleted_at.is_(None),
+        )
+    )
+    item = result.scalar_one_or_none()
+    if item is not None:
+        return item
+    if kind in {"locations", "organisations"}:
+        return await _find_by_alias(
+            session, user_id=user_id, kind=kind, alias=target
+        )
+    return None
+
+
 async def sync_links_for_item(
     session: AsyncSession, item: CatalogItem
 ) -> None:
@@ -136,26 +187,16 @@ async def sync_links_for_item(
         text = _get_nested(item.payload, field_key)
         if not text:
             continue
-        for kind, name in extract_wiki_refs(text):
-            result = await session.execute(
-                select(CatalogItem).where(
-                    CatalogItem.user_id == item.user_id,
-                    CatalogItem.kind == kind,
-                    CatalogItem.name == name,
-                    CatalogItem.deleted_at.is_(None),
-                )
+        for kind, target in extract_wiki_refs(text):
+            resolved = await _resolve_wiki_target(
+                session,
+                user_id=item.user_id,
+                kind=kind,
+                target=target,
             )
-            target = result.scalar_one_or_none()
-            if target is None and kind in {"locations", "organisations"}:
-                target = await _find_by_alias(
-                    session,
-                    user_id=item.user_id,
-                    kind=kind,
-                    alias=name,
-                )
-            if target is None:
+            if resolved is None:
                 continue
-            desired.add((target.id, field_key))
+            desired.add((resolved.id, field_key))
 
     for target_id, field_key in desired:
         session.add(
@@ -175,39 +216,5 @@ async def propagate_rename(
     old_name: str,
     new_name: str,
 ) -> None:
-    if old_name == new_name:
-        return
-
-    inbound = await session.execute(
-        select(CatalogLink).where(CatalogLink.target_item_id == target.id)
-    )
-    links = list(inbound.scalars().all())
-    if not links:
-        return
-
-    # Group by source to rewrite each payload once.
-    by_source: dict[int, list[CatalogLink]] = {}
-    for link in links:
-        by_source.setdefault(link.source_item_id, []).append(link)
-
-    for source_id, source_links in by_source.items():
-        source = await session.get(CatalogItem, source_id)
-        if source is None or source.deleted_at is not None:
-            continue
-        payload = deepcopy(source.payload) if source.payload else {}
-        changed = False
-        for link in source_links:
-            text = _get_nested(payload, link.field_key)
-            if text is None:
-                continue
-            rewritten = rewrite_wiki_names(
-                text,
-                kind=target.kind,
-                old_name=old_name,
-                new_name=new_name,
-            )
-            if rewritten != text:
-                _set_nested(payload, link.field_key, rewritten)
-                changed = True
-        if changed:
-            source.payload = payload
+    """No-op: wiki links use stable catalog ids, so renames need no rewrite."""
+    return

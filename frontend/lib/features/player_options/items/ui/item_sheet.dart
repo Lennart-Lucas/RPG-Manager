@@ -67,7 +67,7 @@ class ItemSheet extends StatelessWidget {
   final MtgCardRulesScaleController? rulesScaleController;
   final double maxFontSize;
   final double cardScale;
-  final void Function(String kind, String name)? onWikiLinkTap;
+  final void Function(String kind, String id)? onWikiLinkTap;
   final ValueChanged<String>? onPropertyTap;
 
   const ItemSheet({
@@ -224,7 +224,7 @@ List<ItemSheet> buildItemSheets(
   EdgeInsetsGeometry padding = EdgeInsets.zero,
   double maxFontSize = kMtgCardRulesMaxFontSize,
   double cardScale = 1.0,
-  void Function(String kind, String name)? onWikiLinkTap,
+  void Function(String kind, String id)? onWikiLinkTap,
   ValueChanged<String>? onPropertyTap,
 }) {
   final pages = paginateCardBodyText(item.description);

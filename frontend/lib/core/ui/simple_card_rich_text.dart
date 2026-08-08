@@ -5,7 +5,7 @@ import '../markdown/wiki_link.dart';
 import 'card_text_pagination.dart';
 
 /// Lightweight markdown-ish body: bold/italic, lists, headings, tables, quotes,
-/// wiki links, and `![[kind/name]]` embeds.
+/// wiki links, and `![[kind/id]]` embeds.
 class SimpleCardRichText extends StatefulWidget {
   const SimpleCardRichText({
     super.key,
@@ -14,6 +14,7 @@ class SimpleCardRichText extends StatefulWidget {
     this.styleScale = 1.0,
     this.enableSelection = true,
     this.onWikiLinkTap,
+    this.resolveWikiLinkLabel,
     this.resolveWikiEmbed,
     this.embedDepth = 0,
     this.maxEmbedDepth = 2,
@@ -23,13 +24,18 @@ class SimpleCardRichText extends StatefulWidget {
   final TextStyle? baseStyle;
   final double styleScale;
   final bool enableSelection;
-  final void Function(String kind, String name)? onWikiLinkTap;
 
-  /// Loads embed title + body for `![[kind/name]]`.
-  /// [alias] is the optional display label from `![[kind/name|alias]]`.
+  /// [kind] and [id] (or legacy name) from `[[kind/id]]`.
+  final void Function(String kind, String id)? onWikiLinkTap;
+
+  /// Resolves a live display name when a link has no alias.
+  final Future<String?> Function(String kind, String id)? resolveWikiLinkLabel;
+
+  /// Loads embed title + body for `![[kind/id]]`.
+  /// [alias] is the optional display label from `![[kind/id|alias]]`.
   final Future<CatalogEmbedPayload?> Function(
     String kind,
-    String name, {
+    String id, {
     String? alias,
   })? resolveWikiEmbed;
 
@@ -75,6 +81,7 @@ class _SimpleCardRichTextState extends State<SimpleCardRichText> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.content != widget.content ||
         oldWidget.onWikiLinkTap != widget.onWikiLinkTap ||
+        oldWidget.resolveWikiLinkLabel != widget.resolveWikiLinkLabel ||
         oldWidget.resolveWikiEmbed != widget.resolveWikiEmbed) {
       for (final r in _recognizers) {
         r.dispose();
@@ -324,7 +331,7 @@ class _SimpleCardRichTextState extends State<SimpleCardRichText> {
           children: _inlineSpans(
             formatWikiLink(
               kind: embed.kind,
-              name: embed.name,
+              id: embed.id,
               alias: embed.alias,
             ),
             bodyStyle,
@@ -337,6 +344,7 @@ class _SimpleCardRichTextState extends State<SimpleCardRichText> {
     return _WikiEmbedView(
       embed: embed,
       resolve: widget.resolveWikiEmbed!,
+      resolveWikiLinkLabel: widget.resolveWikiLinkLabel,
       onWikiLinkTap: widget.onWikiLinkTap,
       styleScale: widget.styleScale,
       baseStyle: bodyStyle,
@@ -595,17 +603,32 @@ class _SimpleCardRichTextState extends State<SimpleCardRichText> {
       }
       if (widget.onWikiLinkTap != null) {
         final recognizer = TapGestureRecognizer()
-          ..onTap = () => widget.onWikiLinkTap!(link.kind, link.name);
+          ..onTap = () => widget.onWikiLinkTap!(link.kind, link.id);
         _recognizers.add(recognizer);
         out.add(
-          TextSpan(
-            text: link.displayText,
-            style: linkStyle,
-            recognizer: recognizer,
+          WidgetSpan(
+            alignment: PlaceholderAlignment.baseline,
+            baseline: TextBaseline.alphabetic,
+            child: _WikiLinkLabel(
+              link: link,
+              style: linkStyle,
+              resolveLabel: widget.resolveWikiLinkLabel,
+              recognizer: recognizer,
+            ),
           ),
         );
       } else {
-        out.add(TextSpan(text: link.displayText, style: linkStyle));
+        out.add(
+          WidgetSpan(
+            alignment: PlaceholderAlignment.baseline,
+            baseline: TextBaseline.alphabetic,
+            child: _WikiLinkLabel(
+              link: link,
+              style: linkStyle,
+              resolveLabel: widget.resolveWikiLinkLabel,
+            ),
+          ),
+        );
       }
       offset = link.end;
     }
@@ -730,15 +753,17 @@ class _WikiEmbedView extends StatefulWidget {
     required this.maxEmbedDepth,
     required this.borderColor,
     required this.surface,
+    this.resolveWikiLinkLabel,
   });
 
   final WikiLink embed;
   final Future<CatalogEmbedPayload?> Function(
     String kind,
-    String name, {
+    String id, {
     String? alias,
   }) resolve;
-  final void Function(String kind, String name)? onWikiLinkTap;
+  final Future<String?> Function(String kind, String id)? resolveWikiLinkLabel;
+  final void Function(String kind, String id)? onWikiLinkTap;
   final double styleScale;
   final TextStyle baseStyle;
   final TextStyle linkStyle;
@@ -754,7 +779,7 @@ class _WikiEmbedView extends StatefulWidget {
 class _WikiEmbedViewState extends State<_WikiEmbedView> {
   late final Future<CatalogEmbedPayload?> _future = widget.resolve(
     widget.embed.kind,
-    widget.embed.name,
+    widget.embed.id,
     alias: widget.embed.alias,
   );
 
@@ -786,8 +811,10 @@ class _WikiEmbedViewState extends State<_WikiEmbedView> {
               );
             }
             final content = snapshot.data;
-            // Prefer the authored alias (`![[kind/name|alias]]`) for the header.
-            final title = widget.embed.displayText;
+            // Prefer authored alias; otherwise use resolved embed title.
+            final title = widget.embed.hasAlias
+                ? widget.embed.displayText
+                : (content?.title ?? widget.embed.id);
             final muted = widget.baseStyle.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             );
@@ -799,7 +826,7 @@ class _WikiEmbedViewState extends State<_WikiEmbedView> {
                       ? null
                       : () => widget.onWikiLinkTap!(
                             widget.embed.kind,
-                            widget.embed.name,
+                            widget.embed.id,
                           ),
                   child: Text(
                     title,
@@ -822,6 +849,7 @@ class _WikiEmbedViewState extends State<_WikiEmbedView> {
                     styleScale: widget.styleScale,
                     enableSelection: false,
                     onWikiLinkTap: widget.onWikiLinkTap,
+                    resolveWikiLinkLabel: widget.resolveWikiLinkLabel,
                     resolveWikiEmbed: widget.resolve,
                     embedDepth: widget.embedDepth + 1,
                     maxEmbedDepth: widget.maxEmbedDepth,
@@ -832,6 +860,67 @@ class _WikiEmbedViewState extends State<_WikiEmbedView> {
           },
         ),
       ),
+    );
+  }
+}
+
+/// Shows alias immediately, or resolves the live record name for bare id links.
+class _WikiLinkLabel extends StatefulWidget {
+  const _WikiLinkLabel({
+    required this.link,
+    required this.style,
+    this.resolveLabel,
+    this.recognizer,
+  });
+
+  final WikiLink link;
+  final TextStyle style;
+  final Future<String?> Function(String kind, String id)? resolveLabel;
+  final TapGestureRecognizer? recognizer;
+
+  @override
+  State<_WikiLinkLabel> createState() => _WikiLinkLabelState();
+}
+
+class _WikiLinkLabelState extends State<_WikiLinkLabel> {
+  late String _text;
+
+  @override
+  void initState() {
+    super.initState();
+    _text = widget.link.displayText;
+    _loadLabel();
+  }
+
+  @override
+  void didUpdateWidget(covariant _WikiLinkLabel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.link.kind != widget.link.kind ||
+        oldWidget.link.id != widget.link.id ||
+        oldWidget.link.alias != widget.link.alias ||
+        oldWidget.resolveLabel != widget.resolveLabel) {
+      _text = widget.link.displayText;
+      _loadLabel();
+    }
+  }
+
+  Future<void> _loadLabel() async {
+    if (widget.link.hasAlias) return;
+    final resolve = widget.resolveLabel;
+    if (resolve == null) return;
+    final name = await resolve(widget.link.kind, widget.link.id);
+    if (!mounted || name == null || name.isEmpty) return;
+    if (name != _text) setState(() => _text = name);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final child = Text(_text, style: widget.style);
+    final recognizer = widget.recognizer;
+    if (recognizer == null) return child;
+    return GestureDetector(
+      onTap: recognizer.onTap,
+      child: child,
     );
   }
 }

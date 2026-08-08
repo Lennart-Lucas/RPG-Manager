@@ -34,7 +34,7 @@ class SpellSheet extends StatelessWidget {
   final int? continuationTotal;
   final MtgCardRulesScaleController? rulesScaleController;
   final double maxFontSize;
-  final void Function(String kind, String name)? onWikiLinkTap;
+  final void Function(String kind, String id)? onWikiLinkTap;
 
   const SpellSheet({
     required this.spell,
@@ -200,7 +200,7 @@ List<SpellSheet> buildSpellSheets(
   EdgeInsetsGeometry padding = EdgeInsets.zero,
   double cardScale = 1.0,
   double maxFontSize = kMtgCardRulesMaxFontSize,
-  void Function(String kind, String name)? onWikiLinkTap,
+  void Function(String kind, String id)? onWikiLinkTap,
 }) {
   final pages = paginateCardBodyText(spell.rulesContent);
   final sharedScaleController =

@@ -1,5 +1,8 @@
-/// Wiki-style catalog references: `[[kind/name]]`, `[[kind/name|alias]]`,
-/// and Obsidian-style embeds `![[kind/name]]` / `![[kind/name|alias]]`.
+/// Wiki-style catalog references: `[[kind/id]]`, `[[kind/id|alias]]`,
+/// and Obsidian-style embeds `![[kind/id]]` / `![[kind/id|alias]]`.
+///
+/// The second segment is normally a numeric catalog item id. Legacy
+/// name-based targets (`[[kind/Name]]`) may still appear until migrated.
 library;
 
 final RegExp wikiLinkPattern = RegExp(
@@ -14,7 +17,7 @@ final RegExp wikiEmbedPattern = RegExp(
 class WikiLink {
   const WikiLink({
     required this.kind,
-    required this.name,
+    required this.id,
     this.alias,
     required this.start,
     required this.end,
@@ -22,21 +25,28 @@ class WikiLink {
   });
 
   final String kind;
-  final String name;
+
+  /// Target id (canonical) or legacy display name (pre-migration).
+  final String id;
   final String? alias;
   final int start;
   final int end;
   final bool isEmbed;
 
-  String get reference => '$kind/$name';
+  String get reference => '$kind/$id';
 
+  /// Alias when set; otherwise the raw target segment (id or legacy name).
+  /// Prefer resolving the live record name for bare id links when rendering.
   String get displayText =>
-      (alias != null && alias!.isNotEmpty) ? alias! : name;
+      (alias != null && alias!.isNotEmpty) ? alias! : id;
+
+  bool get hasAlias => alias != null && alias!.isNotEmpty;
+
+  /// Parsed numeric id when [id] is all digits; otherwise null (legacy name).
+  int? get numericId => int.tryParse(id.trim());
 
   String toMarkdown() {
-    final inner = (alias != null && alias!.isNotEmpty)
-        ? '[[$kind/$name|$alias]]'
-        : '[[$kind/$name]]';
+    final inner = hasAlias ? '[[$kind/$id|$alias]]' : '[[$kind/$id]]';
     return isEmbed ? '!$inner' : inner;
   }
 }
@@ -65,7 +75,7 @@ List<WikiLink> parseWikiEmbeds(String text) {
     embeds.add(
       WikiLink(
         kind: match.group(1)!.trim(),
-        name: match.group(2)!.trim(),
+        id: match.group(2)!.trim(),
         alias: match.group(3)?.trim(),
         start: match.start,
         end: match.end,
@@ -87,7 +97,7 @@ List<WikiLink> parseWikiLinks(String text) {
     links.add(
       WikiLink(
         kind: match.group(1)!.trim(),
-        name: match.group(2)!.trim(),
+        id: match.group(2)!.trim(),
         alias: match.group(3)?.trim(),
         start: match.start,
         end: match.end,
@@ -107,27 +117,27 @@ List<WikiLink> parseWikiLinksAndEmbeds(String text) {
 String stripWikiMarkup(String text) {
   var t = text.replaceAllMapped(wikiEmbedPattern, (match) {
     final alias = match.group(3)?.trim();
-    final name = match.group(2)?.trim() ?? '';
+    final id = match.group(2)?.trim() ?? '';
     if (alias != null && alias.isNotEmpty) return alias;
-    return name;
+    return id;
   });
   return t.replaceAllMapped(wikiLinkPattern, (match) {
     final alias = match.group(3)?.trim();
-    final name = match.group(2)?.trim() ?? '';
+    final id = match.group(2)?.trim() ?? '';
     if (alias != null && alias.isNotEmpty) return alias;
-    return name;
+    return id;
   });
 }
 
 String formatWikiLink({
   required String kind,
-  required String name,
+  required String id,
   String? alias,
   bool embed = false,
 }) {
   final inner = (alias != null && alias.isNotEmpty)
-      ? '[[$kind/$name|$alias]]'
-      : '[[$kind/$name]]';
+      ? '[[$kind/$id|$alias]]'
+      : '[[$kind/$id]]';
   return embed ? '!$inner' : inner;
 }
 
@@ -154,46 +164,35 @@ IncompleteWikiLink? findIncompleteWikiLink(String text, int cursor) {
   );
 }
 
-/// Rewrites `[[kind/oldName]]`, embeds, and aliased forms to [newName].
-String rewriteWikiLinkNames(
-  String text, {
-  required String kind,
-  required String oldName,
-  required String newName,
-}) {
-  if (oldName == newName) return text;
-
-  final escapedKind = RegExp.escape(kind);
-  final escapedOld = RegExp.escape(oldName);
-  final pattern = RegExp(
-    '(!?)\\[\\[$escapedKind/$escapedOld(?:\\|([^\\]]+))?\\]\\]',
-  );
-
-  return text.replaceAllMapped(pattern, (match) {
-    final bang = match.group(1) ?? '';
-    final alias = match.group(2);
-    return '$bang${formatWikiLink(kind: kind, name: newName, alias: alias)}';
-  });
-}
-
 class _AutoLinkTarget {
-  const _AutoLinkTarget({required this.kind, required this.name});
+  const _AutoLinkTarget({
+    required this.kind,
+    required this.id,
+    required this.name,
+  });
 
   final String kind;
+  final String id;
   final String name;
 }
 
-/// Wraps plain-text mentions of [targets] as `[[kind/name]]`.
+/// Wraps plain-text mentions of [targets] as `[[kind/id]]`.
 ///
 /// Longer names are applied first. Existing wiki links/embeds are left untouched.
 /// Matching is case-insensitive and uses word boundaries.
 String autoLinkCatalogNames(
   String text, {
-  required Iterable<({String kind, String name})> targets,
+  required Iterable<({String kind, String id, String name})> targets,
 }) {
   final sorted = targets
-      .where((t) => t.name.trim().isNotEmpty)
-      .map((t) => _AutoLinkTarget(kind: t.kind, name: t.name.trim()))
+      .where((t) => t.name.trim().isNotEmpty && t.id.trim().isNotEmpty)
+      .map(
+        (t) => _AutoLinkTarget(
+          kind: t.kind,
+          id: t.id.trim(),
+          name: t.name.trim(),
+        ),
+      )
       .toList()
     ..sort((a, b) => b.name.length.compareTo(a.name.length));
 
@@ -212,7 +211,7 @@ String autoLinkCatalogNames(
       replacements.add((
         start: match.start,
         end: match.end,
-        replacement: formatWikiLink(kind: target.kind, name: target.name),
+        replacement: formatWikiLink(kind: target.kind, id: target.id),
       ));
     }
     for (final replacement in replacements.reversed) {

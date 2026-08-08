@@ -94,13 +94,18 @@ class ObsidianNoteMapper {
 
     _disambiguatePaths(pathById, byId);
 
-    // Wikilink lookup: kind api + lowercase name → vault-relative wiki target.
+    // Wikilink lookup: kind api + id (and legacy name/alias) → vault path.
     final linkTargets = <String, String>{};
     for (final entry in pathById.entries) {
       final item = byId[entry.key];
       if (item == null) continue;
       final wiki = _wikiTargetFromRelative(entry.value);
-      linkTargets[_linkKey(item.kind.apiValue, item.name)] = wiki;
+      linkTargets[_linkKey(item.kind.apiValue, '${item.id}')] = wiki;
+      // Legacy name keys so unmigrated payloads still export cleanly.
+      linkTargets.putIfAbsent(
+        _linkKey(item.kind.apiValue, item.name),
+        () => wiki,
+      );
       final aliases = item.payload?['aliases'];
       if (aliases is List) {
         for (final alias in aliases) {
@@ -396,7 +401,8 @@ class ObsidianNoteMapper {
   }
 }
 
-/// Rewrites app `[[kind/name]]` links to Obsidian vault paths.
+/// Rewrites app `[[kind/id]]` (or legacy `[[kind/name]]`) links to Obsidian
+/// vault paths.
 String rewriteWikiLinksForObsidian(
   String text, {
   required Map<String, String> linkTargets,
@@ -404,10 +410,10 @@ String rewriteWikiLinksForObsidian(
   if (text.isEmpty) return text;
   return text.replaceAllMapped(wikiLinkPattern, (match) {
     final kind = match.group(1)!.trim();
-    final name = match.group(2)!.trim();
+    final target = match.group(2)!.trim();
     final alias = match.group(3)?.trim();
-    final key = '${kind.toLowerCase()}\u0000${name.toLowerCase()}';
-    final resolved = linkTargets[key] ?? _fallbackWikiTarget(kind, name);
+    final key = '${kind.toLowerCase()}\u0000${target.toLowerCase()}';
+    final resolved = linkTargets[key] ?? _fallbackWikiTarget(kind, target);
     if (alias != null && alias.isNotEmpty) {
       return '[[$resolved|$alias]]';
     }
@@ -415,11 +421,11 @@ String rewriteWikiLinksForObsidian(
   });
 }
 
-String _fallbackWikiTarget(String kindApi, String name) {
+String _fallbackWikiTarget(String kindApi, String target) {
   final kind = CatalogKind.tryParseApiValue(kindApi);
   final folder = kind != null
       ? ObsidianNoteMapper.kindFolderName(kind)
       : kindApi;
   return '$obsidianManagedFolderName/$folder/'
-      '${ObsidianNoteMapper.sanitizeFileName(name)}';
+      '${ObsidianNoteMapper.sanitizeFileName(target)}';
 }

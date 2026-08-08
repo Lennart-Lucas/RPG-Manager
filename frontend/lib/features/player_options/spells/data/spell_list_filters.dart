@@ -205,9 +205,10 @@ bool _matchesReferencedRecordSet({
     final kind = link.kind.toLowerCase();
     if (!kindApiValues.contains(kind)) continue;
     for (final id in selectedIds) {
+      if (link.id == id) return true;
       final name = namesById[id];
       if (name == null) continue;
-      if (link.name.toLowerCase() == name.toLowerCase()) return true;
+      if (link.id.toLowerCase() == name.toLowerCase()) return true;
     }
   }
   for (final id in selectedIds) {

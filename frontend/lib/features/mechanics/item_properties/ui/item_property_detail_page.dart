@@ -271,11 +271,11 @@ class _ItemPropertyDetailPageState extends State<ItemPropertyDetailPage> {
                     _entry,
                     cardScale: desktopScale,
                     maxFontSize: kMtgCardRulesMaxFontSize * desktopScale,
-                    onWikiLinkTap: (kind, name) => openCatalogWikiLink(
+                    onWikiLinkTap: (kind, id) => openCatalogWikiLink(
                       context: context,
                       auth: widget.auth,
                       kindApiValue: kind,
-                      name: name,
+                      target: id,
                     ),
                   ),
                   scaleFactor: desktopScale,

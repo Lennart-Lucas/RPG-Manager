@@ -281,7 +281,7 @@ class _SubclassDetailPageState extends State<SubclassDetailPage> {
                         context: context,
                         auth: widget.auth,
                         kindApiValue: CatalogKind.classes.apiValue,
-                        name: parent.name,
+                        target: parent.name,
                       ),
                       icon: Icon(
                         classesPageIcon,
@@ -294,7 +294,7 @@ class _SubclassDetailPageState extends State<SubclassDetailPage> {
                         context: context,
                         auth: widget.auth,
                         kindApiValue: CatalogKind.classes.apiValue,
-                        name: parent.name,
+                        target: parent.name,
                       ),
                       borderRadius: BorderRadius.circular(4),
                       child: Text(

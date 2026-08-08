@@ -135,10 +135,11 @@ final RegExp obsidianWikiLinkPattern = RegExp(
   r'\[\[([^\]|#]+?)(?:\|([^\]]+))?\]\]',
 );
 
-/// Rewrites Obsidian vault-path wikilinks back to app `[[kind/name]]` form.
+/// Rewrites Obsidian vault-path wikilinks back to app `[[kind/id]]` form.
 String rewriteWikiLinksFromObsidian(
   String text, {
-  required Map<String, ({String kind, String name})> targetsByWikiPath,
+  required Map<String, ({String kind, int id})> targetsByWikiPath,
+  Map<String, int>? idsByKindName,
 }) {
   if (text.isEmpty) return text;
   return text.replaceAllMapped(obsidianWikiLinkPattern, (match) {
@@ -149,18 +150,30 @@ String rewriteWikiLinksFromObsidian(
     }
     target = target.replaceAll('\\', '/');
 
+    String linkFor(String kind, int id) {
+      if (alias != null && alias.isNotEmpty) {
+        return '[[$kind/$id|$alias]]';
+      }
+      return '[[$kind/$id]]';
+    }
+
     final resolved = targetsByWikiPath[target.toLowerCase()];
     if (resolved != null) {
-      if (alias != null && alias.isNotEmpty) {
-        return '[[${resolved.kind}/${resolved.name}|$alias]]';
-      }
-      return '[[${resolved.kind}/${resolved.name}]]';
+      return linkFor(resolved.kind, resolved.id);
     }
 
     final slash = target.indexOf('/');
     if (slash > 0 && !target.substring(slash + 1).contains('/')) {
       final kindApi = target.substring(0, slash);
+      final rest = target.substring(slash + 1).trim();
       if (CatalogKind.tryParseApiValue(kindApi) != null) {
+        // Already canonical `kind/id`.
+        if (RegExp(r'^\d+$').hasMatch(rest)) {
+          return match.group(0)!;
+        }
+        // Legacy `kind/name` → id when we can resolve it.
+        final id = idsByKindName?['${kindApi.toLowerCase()}\u0000${rest.toLowerCase()}'];
+        if (id != null) return linkFor(kindApi, id);
         return match.group(0)!;
       }
     }

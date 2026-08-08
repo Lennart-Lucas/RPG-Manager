@@ -11,10 +11,14 @@
             "id": "4880d2d1842efa3c",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {},
+              "type": "markdown",
+              "state": {
+                "file": "RPG Manager/Items/Cannon.md",
+                "mode": "source",
+                "source": false
+              },
               "icon": "lucide-file",
-              "title": "New tab"
+              "title": "Cannon"
             }
           }
         ]
@@ -179,35 +183,43 @@
       "bases:Create new base": false
     }
   },
-  "active": "4880d2d1842efa3c",
+  "active": "f53c72818ce21c13",
   "lastOpenFiles": [
+    "RPG Manager/Organisations/Althania's Holy Inquisition/The 3rd Sacrament - The Watchers of the Threshold.md.tmp.31344.26e65f09ddf6",
+    "RPG Manager/Lore/The Canon of Saints.md",
+    "RPG Manager/Lore/The Canon of Saints.md.tmp.31344.6fd305e045f8",
+    "RPG Manager/Lore/Chronicle of the Rising.md",
+    "RPG Manager/Lore/Chronicle of the Rising.md.tmp.31344.718e4cc8a252",
+    "RPG Manager/Locations/Valmoria/Althania/Eichenwacht.md.tmp.31344.f792a331ab8e",
+    "RPG Manager/Locations/Valmoria/Althania/Dunvicum.md.tmp.31344.fb80142c9b95",
+    "RPG Manager/Locations/Valmoria/Althania/Dornwald.md.tmp.31344.b5c0e1c704da",
+    "RPG Manager/Locations/Valmoria/Althania/Knarrholt.md.tmp.31344.ea4ded0b4562",
+    "RPG Manager/Locations/Valmoria/Althania/Salvamont.md.tmp.31344.f34f4a7f86ca",
+    "RPG Manager/Locations/Valmoria/Althania/Weissturm.md.tmp.31344.01094dfea650",
+    "RPG Manager/Organisations/Althania's Holy Inquisition/The 6th Sacrament - The Keepers of the Last Flame.md.tmp.31344.83f4c2522a99",
+    "RPG Manager/Organisations/Althania's Holy Inquisition/The 5th Sacrament - The Wardens of the Argent Hunt.md.tmp.31344.5c10ba8aadfa",
+    "RPG Manager/Organisations/Church of Orzhova.md",
+    "RPG Manager/Lore/_sync-test.md",
+    "RPG Manager/Lore/test.md",
+    "RPG Manager/Organisations/Althania's Holy Inquisition/The 3rd Sacrament - The Stewards of Providence.md",
+    "RPG Manager/Organisations/Althania's Holy Inquisition/The 3rd Sacrament - The Watchers of the Threshold.md",
+    "RPG Manager/Organisations/Althania's Holy Inquisition/The 1st Sacrament - The Keepers of Doctrine.md",
+    "RPG Manager/Organisations/Althania's Holy Inquisition/The 2nd Sacrament - The Shepherds of the Host.md",
+    "RPG Manager/Organisations/Althania's Holy Inquisition/The 4th Sacrament - The Arbiters of Judgment.md",
+    "RPG Manager/Organisations/Althania's Holy Inquisition/The 5th Sacrament - The Wardens of the Argent Hunt.md",
+    "RPG Manager/Organisations/Althania's Holy Inquisition/The 6th Sacrament - The Keepers of the Last Flame.md",
+    "RPG Manager/Organisations/The 6th Sacrament - The Keepers of the Last Flame.md",
+    "RPG Manager/Organisations/Althania's Holy Inquisition.md",
     "RPG Manager/Organisations/Vor'Ghal.md",
     "RPG Manager/Organisations/House Sinistra.md",
     "RPG Manager/Organisations/House Drach'on.md",
     "RPG Manager/Organisations/House Archon.md",
     "RPG Manager/Organisations/Althania's Holy Inquisition/6th Sacrament - The Custodians of the Black Pyre.md",
-    "RPG Manager/Organisations/Althania's Holy Inquisition/1st Sacrament – The Keepers of Doctrine.md.tmp.11428.9b0ec97be367",
     "RPG Manager/Organisations/The Band of Bob.md",
     "RPG Manager/Organisations/Althania's Holy Inquisition/1st Sacrament – The Keepers of Doctrine.md",
-    "RPG Manager/Organisations/Althania's Holy Inquisition.md",
     "RPG Manager/Organisations/Althania's Holy Inquisition/5th Sacrament – The Wardens of the Argent Hunt.md",
-    "RPG Manager/Organisations/Althania's Holy Inquisition/1st Sacrament – The Keepers of Doctrine.md.tmp.11428.6d682309f529",
-    "RPG Manager/Organisations/Althania's Holy Inquisition/6th Sacrament - The Custodians of the Black Pyre.md.tmp.11428.ee9300d739fd",
-    "RPG Manager/Organisations/Althania's Holy Inquisition/6th Sacrament - The Custodians of the Black Pyre.md.tmp.11428.4ffcc83eef18",
-    "RPG Manager/Organisations/Althania's Holy Inquisition/6th Sacrament - The Custodians of the Black Pyre.md.tmp.11428.35ed41755c4f",
-    "RPG Manager/Organisations/Althania's Holy Inquisition/6th Sacrament - The Custodians of the Black Pyre.md.tmp.11428.88915d65379b",
-    "RPG Manager/Organisations/Althania's Holy Inquisition/6th Sacrament - The Custodians of the Black Pyre.md.tmp.11428.d9f3509ca507",
-    "RPG Manager/Organisations/Althania's Holy Inquisition.md.tmp.11428.a971345ee842",
-    "RPG Manager/Organisations/Althania's Holy Inquisition.md.tmp.11428.c13162f02045",
-    "RPG Manager/Organisations/Althania's Holy Inquisition.md.tmp.11428.ae00e8341a7f",
     "RPG Manager/Events/The Rising at Salvamont.md",
     "RPG Manager/Characters/Aurelien Sarre.md",
-    "RPG Manager/Events/Reform of the Sixth.md",
-    "RPG Manager/Items/Cannon.md",
-    "RPG Manager/Item Properties/Misfire X.md",
-    "RPG Manager/Item Properties/Ammunition.md",
-    "RPG Manager/Campaigns/New World Monster Hunt/Sessions/Session 1.md",
-    "RPG Manager/Campaigns/New World Monster Hunt.md",
-    "Welcome.md"
+    "RPG Manager/Events/Reform of the Sixth.md"
   ]
 }

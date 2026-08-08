@@ -30,10 +30,10 @@ List<CatalogLinkTarget> catalogItemsToAutoLinkTargets(
   ];
 }
 
-Iterable<({String kind, String name})> autoLinkTargetPairs(
+Iterable<({String kind, String id, String name})> autoLinkTargetPairs(
   Iterable<CatalogLinkTarget> targets,
 ) {
-  return targets.map((t) => (kind: t.kind, name: t.name));
+  return targets.map((t) => (kind: t.kind, id: '${t.id}', name: t.name));
 }
 
 /// Loads condition + damage-type targets used by the markdown auto-link toolbar.

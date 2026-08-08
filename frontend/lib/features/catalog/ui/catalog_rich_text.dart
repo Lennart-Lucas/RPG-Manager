@@ -29,17 +29,22 @@ class CatalogRichText extends StatelessWidget {
       baseStyle: baseStyle,
       styleScale: styleScale,
       enableSelection: enableSelection,
-      onWikiLinkTap: (kind, name) => openCatalogWikiLink(
+      onWikiLinkTap: (kind, id) => openCatalogWikiLink(
         context: context,
         auth: auth,
         kindApiValue: kind,
-        name: name,
+        target: id,
       ),
-      resolveWikiEmbed: (kind, name, {alias}) async {
+      resolveWikiLinkLabel: (kind, id) => resolveCatalogWikiLinkLabel(
+        auth: auth,
+        kindApiValue: kind,
+        target: id,
+      ),
+      resolveWikiEmbed: (kind, id, {alias}) async {
         final embed = await resolveCatalogEmbed(
           auth: auth,
           kindApiValue: kind,
-          name: name,
+          target: id,
           alias: alias,
         );
         if (embed == null) return null;

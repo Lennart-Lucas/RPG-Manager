@@ -29,7 +29,7 @@ class MtgCardRulesTextFit extends StatefulWidget {
   final Color onSurface;
   final double maxFontSize;
   final MtgCardRulesScaleController? scaleController;
-  final void Function(String kind, String name)? onWikiLinkTap;
+  final void Function(String kind, String id)? onWikiLinkTap;
 
   const MtgCardRulesTextFit({
     super.key,

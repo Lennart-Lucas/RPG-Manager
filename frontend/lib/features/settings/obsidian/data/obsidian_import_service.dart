@@ -55,12 +55,13 @@ class ObsidianImportService {
     }
 
     final existing = await _api.get(accessToken, parsed.kind, parsed.id);
-    final linkTargets = await _buildReverseLinkMap(accessToken);
+    final linkMap = await _buildReverseLinkMap(accessToken);
     final fieldMap = obsidianFieldMapFor(parsed.kind);
 
     String rewrite(String text) => rewriteWikiLinksFromObsidian(
           text,
-          targetsByWikiPath: linkTargets,
+          targetsByWikiPath: linkMap.byPath,
+          idsByKindName: linkMap.idsByKindName,
         );
 
     final payload = Map<String, dynamic>.from(existing.payload ?? const {});
@@ -147,7 +148,10 @@ class ObsidianImportService {
     );
   }
 
-  Future<Map<String, ({String kind, String name})>> _buildReverseLinkMap(
+  Future<({
+    Map<String, ({String kind, int id})> byPath,
+    Map<String, int> idsByKindName,
+  })> _buildReverseLinkMap(
     String accessToken,
   ) async {
     final itemsByKind = <CatalogKind, List<CatalogItem>>{};
@@ -155,25 +159,40 @@ class ObsidianImportService {
       itemsByKind[kind] = await _api.list(accessToken, kind);
     }
     final notes = _mapper.planAll(itemsByKind);
-    final map = <String, ({String kind, String name})>{};
+    final byPath = <String, ({String kind, int id})>{};
+    final idsByKindName = <String, int>{};
     final ambiguousBases = <String>{};
     for (final note in notes) {
       final target = note.wikiTarget.toLowerCase();
-      final value = (kind: note.item.kind.apiValue, name: note.item.name);
-      map[target] = value;
+      final value = (kind: note.item.kind.apiValue, id: note.item.id);
+      byPath[target] = value;
+      idsByKindName[
+          '${note.item.kind.apiValue.toLowerCase()}\u0000${note.item.name.toLowerCase()}'] =
+          note.item.id;
+      final aliases = note.item.payload?['aliases'];
+      if (aliases is List) {
+        for (final alias in aliases) {
+          final text = '$alias'.trim().toLowerCase();
+          if (text.isEmpty) continue;
+          idsByKindName.putIfAbsent(
+            '${note.item.kind.apiValue.toLowerCase()}\u0000$text',
+            () => note.item.id,
+          );
+        }
+      }
       final base = target.contains('/')
           ? target.substring(target.lastIndexOf('/') + 1)
           : target;
       if (ambiguousBases.contains(base)) continue;
-      final prior = map[base];
+      final prior = byPath[base];
       if (prior == null) {
-        map[base] = value;
-      } else if (prior.kind != value.kind || prior.name != value.name) {
-        map.remove(base);
+        byPath[base] = value;
+      } else if (prior.kind != value.kind || prior.id != value.id) {
+        byPath.remove(base);
         ambiguousBases.add(base);
       }
     }
-    return map;
+    return (byPath: byPath, idsByKindName: idsByKindName);
   }
 
   dynamic _normalizeYamlValue(dynamic value) {
