@@ -258,7 +258,11 @@ class _MarkdownFormFieldState extends State<MarkdownFormField> {
     // Clamp to text length in case focus already mutated selection.
     if (cursor > text.length) cursor = text.length;
 
-    final insertion = formatWikiLink(kind: target.kind, name: target.name);
+    final insertion = formatWikiLink(
+      kind: target.kind,
+      name: target.name,
+      embed: incomplete.isEmbed,
+    );
     final newText = text.replaceRange(incomplete.start, cursor, insertion);
     final newOffset = incomplete.start + insertion.length;
     _controller.value = TextEditingValue(

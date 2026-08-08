@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/offline/offline_marker.dart';
-import '../../../core/ui/simple_card_rich_text.dart';
 import '../../auth/data/auth_api.dart';
 import '../../auth/state/auth_controller.dart';
 import '../../mechanics/item_properties/data/item_property_model.dart';
@@ -18,6 +17,7 @@ import '../data/catalog_auto_link.dart';
 import '../data/catalog_kind.dart';
 import '../data/catalog_kind_icons.dart';
 import '../data/catalog_models.dart';
+import 'catalog_rich_text.dart';
 import 'name_record_form_sheet.dart';
 import 'open_catalog_detail.dart';
 
@@ -320,14 +320,9 @@ class _CatalogRecordDetailPageState extends State<CatalogRecordDetailPage> {
                           style: Theme.of(context).textTheme.titleSmall,
                         ),
                         const SizedBox(height: 8),
-                        SimpleCardRichText(
+                        CatalogRichText(
+                          auth: widget.auth,
                           content: property.description,
-                          onWikiLinkTap: (kind, name) => openCatalogWikiLink(
-                            context: context,
-                            auth: widget.auth,
-                            kindApiValue: kind,
-                            name: name,
-                          ),
                         ),
                       ],
                     );

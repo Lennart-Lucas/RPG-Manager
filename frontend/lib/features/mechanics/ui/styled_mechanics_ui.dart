@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../core/offline/offline_marker.dart';
 import '../../../core/ui/markdown_form_field.dart';
 import '../../../core/ui/record_list_card.dart';
-import '../../../core/ui/simple_card_rich_text.dart';
 import '../../auth/data/auth_api.dart';
 import '../../auth/state/auth_controller.dart';
 import '../../catalog/data/catalog_api.dart';
@@ -11,6 +10,7 @@ import '../../catalog/data/catalog_auto_link.dart';
 import '../../catalog/data/catalog_kind.dart';
 import '../../catalog/data/catalog_models.dart';
 import '../../catalog/ui/catalog_appearance.dart';
+import '../../catalog/ui/catalog_rich_text.dart';
 import '../../dm_tools/resources/ui/resource_form_helpers.dart';
 import '../data/styled_mechanics_record.dart';
 
@@ -211,7 +211,6 @@ class StyledMechanicsDetailPage extends StatefulWidget {
     required this.singularLabel,
     required this.fallbackIcon,
     required this.defaultIconKey,
-    this.onWikiLinkTap,
   });
 
   final AuthController auth;
@@ -220,7 +219,6 @@ class StyledMechanicsDetailPage extends StatefulWidget {
   final String singularLabel;
   final IconData fallbackIcon;
   final String defaultIconKey;
-  final void Function(String kind, String name)? onWikiLinkTap;
 
   @override
   State<StyledMechanicsDetailPage> createState() =>
@@ -390,9 +388,9 @@ class _StyledMechanicsDetailPageState extends State<StyledMechanicsDetailPage> {
                 const SizedBox(height: 24),
                 Text('Description', style: textTheme.titleSmall),
                 const SizedBox(height: 8),
-                SimpleCardRichText(
+                CatalogRichText(
+                  auth: widget.auth,
                   content: record.description,
-                  onWikiLinkTap: widget.onWikiLinkTap,
                 ),
               ] else ...[
                 const SizedBox(height: 24),

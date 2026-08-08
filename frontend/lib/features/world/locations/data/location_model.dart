@@ -98,6 +98,7 @@ class LocationRecord {
     this.defenses = '',
     this.history = '',
     this.mapNotes = '',
+    this.imageUrl = '',
   });
 
   final String name;
@@ -118,6 +119,7 @@ class LocationRecord {
   final String defenses;
   final String history;
   final String mapNotes;
+  final String imageUrl;
 
   factory LocationRecord.fromCatalogPayload({
     required String name,
@@ -141,6 +143,7 @@ class LocationRecord {
       defenses: payload['defenses'] as String? ?? '',
       history: payload['history'] as String? ?? '',
       mapNotes: payload['mapNotes'] as String? ?? '',
+      imageUrl: payload['imageUrl'] as String? ?? '',
     );
   }
 
@@ -176,6 +179,7 @@ class LocationRecord {
         'defenses': defenses,
         'history': history,
         'mapNotes': mapNotes,
+        'imageUrl': imageUrl,
       };
 
   String get descriptionPreview =>

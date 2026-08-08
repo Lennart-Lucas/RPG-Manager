@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/offline/offline_marker.dart';
 import '../../../../core/ui/markdown_form_field.dart';
-import '../../../../core/ui/simple_card_rich_text.dart';
 import '../../../auth/data/auth_api.dart';
 import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
-import '../../../catalog/ui/open_catalog_detail.dart';
+import '../../../catalog/ui/catalog_rich_text.dart';
 import '../../mechanics_icons.dart';
 import '../data/spell_tag_model.dart';
 import 'spell_tag_form_sheet.dart';
@@ -244,14 +243,9 @@ class _SpellTagDetailPageState extends State<SpellTagDetailPage> {
               ),
               if (tag.description.trim().isNotEmpty) ...[
                 const SizedBox(height: 24),
-                SimpleCardRichText(
+                CatalogRichText(
+                  auth: widget.auth,
                   content: tag.description,
-                  onWikiLinkTap: (kind, name) => openCatalogWikiLink(
-                    context: context,
-                    auth: widget.auth,
-                    kindApiValue: kind,
-                    name: name,
-                  ),
                 ),
               ] else ...[
                 const SizedBox(height: 24),

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/offline/offline_marker.dart';
-import '../../../../core/ui/simple_card_rich_text.dart';
 import '../../../auth/data/auth_api.dart';
 import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
 import '../../../catalog/data/catalog_auto_link.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
+import '../../../catalog/ui/catalog_rich_text.dart';
 import '../../../catalog/ui/open_catalog_detail.dart';
 import '../../world_icons.dart';
 import '../data/location_model.dart';
@@ -220,14 +220,9 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
         ),
       );
     }
-    return SimpleCardRichText(
+    return CatalogRichText(
+      auth: widget.auth,
       content: record.description,
-      onWikiLinkTap: (kind, name) => openCatalogWikiLink(
-        context: context,
-        auth: widget.auth,
-        kindApiValue: kind,
-        name: name,
-      ),
     );
   }
 

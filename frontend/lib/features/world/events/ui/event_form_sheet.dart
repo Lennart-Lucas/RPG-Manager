@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../../core/ui/markdown_form_field.dart';
 import '../../../dm_tools/resources/ui/resource_form_helpers.dart';
@@ -43,28 +44,61 @@ class _EventFormState extends State<_EventForm> {
       TextEditingController(text: widget.initial?.name ?? '');
   late final _descriptionController =
       TextEditingController(text: widget.initial?.description ?? '');
+  late final _yearStartController = TextEditingController(
+    text: widget.initial?.yearStart?.toString() ?? '',
+  );
+  late final _yearEndController = TextEditingController(
+    text: widget.initial?.yearEnd?.toString() ?? '',
+  );
+  String? _yearError;
 
   @override
   void dispose() {
     _nameController.dispose();
     _descriptionController.dispose();
+    _yearStartController.dispose();
+    _yearEndController.dispose();
     super.dispose();
+  }
+
+  int? _parseOptionalYear(String raw) {
+    final text = raw.trim();
+    if (text.isEmpty) return null;
+    return int.tryParse(text);
   }
 
   void _submit() {
     final form = _formKey.currentState;
     if (form == null || !form.validate()) return;
-    Navigator.pop(
-      context,
-      EventRecord(
-        name: _nameController.text.trim(),
-        description: _descriptionController.text.trim(),
-      ),
+
+    final startRaw = _yearStartController.text.trim();
+    final endRaw = _yearEndController.text.trim();
+    if (startRaw.isNotEmpty && int.tryParse(startRaw) == null) {
+      setState(() => _yearError = 'Start year must be a whole number');
+      return;
+    }
+    if (endRaw.isNotEmpty && int.tryParse(endRaw) == null) {
+      setState(() => _yearError = 'End year must be a whole number');
+      return;
+    }
+
+    final record = EventRecord(
+      name: _nameController.text.trim(),
+      description: _descriptionController.text.trim(),
+      yearStart: _parseOptionalYear(startRaw),
+      yearEnd: _parseOptionalYear(endRaw),
     );
+    final yearError = record.validateYears();
+    if (yearError != null) {
+      setState(() => _yearError = yearError);
+      return;
+    }
+    Navigator.pop(context, record);
   }
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Form(
       key: _formKey,
       child: Column(
@@ -86,6 +120,78 @@ class _EventFormState extends State<_EventForm> {
               return null;
             },
           ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          Text(
+            'Year (AR)',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Optional. Start alone is a single year; both make a range.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _yearStartController,
+                  decoration: ResourceFormStyles.inputDecoration(
+                    context,
+                    label: 'Start',
+                    hintText: 'e.g. 1247',
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    signed: true,
+                  ),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'-?\d*')),
+                  ],
+                  onChanged: (_) {
+                    if (_yearError != null) {
+                      setState(() => _yearError = null);
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextFormField(
+                  controller: _yearEndController,
+                  decoration: ResourceFormStyles.inputDecoration(
+                    context,
+                    label: 'End',
+                    hintText: 'optional',
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    signed: true,
+                  ),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'-?\d*')),
+                  ],
+                  onChanged: (_) {
+                    if (_yearError != null) {
+                      setState(() => _yearError = null);
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+          if (_yearError != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              _yearError!,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: scheme.error,
+                  ),
+            ),
+          ],
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
           MarkdownFormField(
             controller: _descriptionController,

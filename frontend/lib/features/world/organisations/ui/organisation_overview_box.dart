@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/ui/simple_card_rich_text.dart';
+import '../../../../core/ui/catalog_image_slot.dart';
+import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_models.dart';
+import '../../../catalog/ui/catalog_rich_text.dart';
 import '../../world_icons.dart';
 import '../data/organisation_model.dart';
 
@@ -9,20 +11,20 @@ import '../data/organisation_model.dart';
 class OrganisationOverviewBox extends StatelessWidget {
   const OrganisationOverviewBox({
     super.key,
+    required this.auth,
     required this.record,
     this.seat,
     this.parentBody,
     required this.onSeatTap,
     required this.onParentTap,
-    this.onWikiLinkTap,
   });
 
+  final AuthController auth;
   final OrganisationRecord record;
   final CatalogItem? seat;
   final CatalogItem? parentBody;
   final ValueChanged<CatalogItem> onSeatTap;
   final ValueChanged<CatalogItem> onParentTap;
-  final void Function(String kind, String name)? onWikiLinkTap;
 
   static const double preferredWidth = 300;
 
@@ -125,40 +127,34 @@ class OrganisationOverviewBox extends StatelessWidget {
             Divider(height: 1, thickness: 1, color: borderColor),
             Padding(
               padding: const EdgeInsets.all(14),
-              child: AspectRatio(
-                aspectRatio: 4 / 3,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: scheme.surfaceContainer,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: borderColor),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        organisationsPageIcon,
-                        size: 40,
+              child: CatalogImageSlot(
+                imageUrl: record.imageUrl,
+                borderColor: borderColor,
+                placeholder: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      organisationsPageIcon,
+                      size: 40,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Image placeholder',
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      record.name,
+                      style: textTheme.bodySmall?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Image placeholder',
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        record.name,
-                        style: textTheme.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -182,12 +178,12 @@ class OrganisationOverviewBox extends StatelessWidget {
                         ),
                         for (var i = 0; i < detailRows.length; i++)
                           _InfoRow(
+                            auth: auth,
                             row: detailRows[i],
                             labelBg: labelBg,
                             valueBg: valueBg,
                             borderColor: borderColor,
                             showDivider: i < detailRows.length - 1,
-                            onWikiLinkTap: onWikiLinkTap,
                           ),
                       ],
                     ),
@@ -261,20 +257,20 @@ class _SectionHeader extends StatelessWidget {
 
 class _InfoRow extends StatelessWidget {
   const _InfoRow({
+    required this.auth,
     required this.row,
     required this.labelBg,
     required this.valueBg,
     required this.borderColor,
     this.showDivider = true,
-    this.onWikiLinkTap,
   });
 
+  final AuthController auth;
   final _OverviewRow row;
   final Color labelBg;
   final Color valueBg;
   final Color borderColor;
   final bool showDivider;
-  final void Function(String kind, String name)? onWikiLinkTap;
 
   @override
   Widget build(BuildContext context) {
@@ -333,10 +329,10 @@ class _InfoRow extends StatelessWidget {
                       child: Align(
                         alignment: Alignment.centerLeft,
                         child: row.isMarkdown
-                            ? SimpleCardRichText(
+                            ? CatalogRichText(
+                                auth: auth,
                                 content: row.markdown!,
                                 baseStyle: valueStyle,
-                                onWikiLinkTap: onWikiLinkTap,
                               )
                             : Text(row.value ?? '', style: valueStyle),
                       ),

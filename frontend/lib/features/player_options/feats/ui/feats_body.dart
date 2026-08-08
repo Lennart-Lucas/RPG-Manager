@@ -688,9 +688,10 @@ class _FeatsBodyState extends State<FeatsBody>
                                   _openDetail(entry);
                                 }
                               },
-                              onItemLongPress: _selectionMode
-                                  ? null
-                                  : (entry) => _edit(entry.item),
+                              onItemLongPress:
+                                  _selectionMode || !widget.auth.canMutateCatalog
+                                      ? null
+                                      : (entry) => _edit(entry.item),
                             ),
             ),
             if (_selectionMode)

@@ -1,5 +1,6 @@
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
+import '../../../catalog/data/catalog_primary_body.dart';
 import '../../../../core/markdown/wiki_link.dart';
 import 'obsidian_vault_validator.dart';
 
@@ -368,31 +369,7 @@ class ObsidianNoteMapper {
     }
   }
 
-  String _primaryBody(CatalogItem item) {
-    final payload = item.payload;
-    if (payload == null) return '';
-    switch (item.kind) {
-      case CatalogKind.features:
-        return '${payload['text'] ?? ''}';
-      case CatalogKind.creatures:
-        return '${payload['trigger'] ?? ''}';
-      case CatalogKind.rules:
-        return '${payload['body'] ?? payload['description'] ?? ''}';
-      case CatalogKind.spells:
-        final desc = '${payload['description'] ?? ''}'.trim();
-        final higher = payload['higherLevels'];
-        if (higher is Map) {
-          final higherDesc = '${higher['description'] ?? ''}'.trim();
-          if (higherDesc.isNotEmpty) {
-            if (desc.isEmpty) return higherDesc;
-            return '$desc\n\n## At higher levels\n\n$higherDesc';
-          }
-        }
-        return desc;
-      default:
-        return '${payload['description'] ?? ''}';
-    }
-  }
+  String _primaryBody(CatalogItem item) => catalogPrimaryBody(item);
 
   static String _yamlLine(String key, Object? value) {
     if (value == null) return '$key: null';

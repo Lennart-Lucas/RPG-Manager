@@ -5,7 +5,7 @@ import '../markdown/wiki_link.dart';
 import 'card_text_pagination.dart';
 
 /// Lightweight markdown-ish body: bold/italic, lists, headings, tables, quotes,
-/// and wiki links.
+/// wiki links, and `![[kind/name]]` embeds.
 class SimpleCardRichText extends StatefulWidget {
   const SimpleCardRichText({
     super.key,
@@ -14,6 +14,9 @@ class SimpleCardRichText extends StatefulWidget {
     this.styleScale = 1.0,
     this.enableSelection = true,
     this.onWikiLinkTap,
+    this.resolveWikiEmbed,
+    this.embedDepth = 0,
+    this.maxEmbedDepth = 2,
   });
 
   final String content;
@@ -22,8 +25,30 @@ class SimpleCardRichText extends StatefulWidget {
   final bool enableSelection;
   final void Function(String kind, String name)? onWikiLinkTap;
 
+  /// Loads embed title + body for `![[kind/name]]`.
+  /// [alias] is the optional display label from `![[kind/name|alias]]`.
+  final Future<CatalogEmbedPayload?> Function(
+    String kind,
+    String name, {
+    String? alias,
+  })? resolveWikiEmbed;
+
+  final int embedDepth;
+  final int maxEmbedDepth;
+
   @override
   State<SimpleCardRichText> createState() => _SimpleCardRichTextState();
+}
+
+/// Resolved embed content for [SimpleCardRichText.resolveWikiEmbed].
+class CatalogEmbedPayload {
+  const CatalogEmbedPayload({
+    required this.title,
+    required this.body,
+  });
+
+  final String title;
+  final String body;
 }
 
 class _SimpleCardRichTextState extends State<SimpleCardRichText> {
@@ -49,7 +74,8 @@ class _SimpleCardRichTextState extends State<SimpleCardRichText> {
   void didUpdateWidget(covariant SimpleCardRichText oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.content != widget.content ||
-        oldWidget.onWikiLinkTap != widget.onWikiLinkTap) {
+        oldWidget.onWikiLinkTap != widget.onWikiLinkTap ||
+        oldWidget.resolveWikiEmbed != widget.resolveWikiEmbed) {
       for (final r in _recognizers) {
         r.dispose();
       }
@@ -121,15 +147,34 @@ class _SimpleCardRichTextState extends State<SimpleCardRichText> {
           blocks.add(table);
         } else {
           for (final raw in tableLines) {
-            blocks.add(_RichBlock.line(raw));
+            _addLineOrEmbeds(blocks, raw);
           }
         }
         continue;
       }
-      blocks.add(_RichBlock.line(line));
+      _addLineOrEmbeds(blocks, line);
       i++;
     }
     return blocks;
+  }
+
+  void _addLineOrEmbeds(List<_RichBlock> blocks, String line) {
+    final embeds = parseWikiEmbeds(line);
+    if (embeds.isEmpty) {
+      blocks.add(_RichBlock.line(line));
+      return;
+    }
+    var offset = 0;
+    for (final embed in embeds) {
+      if (embed.start > offset) {
+        blocks.add(_RichBlock.line(line.substring(offset, embed.start)));
+      }
+      blocks.add(_RichBlock.embed(embed));
+      offset = embed.end;
+    }
+    if (offset < line.length) {
+      blocks.add(_RichBlock.line(line.substring(offset)));
+    }
   }
 
   _RichBlock _parseQuoteBlock(List<String> contents) {
@@ -168,11 +213,37 @@ class _SimpleCardRichTextState extends State<SimpleCardRichText> {
     return cells.every((cell) => _tableSepCell.hasMatch(cell.trim()));
   }
 
+  /// Split on `|` but do not break wiki links / embeds (`[[…]]` / `![[…]]`),
+  /// whose aliases also use `|`.
   List<String> _splitTableCells(String line) {
     var trimmed = line.trim();
     if (trimmed.startsWith('|')) trimmed = trimmed.substring(1);
     if (trimmed.endsWith('|')) trimmed = trimmed.substring(0, trimmed.length - 1);
-    return trimmed.split('|').map((c) => c.trim()).toList();
+
+    final cells = <String>[];
+    final buf = StringBuffer();
+    var i = 0;
+    while (i < trimmed.length) {
+      if (trimmed.startsWith('![[', i) || trimmed.startsWith('[[', i)) {
+        final end = trimmed.indexOf(']]', i);
+        if (end >= 0) {
+          buf.write(trimmed.substring(i, end + 2));
+          i = end + 2;
+          continue;
+        }
+      }
+      final ch = trimmed[i];
+      if (ch == '|') {
+        cells.add(buf.toString().trim());
+        buf.clear();
+        i++;
+        continue;
+      }
+      buf.write(ch);
+      i++;
+    }
+    cells.add(buf.toString().trim());
+    return cells;
   }
 
   _RichBlock? _tryParseTable(List<String> tableLines) {
@@ -230,7 +301,51 @@ class _SimpleCardRichTextState extends State<SimpleCardRichText> {
     if (block.isQuote) {
       return _quoteWidget(context, block, bodyStyle, linkStyle);
     }
+    if (block.isEmbed) {
+      return _embedWidget(context, block.embed!, bodyStyle, linkStyle);
+    }
     return _lineBlock(context, block.line!, bodyStyle, linkStyle);
+  }
+
+  Widget _embedWidget(
+    BuildContext context,
+    WikiLink embed,
+    TextStyle bodyStyle,
+    TextStyle linkStyle,
+  ) {
+    final scheme = Theme.of(context).colorScheme;
+    final canExpand = widget.embedDepth < widget.maxEmbedDepth &&
+        widget.resolveWikiEmbed != null;
+
+    if (!canExpand) {
+      return Text.rich(
+        TextSpan(
+          style: bodyStyle,
+          children: _inlineSpans(
+            formatWikiLink(
+              kind: embed.kind,
+              name: embed.name,
+              alias: embed.alias,
+            ),
+            bodyStyle,
+            linkStyle,
+          ),
+        ),
+      );
+    }
+
+    return _WikiEmbedView(
+      embed: embed,
+      resolve: widget.resolveWikiEmbed!,
+      onWikiLinkTap: widget.onWikiLinkTap,
+      styleScale: widget.styleScale,
+      baseStyle: bodyStyle,
+      linkStyle: linkStyle,
+      embedDepth: widget.embedDepth,
+      maxEmbedDepth: widget.maxEmbedDepth,
+      borderColor: scheme.outlineVariant,
+      surface: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
+    );
   }
 
   Widget _quoteWidget(
@@ -574,10 +689,10 @@ class _RichBlock {
     this.rows,
     this.quoteBody,
     this.quoteAuthor,
+    this.embed,
   });
 
-  const _RichBlock.line(String value)
-      : this._(line: value);
+  const _RichBlock.line(String value) : this._(line: value);
 
   const _RichBlock.table({
     required List<String> headers,
@@ -589,12 +704,134 @@ class _RichBlock {
     String? author,
   }) : this._(quoteBody: body, quoteAuthor: author);
 
+  const _RichBlock.embed(WikiLink link) : this._(embed: link);
+
   final String? line;
   final List<String>? headers;
   final List<List<String>>? rows;
   final String? quoteBody;
   final String? quoteAuthor;
+  final WikiLink? embed;
 
   bool get isTable => headers != null && rows != null;
   bool get isQuote => quoteBody != null;
+  bool get isEmbed => embed != null;
+}
+
+class _WikiEmbedView extends StatefulWidget {
+  const _WikiEmbedView({
+    required this.embed,
+    required this.resolve,
+    required this.onWikiLinkTap,
+    required this.styleScale,
+    required this.baseStyle,
+    required this.linkStyle,
+    required this.embedDepth,
+    required this.maxEmbedDepth,
+    required this.borderColor,
+    required this.surface,
+  });
+
+  final WikiLink embed;
+  final Future<CatalogEmbedPayload?> Function(
+    String kind,
+    String name, {
+    String? alias,
+  }) resolve;
+  final void Function(String kind, String name)? onWikiLinkTap;
+  final double styleScale;
+  final TextStyle baseStyle;
+  final TextStyle linkStyle;
+  final int embedDepth;
+  final int maxEmbedDepth;
+  final Color borderColor;
+  final Color surface;
+
+  @override
+  State<_WikiEmbedView> createState() => _WikiEmbedViewState();
+}
+
+class _WikiEmbedViewState extends State<_WikiEmbedView> {
+  late final Future<CatalogEmbedPayload?> _future = widget.resolve(
+    widget.embed.kind,
+    widget.embed.name,
+    alias: widget.embed.alias,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final pad = 10 * widget.styleScale;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: widget.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: widget.borderColor),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(pad),
+        child: FutureBuilder<CatalogEmbedPayload?>(
+          future: _future,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return SizedBox(
+                height: 28 * widget.styleScale,
+                child: const Align(
+                  alignment: Alignment.centerLeft,
+                  child: SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              );
+            }
+            final content = snapshot.data;
+            // Prefer the authored alias (`![[kind/name|alias]]`) for the header.
+            final title = widget.embed.displayText;
+            final muted = widget.baseStyle.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            );
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                InkWell(
+                  onTap: widget.onWikiLinkTap == null
+                      ? null
+                      : () => widget.onWikiLinkTap!(
+                            widget.embed.kind,
+                            widget.embed.name,
+                          ),
+                  child: Text(
+                    title,
+                    style: widget.linkStyle.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                if (content == null) ...[
+                  SizedBox(height: 6 * widget.styleScale),
+                  Text(
+                    'Could not load ${widget.embed.reference}',
+                    style: muted,
+                  ),
+                ] else if (content.body.trim().isNotEmpty) ...[
+                  SizedBox(height: 8 * widget.styleScale),
+                  SimpleCardRichText(
+                    content: content.body,
+                    baseStyle: widget.baseStyle,
+                    styleScale: widget.styleScale,
+                    enableSelection: false,
+                    onWikiLinkTap: widget.onWikiLinkTap,
+                    resolveWikiEmbed: widget.resolve,
+                    embedDepth: widget.embedDepth + 1,
+                    maxEmbedDepth: widget.maxEmbedDepth,
+                  ),
+                ],
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
 }

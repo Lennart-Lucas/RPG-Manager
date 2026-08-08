@@ -476,7 +476,8 @@ class _CreaturesBodyState extends State<CreaturesBody> {
                         onTap: sections[i].typeEntry == null
                             ? null
                             : () => _openTypeDetail(sections[i].typeEntry!),
-                        onLongPress: sections[i].typeEntry == null
+                        onLongPress: sections[i].typeEntry == null ||
+                                !widget.auth.canMutateCatalog
                             ? null
                             : () => _editType(sections[i].typeEntry!.item),
                       ),

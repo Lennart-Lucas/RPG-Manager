@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
-import '../../../catalog/ui/open_catalog_detail.dart';
 import '../../mechanics_icons.dart';
 import '../../ui/styled_mechanics_ui.dart';
 
@@ -49,12 +48,6 @@ class ConditionDetailPage extends StatelessWidget {
       singularLabel: 'Condition',
       fallbackIcon: conditionsPageIcon,
       defaultIconKey: 'monitor_heart',
-      onWikiLinkTap: (kind, name) => openCatalogWikiLink(
-        context: context,
-        auth: auth,
-        kindApiValue: kind,
-        name: name,
-      ),
     );
   }
 }

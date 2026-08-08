@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/ui/catalog_image_slot.dart';
 import '../../../../core/ui/record_list_card.dart';
 import '../../../auth/data/auth_api.dart';
 import '../../../auth/state/auth_controller.dart';
@@ -249,17 +250,21 @@ class _CharactersBodyState extends State<CharactersBody> {
                   if (record.playerName.isNotEmpty) record.playerName,
                 ];
                 return RecordListCard(
-                  leading: Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: scheme.primaryContainer.withValues(alpha: 0.88),
-                      borderRadius: BorderRadius.circular(13),
-                    ),
-                    child: Icon(
-                      charactersPageIcon,
-                      size: 22,
-                      color: scheme.onPrimaryContainer,
+                  leading: CatalogImageThumb(
+                    imageUrl: record.imageUrl,
+                    fallback: Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color:
+                            scheme.primaryContainer.withValues(alpha: 0.88),
+                        borderRadius: BorderRadius.circular(13),
+                      ),
+                      child: Icon(
+                        charactersPageIcon,
+                        size: 22,
+                        color: scheme.onPrimaryContainer,
+                      ),
                     ),
                   ),
                   title: item.name,

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/ui/markdown_form_field.dart';
 import '../../auth/data/auth_api.dart';
 import '../../auth/state/auth_controller.dart';
 import '../../dm_tools/resources/data/resources_api.dart';
@@ -36,14 +35,13 @@ import '../../world/creature_types/data/creature_type_model.dart';
 import '../../world/creature_types/ui/creature_type_detail_page.dart';
 import '../../world/creatures/data/creature_model.dart';
 import '../../world/creatures/ui/creature_detail_page.dart';
-import '../../world/locations/data/location_model.dart';
-import '../../world/locations/ui/location_detail_page.dart';
 import '../../world/events/ui/event_detail_page.dart';
-import '../../world/organisations/data/organisation_model.dart';
+import '../../world/locations/ui/location_detail_page.dart';
 import '../../world/organisations/ui/organisation_detail_page.dart';
 import '../data/catalog_api.dart';
 import '../data/catalog_kind.dart';
 import '../data/catalog_models.dart';
+import '../data/catalog_wiki_resolve.dart';
 import 'catalog_record_detail_page.dart';
 
 /// Opens the appropriate detail page for a catalog search hit.
@@ -212,76 +210,13 @@ Future<void> openCatalogWikiLink({
     return;
   }
 
-  final api = CatalogApi();
-  final token = await auth.requireAccessToken();
-  if (token == null || !context.mounted) return;
-
   try {
-    final results = await api.search(token, query: name);
-    CatalogLinkTarget? match;
-    final needle = name.trim().toLowerCase();
-    for (final item in results) {
-      if (item.kind == kind.apiValue && item.name.toLowerCase() == needle) {
-        match = item;
-        break;
-      }
-    }
-    if (match == null) {
-      for (final item in results) {
-        if (item.kind == kind.apiValue &&
-            item.name.toLowerCase().contains(needle)) {
-          match = item;
-          break;
-        }
-      }
-    }
-    if (match == null) {
-      // Fallback: list kind and find by name (or location alias).
-      final listed = await api.list(token, kind);
-      for (final item in listed) {
-        if (item.name.toLowerCase() == needle) {
-          match = CatalogLinkTarget(
-            id: item.id,
-            kind: item.kind.apiValue,
-            name: item.name,
-          );
-          break;
-        }
-      }
-      if (match == null && kind == CatalogKind.locations) {
-        for (final item in listed) {
-          final record = LocationRecord.fromCatalogPayload(
-            name: item.name,
-            payload: item.payload,
-          );
-          if (record.matchesNameOrAlias(needle)) {
-            match = CatalogLinkTarget(
-              id: item.id,
-              kind: item.kind.apiValue,
-              name: item.name,
-            );
-            break;
-          }
-        }
-      }
-      if (match == null && kind == CatalogKind.organisations) {
-        for (final item in listed) {
-          final record = OrganisationRecord.fromCatalogPayload(
-            name: item.name,
-            payload: item.payload,
-          );
-          if (record.matchesNameOrAlias(needle)) {
-            match = CatalogLinkTarget(
-              id: item.id,
-              kind: item.kind.apiValue,
-              name: item.name,
-            );
-            break;
-          }
-        }
-      }
-    }
-    if (match == null) {
+    final item = await resolveCatalogItemByWikiRef(
+      auth: auth,
+      kindApiValue: kindApiValue,
+      name: name,
+    );
+    if (item == null) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('No $kindApiValue named “$name”')),
@@ -293,8 +228,8 @@ Future<void> openCatalogWikiLink({
     await openCatalogRecordDetail(
       context: context,
       auth: auth,
-      kindApiValue: match.kind,
-      itemId: match.id,
+      kindApiValue: item.kind.apiValue,
+      itemId: item.id,
     );
   } on AuthApiException catch (e) {
     if (context.mounted) {

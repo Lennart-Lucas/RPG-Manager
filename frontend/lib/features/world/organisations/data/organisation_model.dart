@@ -11,6 +11,7 @@ class OrganisationRecord {
     this.motto = '',
     this.memberIds = const [],
     this.parentId,
+    this.imageUrl = '',
   });
 
   final String name;
@@ -22,6 +23,7 @@ class OrganisationRecord {
   final String motto;
   final List<int> memberIds;
   final int? parentId;
+  final String imageUrl;
 
   factory OrganisationRecord.fromCatalogPayload({
     required String name,
@@ -46,6 +48,7 @@ class OrganisationRecord {
       motto: payload['motto'] as String? ?? '',
       memberIds: members,
       parentId: (payload['parentId'] as num?)?.toInt(),
+      imageUrl: payload['imageUrl'] as String? ?? '',
     );
   }
 
@@ -59,6 +62,7 @@ class OrganisationRecord {
         'motto': motto,
         'memberIds': memberIds,
         'parentId': parentId,
+        'imageUrl': imageUrl,
       };
 
   String get descriptionPreview =>

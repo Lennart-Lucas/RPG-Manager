@@ -58,14 +58,15 @@ def rewrite_wiki_names(
     if not text or old_name == new_name:
         return text
     pattern = re.compile(
-        rf"\[\[{re.escape(kind)}/{re.escape(old_name)}(?:\|([^\]]+))?\]\]"
+        rf"(!?)\[\[{re.escape(kind)}/{re.escape(old_name)}(?:\|([^\]]+))?\]\]"
     )
 
     def _replace(match: re.Match[str]) -> str:
-        alias = match.group(1)
+        bang = match.group(1) or ""
+        alias = match.group(2)
         if alias:
-            return f"[[{kind}/{new_name}|{alias}]]"
-        return f"[[{kind}/{new_name}]]"
+            return f"{bang}[[{kind}/{new_name}|{alias}]]"
+        return f"{bang}[[{kind}/{new_name}]]"
 
     return pattern.sub(_replace, text)
 

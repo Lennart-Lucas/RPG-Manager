@@ -264,7 +264,9 @@ class _FeaturesBodyState extends State<FeaturesBody> {
                     title: Text(item.name),
                     subtitle: Text(_subtitle(feature)),
                     onTap: () => _openDetail(item),
-                    onLongPress: () => _edit(item),
+                    onLongPress: widget.auth.canMutateCatalog
+                        ? () => _edit(item)
+                        : null,
                   ),
                 );
               },

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/ui/catalog_image_slot.dart';
 import '../../../../core/ui/markdown_form_field.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../../dm_tools/resources/ui/resource_form_helpers.dart';
@@ -51,6 +52,8 @@ class _CharacterFormState extends State<_CharacterForm> {
       TextEditingController(text: widget.initial?.playerName ?? '');
   late final _descriptionController =
       TextEditingController(text: widget.initial?.description ?? '');
+  late final _imageUrlController =
+      TextEditingController(text: widget.initial?.imageUrl ?? '');
   late int? _raceId = widget.initial?.raceId;
   late Set<MtgColor> _alignment = {...?widget.initial?.mtgAlignment};
 
@@ -59,6 +62,7 @@ class _CharacterFormState extends State<_CharacterForm> {
     _nameController.dispose();
     _playerController.dispose();
     _descriptionController.dispose();
+    _imageUrlController.dispose();
     super.dispose();
   }
 
@@ -73,6 +77,7 @@ class _CharacterFormState extends State<_CharacterForm> {
         mtgAlignment: MtgColor.values.where(_alignment.contains).toList(),
         playerName: _playerController.text.trim(),
         description: _descriptionController.text.trim(),
+        imageUrl: normalizeCatalogImageUrl(_imageUrlController.text),
       ),
     );
   }
@@ -170,6 +175,18 @@ class _CharacterFormState extends State<_CharacterForm> {
                   ),
                 ),
             ],
+          ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          TextFormField(
+            controller: _imageUrlController,
+            decoration: ResourceFormStyles.inputDecoration(
+              context,
+              label: 'Image URL',
+              hintText: 'https://… or Google Drive share link',
+            ),
+            keyboardType: TextInputType.url,
+            autocorrect: false,
+            validator: validateOptionalHttpUrl,
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
           MarkdownFormField(

@@ -7,12 +7,7 @@ String itemPropertyMarkdownPreview(String markdown) {
   var t = stripCardBreakMarkers(markdown);
   if (t.isEmpty) return '';
 
-  t = t.replaceAllMapped(wikiLinkPattern, (match) {
-    final alias = match.group(3)?.trim();
-    final name = match.group(2)?.trim() ?? '';
-    if (alias != null && alias.isNotEmpty) return alias;
-    return name;
-  });
+  t = stripWikiMarkup(t);
   t = t.replaceAll(
     RegExp(
       r'^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$',

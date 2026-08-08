@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import 'package:rpg_manager/core/ui/simple_card_rich_text.dart';
 import 'package:rpg_manager/features/auth/data/auth_api.dart';
 import 'package:rpg_manager/features/auth/state/auth_controller.dart';
 import 'package:rpg_manager/features/catalog/data/catalog_api.dart';
 import 'package:rpg_manager/features/catalog/data/catalog_kind.dart';
 import 'package:rpg_manager/features/catalog/data/catalog_models.dart';
+import 'package:rpg_manager/features/catalog/ui/catalog_rich_text.dart';
 import 'package:rpg_manager/features/player_options/skills/data/skill_model.dart';
 import 'package:rpg_manager/features/world/creatures/data/creature_model.dart';
 import 'package:rpg_manager/features/world/creatures/ui/creature_form_sheet.dart';
@@ -241,7 +241,8 @@ class _CreatureDetailPageState extends State<CreatureDetailPage> {
                                       Theme.of(context).textTheme.titleMedium,
                                 ),
                                 const SizedBox(height: 8),
-                                SimpleCardRichText(
+                                CatalogRichText(
+                                  auth: widget.auth,
                                   content: _creature.trigger!,
                                 ),
                                 if (hasCountermeasures || hasItems)

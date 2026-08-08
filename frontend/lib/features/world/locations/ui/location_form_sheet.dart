@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/ui/catalog_image_slot.dart';
 import '../../../../core/ui/markdown_form_field.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../../dm_tools/resources/ui/resource_form_helpers.dart';
@@ -52,6 +53,8 @@ class _LocationFormState extends State<_LocationForm> {
       TextEditingController(text: widget.initial?.name ?? '');
   late final _descriptionController =
       TextEditingController(text: widget.initial?.description ?? '');
+  late final _imageUrlController =
+      TextEditingController(text: widget.initial?.imageUrl ?? '');
   late LocationType _type = widget.initial?.type ?? LocationType.site;
   late int? _parentId = widget.initial?.parentId;
   late List<String> _aliases = [...?widget.initial?.aliases];
@@ -61,6 +64,7 @@ class _LocationFormState extends State<_LocationForm> {
   void dispose() {
     _nameController.dispose();
     _descriptionController.dispose();
+    _imageUrlController.dispose();
     super.dispose();
   }
 
@@ -108,6 +112,7 @@ class _LocationFormState extends State<_LocationForm> {
             a.trim(),
       ],
       description: _descriptionController.text.trim(),
+      imageUrl: normalizeCatalogImageUrl(_imageUrlController.text),
       // Preserve legacy overview fields not shown in the form.
       population: initial?.population ?? '',
       government: initial?.government ?? '',
@@ -223,6 +228,18 @@ class _LocationFormState extends State<_LocationForm> {
           _AliasesEditor(
             values: _aliases,
             onChanged: (next) => setState(() => _aliases = next),
+          ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          TextFormField(
+            controller: _imageUrlController,
+            decoration: ResourceFormStyles.inputDecoration(
+              context,
+              label: 'Image URL',
+              hintText: 'https://… or Google Drive share link',
+            ),
+            keyboardType: TextInputType.url,
+            autocorrect: false,
+            validator: validateOptionalHttpUrl,
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
           MarkdownFormField(

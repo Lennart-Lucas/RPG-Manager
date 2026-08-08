@@ -271,19 +271,49 @@ class _PreferencesBodyState extends State<PreferencesBody> {
         final scheme = Theme.of(context).colorScheme;
         final aiEnabled = widget.auth.user?.aiIntegration ?? false;
         final isDm = widget.auth.user?.isDm == true;
+        final viewAsPlayer = widget.auth.viewAsPlayer;
+        // Mirror player preferences while previewing; only the toggle stays DM-only.
+        final playerFacing = !isDm || viewAsPlayer;
+        final canEditTheme = isDm && !viewAsPlayer;
         final export = ObsidianExportController.instance;
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            if (isDm) ...[
+              Text(
+                'Display',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('View as player'),
+                subtitle: Text(
+                  viewAsPlayer
+                      ? 'Preferences and chrome match a player account. '
+                          'Turn this off to restore DM settings and tools.'
+                      : 'Hide DM Tools and catalog edit actions so you see the app '
+                          'as players do. Your account stays a Dungeon Master.',
+                ),
+                value: viewAsPlayer,
+                onChanged: (value) async {
+                  await widget.auth.setViewAsPlayer(value);
+                  if (value) {
+                    widget.onViewAsPlayerEnabled?.call();
+                  }
+                },
+              ),
+              const Divider(height: 32),
+            ],
             Text(
               'Theme',
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 4),
             Text(
-              isDm
-                  ? 'Campaign theme for all players on this server.'
-                  : 'Set by your Dungeon Master.',
+              playerFacing
+                  ? 'Set by your Dungeon Master.'
+                  : 'Campaign theme for all players on this server.',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
@@ -316,7 +346,7 @@ class _PreferencesBodyState extends State<PreferencesBody> {
                     trailing: selected
                         ? Icon(Icons.check_circle, color: scheme.primary)
                         : const Icon(Icons.circle_outlined),
-                    onTap: !isDm
+                    onTap: !canEditTheme
                         ? null
                         : () async {
                             final previous = widget.themeController.themeId;
@@ -341,219 +371,200 @@ class _PreferencesBodyState extends State<PreferencesBody> {
                 ),
               );
             }),
-            if (isDm) ...[
+            if (!playerFacing) ...[
               const Divider(height: 32),
               Text(
-                'Display',
+                'AI',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 8),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('View as player'),
-                subtitle: const Text(
-                  'Hide DM Tools and catalog edit actions so you see the app '
-                  'as players do. Your account stays a Dungeon Master.',
+                title: const Text('AI integration'),
+                subtitle: Text(
+                  aiEnabled
+                      ? 'In-app PDF spell extraction uses your Anthropic API key. '
+                          'The key stays on this device and is only sent with extract requests.'
+                      : 'When off, spell forms offer copy/paste templates for external AI tools.',
                 ),
-                value: widget.auth.viewAsPlayer,
-                onChanged: (value) async {
-                  await widget.auth.setViewAsPlayer(value);
-                  if (value) {
-                    widget.onViewAsPlayerEnabled?.call();
-                  }
-                },
-              ),
-            ],
-            const Divider(height: 32),
-            Text(
-              'AI',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('AI integration'),
-              subtitle: Text(
-                aiEnabled
-                    ? 'In-app PDF spell extraction uses your Anthropic API key. '
-                        'The key stays on this device and is only sent with extract requests.'
-                    : 'When off, spell forms offer copy/paste templates for external AI tools.',
-              ),
-              value: aiEnabled,
-              onChanged: widget.auth.busy
-                  ? null
-                  : (value) async {
-                      final ok = await widget.auth.setAiIntegration(value);
-                      if (!context.mounted) return;
-                      if (!ok) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              widget.auth.errorMessage ??
-                                  'Could not update AI preference',
+                value: aiEnabled,
+                onChanged: widget.auth.busy
+                    ? null
+                    : (value) async {
+                        final ok = await widget.auth.setAiIntegration(value);
+                        if (!context.mounted) return;
+                        if (!ok) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                widget.auth.errorMessage ??
+                                    'Could not update AI preference',
+                              ),
                             ),
-                          ),
-                        );
-                      }
-                    },
-            ),
-            if (aiEnabled) ...[
-              const SizedBox(height: 8),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.key_outlined),
-                title: const Text('Anthropic API key'),
-                subtitle: Text(
-                  _keyLoading
-                      ? 'Loading…'
-                      : (_maskedKey ?? 'Not set — required for PDF extraction'),
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (_maskedKey != null)
-                      IconButton(
-                        tooltip: 'Clear key',
-                        onPressed: _clearAnthropicKey,
-                        icon: const Icon(Icons.delete_outline),
-                      ),
-                    IconButton(
-                      tooltip: _maskedKey == null ? 'Add key' : 'Update key',
-                      onPressed: _editAnthropicKey,
-                      icon: Icon(
-                        _maskedKey == null
-                            ? Icons.add_circle_outline
-                            : Icons.edit_outlined,
-                      ),
-                    ),
-                  ],
-                ),
-                onTap: _editAnthropicKey,
+                          );
+                        }
+                      },
               ),
-            ],
-            if (isDesktop) ...[
+              if (aiEnabled) ...[
+                const SizedBox(height: 8),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.key_outlined),
+                  title: const Text('Anthropic API key'),
+                  subtitle: Text(
+                    _keyLoading
+                        ? 'Loading…'
+                        : (_maskedKey ??
+                            'Not set — required for PDF extraction'),
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_maskedKey != null)
+                        IconButton(
+                          tooltip: 'Clear key',
+                          onPressed: _clearAnthropicKey,
+                          icon: const Icon(Icons.delete_outline),
+                        ),
+                      IconButton(
+                        tooltip: _maskedKey == null ? 'Add key' : 'Update key',
+                        onPressed: _editAnthropicKey,
+                        icon: Icon(
+                          _maskedKey == null
+                              ? Icons.add_circle_outline
+                              : Icons.edit_outlined,
+                        ),
+                      ),
+                    ],
+                  ),
+                  onTap: _editAnthropicKey,
+                ),
+              ],
+              if (isDesktop) ...[
+                const Divider(height: 32),
+                Text(
+                  'Obsidian export',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Mirrors catalog notes into a local vault folder '
+                  '(RPG Manager/). One-way: the database always wins. '
+                  'Path is stored only on this device.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  secondary: const Icon(Icons.sync),
+                  title: const Text('Auto-sync'),
+                  subtitle: Text(
+                    export.isAutoSyncEnabled
+                        ? 'Export when catalog records change on this device.'
+                        : 'Automatic export is off. Use Export now when you want an update.',
+                  ),
+                  value: export.isAutoSyncEnabled,
+                  onChanged: (value) => export.setAutoSyncEnabled(value),
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.folder_special_outlined),
+                  title: const Text('Vault folder'),
+                  subtitle: Text(
+                    export.vaultPath ?? 'Not set',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (export.vaultPath != null)
+                        IconButton(
+                          tooltip: 'Clear',
+                          onPressed: _clearObsidianVault,
+                          icon: const Icon(Icons.delete_outline),
+                        ),
+                      IconButton(
+                        tooltip: 'Choose folder',
+                        onPressed: _pickObsidianVault,
+                        icon: const Icon(Icons.folder_open),
+                      ),
+                    ],
+                  ),
+                  onTap: _pickObsidianVault,
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    export.isExporting
+                        ? Icons.sync
+                        : (export.lastError != null
+                            ? Icons.error_outline
+                            : Icons.check_circle_outline),
+                    color: export.lastError != null ? scheme.error : null,
+                  ),
+                  title: Text(
+                    export.isExporting
+                        ? 'Exporting…'
+                        : 'Last export: ${_formatExportTime(export.lastExportAt)}',
+                  ),
+                  subtitle: export.lastError != null
+                      ? Text(
+                          export.lastError!,
+                          style: TextStyle(color: scheme.error),
+                        )
+                      : Text(
+                          export.isAutoSyncEnabled
+                              ? 'Updates automatically when catalog records change.'
+                              : 'Auto-sync is off.',
+                        ),
+                  trailing: FilledButton(
+                    onPressed: export.hasValidVault && !export.isExporting
+                        ? () => export.exportNow()
+                        : null,
+                    child: const Text('Export now'),
+                  ),
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    export.isImporting
+                        ? Icons.hourglass_top
+                        : Icons.upload_file_outlined,
+                  ),
+                  title: const Text('Import note'),
+                  subtitle: const Text(
+                    'Choose one exported .md file to overwrite its matching '
+                    'catalog record (body + name from frontmatter).',
+                  ),
+                  trailing: FilledButton(
+                    onPressed: export.isImporting ? null : _importObsidianNote,
+                    child:
+                        Text(export.isImporting ? 'Importing…' : 'Import'),
+                  ),
+                ),
+              ],
               const Divider(height: 32),
               Text(
-                'Obsidian export',
+                'Offline',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 8),
-              Text(
-                'Mirrors catalog notes into a local vault folder '
-                '(RPG Manager/). One-way: the database always wins. '
-                'Path is stored only on this device.',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                secondary: const Icon(Icons.sync),
-                title: const Text('Auto-sync'),
-                subtitle: Text(
-                  export.isAutoSyncEnabled
-                      ? 'Export when catalog records change on this device.'
-                      : 'Automatic export is off. Use Export now when you want an update.',
-                ),
-                value: export.isAutoSyncEnabled,
-                onChanged: (value) => export.setAutoSyncEnabled(value),
-              ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.folder_special_outlined),
-                title: const Text('Vault folder'),
-                subtitle: Text(
-                  export.vaultPath ?? 'Not set',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (export.vaultPath != null)
-                      IconButton(
-                        tooltip: 'Clear',
-                        onPressed: _clearObsidianVault,
-                        icon: const Icon(Icons.delete_outline),
-                      ),
-                    IconButton(
-                      tooltip: 'Choose folder',
-                      onPressed: _pickObsidianVault,
-                      icon: const Icon(Icons.folder_open),
-                    ),
-                  ],
-                ),
-                onTap: _pickObsidianVault,
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(
-                  export.isExporting
-                      ? Icons.sync
-                      : (export.lastError != null
-                          ? Icons.error_outline
-                          : Icons.check_circle_outline),
-                  color: export.lastError != null ? scheme.error : null,
-                ),
-                title: Text(
-                  export.isExporting
-                      ? 'Exporting…'
-                      : 'Last export: ${_formatExportTime(export.lastExportAt)}',
-                ),
-                subtitle: export.lastError != null
-                    ? Text(
-                        export.lastError!,
-                        style: TextStyle(color: scheme.error),
-                      )
-                    : Text(
-                        export.isAutoSyncEnabled
-                            ? 'Updates automatically when catalog records change.'
-                            : 'Auto-sync is off.',
-                      ),
-                trailing: FilledButton(
-                  onPressed: export.hasValidVault && !export.isExporting
-                      ? () => export.exportNow()
-                      : null,
-                  child: const Text('Export now'),
-                ),
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(
-                  export.isImporting
-                      ? Icons.hourglass_top
-                      : Icons.upload_file_outlined,
-                ),
-                title: const Text('Import note'),
+                leading: const Icon(Icons.sync),
+                title: const Text('Resync offline changes'),
                 subtitle: const Text(
-                  'Choose one exported .md file to overwrite its matching '
-                  'catalog record (body + name from frontmatter).',
+                  'Re-queue local creates that failed to sync, then drain the pending queue.',
                 ),
                 trailing: FilledButton(
-                  onPressed: export.isImporting ? null : _importObsidianNote,
-                  child: Text(export.isImporting ? 'Importing…' : 'Import'),
+                  onPressed: _resyncOfflineChanges,
+                  child: const Text('Resync'),
                 ),
               ),
             ],
-            const Divider(height: 32),
-            Text(
-              'Offline',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.sync),
-              title: const Text('Resync offline changes'),
-              subtitle: const Text(
-                'Re-queue local creates that failed to sync, then drain the pending queue.',
-              ),
-              trailing: FilledButton(
-                onPressed: _resyncOfflineChanges,
-                child: const Text('Resync'),
-              ),
-            ),
             const Divider(height: 32),
             ListTile(
               leading: const Icon(Icons.cloud_outlined),

@@ -56,6 +56,7 @@ class CharacterRecord {
     this.mtgAlignment = const [],
     this.playerName = '',
     this.description = '',
+    this.imageUrl = '',
   });
 
   final String name;
@@ -63,6 +64,7 @@ class CharacterRecord {
   final List<MtgColor> mtgAlignment;
   final String playerName;
   final String description;
+  final String imageUrl;
 
   factory CharacterRecord.fromCatalogPayload({
     required String name,
@@ -83,6 +85,7 @@ class CharacterRecord {
       mtgAlignment: colors,
       playerName: payload['playerName'] as String? ?? '',
       description: payload['description'] as String? ?? '',
+      imageUrl: payload['imageUrl'] as String? ?? '',
     );
   }
 
@@ -92,6 +95,7 @@ class CharacterRecord {
         'mtgAlignment': [for (final c in mtgAlignment) c.apiValue],
         'playerName': playerName,
         'description': description,
+        'imageUrl': imageUrl,
       };
 
   String get descriptionPreview =>

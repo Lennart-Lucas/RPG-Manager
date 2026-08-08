@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/offline/offline_marker.dart';
-import '../../../../core/ui/simple_card_rich_text.dart';
 import '../../../auth/data/auth_api.dart';
 import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
 import '../../../catalog/data/catalog_auto_link.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
-import '../../../catalog/ui/open_catalog_detail.dart';
+import '../../../catalog/ui/catalog_rich_text.dart';
 import '../../world_icons.dart';
 import '../data/event_model.dart';
 import 'event_form_sheet.dart';
@@ -192,18 +191,20 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   ),
                 ],
               ),
+              if (record.yearLabel != null) ...[
+                const SizedBox(height: 16),
+                Chip(
+                  avatar: const Icon(Icons.calendar_today_outlined, size: 18),
+                  label: Text(record.yearLabel!),
+                ),
+              ],
               if (record.description.trim().isNotEmpty) ...[
                 const SizedBox(height: 24),
                 Text('Description', style: textTheme.titleSmall),
                 const SizedBox(height: 8),
-                SimpleCardRichText(
+                CatalogRichText(
+                  auth: widget.auth,
                   content: record.description,
-                  onWikiLinkTap: (kind, name) => openCatalogWikiLink(
-                    context: context,
-                    auth: widget.auth,
-                    kindApiValue: kind,
-                    name: name,
-                  ),
                 ),
               ] else ...[
                 const SizedBox(height: 24),

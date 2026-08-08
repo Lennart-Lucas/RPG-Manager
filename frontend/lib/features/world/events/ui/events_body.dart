@@ -248,7 +248,9 @@ class _EventsBodyState extends State<EventsBody> {
                     ),
                   ),
                   title: item.name,
-                  subtitle: 'Event',
+                  subtitle: record.yearLabel == null
+                      ? 'Event'
+                      : 'Event · ${record.yearLabel}',
                   trailing: widget.auth.canMutateCatalog
                       ? IconButton(
                           tooltip: 'Delete',

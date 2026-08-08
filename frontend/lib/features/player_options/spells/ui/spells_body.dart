@@ -965,9 +965,10 @@ class _SpellsBodyState extends State<SpellsBody>
                                   _openDetail(entry);
                                 }
                               },
-                              onSpellLongPress: _selectionMode
-                                  ? null
-                                  : (entry) => _edit(entry.item),
+                              onSpellLongPress:
+                                  _selectionMode || !widget.auth.canMutateCatalog
+                                      ? null
+                                      : (entry) => _edit(entry.item),
                               onTagTap: _selectionMode ? null : _openSpellTag,
                             ),
             ),

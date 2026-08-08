@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/ui/catalog_image_slot.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../world_icons.dart';
 import '../data/location_model.dart';
@@ -134,40 +135,34 @@ class LocationOverviewBox extends StatelessWidget {
             Divider(height: 1, thickness: 1, color: borderColor),
             Padding(
               padding: const EdgeInsets.all(14),
-              child: AspectRatio(
-                aspectRatio: 4 / 3,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: scheme.surfaceContainer,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: borderColor),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        atlasPageIcon,
-                        size: 40,
+              child: CatalogImageSlot(
+                imageUrl: record.imageUrl,
+                borderColor: borderColor,
+                placeholder: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      atlasPageIcon,
+                      size: 40,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Image placeholder',
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      record.name,
+                      style: textTheme.bodySmall?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Image placeholder',
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        record.name,
-                        style: textTheme.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
               ),
             ),

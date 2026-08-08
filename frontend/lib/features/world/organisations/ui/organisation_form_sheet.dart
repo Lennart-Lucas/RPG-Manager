@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/ui/catalog_image_slot.dart';
 import '../../../../core/ui/markdown_form_field.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../../dm_tools/resources/ui/resource_form_helpers.dart';
@@ -67,6 +68,8 @@ class _OrganisationFormState extends State<_OrganisationForm> {
       TextEditingController(text: widget.initial?.type ?? '');
   late final _mottoController =
       TextEditingController(text: widget.initial?.motto ?? '');
+  late final _imageUrlController =
+      TextEditingController(text: widget.initial?.imageUrl ?? '');
   late List<String> _aliases = [...?widget.initial?.aliases];
   late List<int> _memberIds = [...?widget.initial?.memberIds];
   late int? _parentId = widget.initial?.parentId;
@@ -79,6 +82,7 @@ class _OrganisationFormState extends State<_OrganisationForm> {
     _foundingController.dispose();
     _typeController.dispose();
     _mottoController.dispose();
+    _imageUrlController.dispose();
     super.dispose();
   }
 
@@ -128,6 +132,7 @@ class _OrganisationFormState extends State<_OrganisationForm> {
         motto: _mottoController.text.trim(),
         memberIds: _memberIds,
         parentId: _parentId,
+        imageUrl: normalizeCatalogImageUrl(_imageUrlController.text),
       ),
     );
   }
@@ -251,6 +256,18 @@ class _OrganisationFormState extends State<_OrganisationForm> {
               selected: _memberIds.toSet(),
               onDone: (next) => setState(() => _memberIds = next.toList()),
             ),
+          ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          TextFormField(
+            controller: _imageUrlController,
+            decoration: ResourceFormStyles.inputDecoration(
+              context,
+              label: 'Image URL',
+              hintText: 'https://… or Google Drive share link',
+            ),
+            keyboardType: TextInputType.url,
+            autocorrect: false,
+            validator: validateOptionalHttpUrl,
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
           MarkdownFormField(
