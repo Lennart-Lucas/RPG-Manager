@@ -9,12 +9,16 @@ class StyledMechanicsRecord {
     required this.description,
     this.iconKey = 'monitor_heart',
     this.colorArgb,
+    this.sourceFileId,
+    this.sourcePage,
   });
 
   final String name;
   final String description;
   final String iconKey;
   final int? colorArgb;
+  final int? sourceFileId;
+  final int? sourcePage;
 
   factory StyledMechanicsRecord.fromJson(
     Map<String, dynamic> json, {
@@ -25,6 +29,9 @@ class StyledMechanicsRecord {
       description: json['description'] as String? ?? '',
       iconKey: json['iconKey'] as String? ?? defaultIconKey,
       colorArgb: json['colorArgb'] as int?,
+      sourceFileId: json['sourceFileId'] as int? ??
+          (json['source_file_id'] as int?),
+      sourcePage: json['sourcePage'] as int? ?? (json['source_page'] as int?),
     );
   }
 
@@ -36,11 +43,12 @@ class StyledMechanicsRecord {
     if (payload == null) {
       return StyledMechanicsRecord(name: name, description: '', iconKey: defaultIconKey);
     }
-    return StyledMechanicsRecord(
-      name: payload['name'] as String? ?? name,
-      description: payload['description'] as String? ?? '',
-      iconKey: payload['iconKey'] as String? ?? defaultIconKey,
-      colorArgb: payload['colorArgb'] as int?,
+    return StyledMechanicsRecord.fromJson(
+      {
+        ...payload,
+        'name': payload['name'] as String? ?? name,
+      },
+      defaultIconKey: defaultIconKey,
     );
   }
 
@@ -49,7 +57,31 @@ class StyledMechanicsRecord {
         'description': description,
         'iconKey': iconKey,
         if (colorArgb != null) 'colorArgb': colorArgb,
+        if (sourceFileId != null) 'sourceFileId': sourceFileId,
+        if (sourcePage != null) 'sourcePage': sourcePage,
       };
+
+  StyledMechanicsRecord copyWith({
+    String? name,
+    String? description,
+    String? iconKey,
+    int? colorArgb,
+    int? sourceFileId,
+    int? sourcePage,
+    bool clearColorArgb = false,
+    bool clearSourceFileId = false,
+    bool clearSourcePage = false,
+  }) {
+    return StyledMechanicsRecord(
+      name: name ?? this.name,
+      description: description ?? this.description,
+      iconKey: iconKey ?? this.iconKey,
+      colorArgb: clearColorArgb ? null : (colorArgb ?? this.colorArgb),
+      sourceFileId:
+          clearSourceFileId ? null : (sourceFileId ?? this.sourceFileId),
+      sourcePage: clearSourcePage ? null : (sourcePage ?? this.sourcePage),
+    );
+  }
 
   IconData resolvedIcon({required IconData fallback}) =>
       catalogAppearanceIcon(iconKey, fallback: fallback);

@@ -6,10 +6,11 @@ import '../../../catalog/data/catalog_api.dart';
 import '../../../catalog/data/catalog_auto_link.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
-import '../../../catalog/ui/catalog_rich_text.dart';
 import '../../../../core/ui/markdown_form_field.dart';
+import '../../../../core/ui/mtg_card_rules_text_fit.dart';
 import '../../../dm_tools/resources/data/local_resource_file_copy.dart';
 import '../../../dm_tools/resources/data/resource_models.dart';
+import '../../../mechanics/conditions/ui/condition_sheet.dart';
 import '../../../mechanics/data/styled_mechanics_record.dart';
 import '../../../mechanics/mechanics_icons.dart';
 import '../../../mechanics/ui/styled_mechanics_ui.dart';
@@ -189,13 +190,17 @@ class _ConditionExtractReviewPageState
   Future<void> _editCurrent() async {
     final draft = _current;
     if (draft == null || draft.rejected) return;
-    final record = conditionFromExtractDraft(draft: draft);
+    final record = conditionFromExtractDraft(
+      draft: draft,
+      sourceFileId: widget.sourceFile.id,
+    );
     final edited = await showStyledMechanicsFormSheet(
       context,
       singularLabel: 'condition',
       fallbackIcon: conditionsPageIcon,
       defaultIconKey: 'monitor_heart',
       initial: record,
+      resourceFiles: [widget.sourceFile],
       searchLinks: _searchLinks,
       loadAutoLinkTargets: () async => _autoLinkTargets,
     );
@@ -228,7 +233,10 @@ class _ConditionExtractReviewPageState
     final draft = _current;
     if (draft == null || draft.rejected || _busy) return;
 
-    var record = conditionFromExtractDraft(draft: draft);
+    var record = conditionFromExtractDraft(
+      draft: draft,
+      sourceFileId: widget.sourceFile.id,
+    );
 
     final existing = _findLibraryItem(record.name);
     if (existing != null || draft.duplicateNameInLibrary) {
@@ -280,12 +288,7 @@ class _ConditionExtractReviewPageState
       if (action == _DupAction.rename) {
         final renamed = await _promptRename(record.name);
         if (renamed == null || !mounted) return;
-        record = StyledMechanicsRecord(
-          name: renamed,
-          description: record.description,
-          iconKey: record.iconKey,
-          colorArgb: record.colorArgb,
-        );
+        record = record.copyWith(name: renamed);
       }
       if (action == _DupAction.overwrite && match != null) {
         await _commit(
@@ -606,8 +609,10 @@ class _ConditionExtractReviewPageState
                             Expanded(
                               child: Builder(
                                 builder: (context) {
-                                  final record =
-                                      conditionFromExtractDraft(draft: draft);
+                                  final record = conditionFromExtractDraft(
+                                    draft: draft,
+                                    sourceFileId: widget.sourceFile.id,
+                                  );
                                   return _DraftDetailPane(
                                     auth: widget.auth,
                                     draft: draft,
@@ -782,65 +787,42 @@ class _DraftDetailPane extends StatelessWidget {
               children: [
                 Text('Condition preview', style: textTheme.titleSmall),
                 const SizedBox(height: 8),
-                if (flags.isNotEmpty) ...[
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: [
-                      for (final flag in flags)
-                        Chip(
-                          visualDensity: VisualDensity.compact,
-                          label: Text(flag),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                ],
                 Expanded(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: scheme.outlineVariant),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (flags.isNotEmpty) ...[
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
                             children: [
-                              Icon(
-                                record.resolvedIcon(
-                                  fallback: conditionsPageIcon,
+                              for (final flag in flags)
+                                Chip(
+                                  visualDensity: VisualDensity.compact,
+                                  label: Text(flag),
                                 ),
-                                color: record.resolvedColor(
-                                  fallback: scheme.primary,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  record.name,
-                                  style: textTheme.titleLarge,
-                                ),
-                              ),
                             ],
                           ),
                           const SizedBox(height: 12),
-                          if (record.description.trim().isNotEmpty)
-                            CatalogRichText(
-                              auth: auth,
-                              content: record.description,
-                            )
-                          else
-                            Text(
-                              'No description yet.',
-                              style: textTheme.bodyMedium?.copyWith(
-                                color: scheme.onSurfaceVariant,
+                        ],
+                        for (final card in buildConditionSheets(
+                          record,
+                          cardScale: 0.95,
+                          maxFontSize: kMtgCardRulesMaxFontSize * 0.95,
+                        ))
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Align(
+                              alignment: Alignment.topCenter,
+                              child: SizedBox(
+                                width: 340,
+                                child: card,
                               ),
                             ),
-                        ],
-                      ),
+                          ),
+                      ],
                     ),
                   ),
                 ),

@@ -142,12 +142,7 @@ AutoLinkApplyResult<StyledMechanicsRecord> autoLinkStyledMechanicsFields(
     return AutoLinkApplyResult(value: record, changed: false);
   }
   return AutoLinkApplyResult(
-    value: StyledMechanicsRecord(
-      name: record.name,
-      description: description,
-      iconKey: record.iconKey,
-      colorArgb: record.colorArgb,
-    ),
+    value: record.copyWith(description: description),
     changed: true,
   );
 }

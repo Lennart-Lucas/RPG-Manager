@@ -4,8 +4,12 @@ import 'extract_models.dart';
 /// Build a [StyledMechanicsRecord] from an extract draft for review / commit.
 StyledMechanicsRecord conditionFromExtractDraft({
   required ExtractDraft draft,
+  int? sourceFileId,
 }) {
-  final fromEdited = _tryConditionFromEditedPayload(draft.payload);
+  final fromEdited = _tryConditionFromEditedPayload(
+    draft.payload,
+    sourceFileId: sourceFileId,
+  );
   if (fromEdited != null) return fromEdited;
 
   final payload = draft.payload;
@@ -29,25 +33,35 @@ StyledMechanicsRecord conditionFromExtractDraft({
       : 'monitor_heart';
   final colorArgb =
       payload['colorArgb'] is int ? payload['colorArgb'] as int : null;
+  final sourcePage = draft.source.page ??
+      (payload['sourcePage'] is num
+          ? (payload['sourcePage'] as num).toInt()
+          : null);
 
   return StyledMechanicsRecord(
     name: name,
     description: description,
     iconKey: iconKey,
     colorArgb: colorArgb,
+    sourceFileId: sourceFileId,
+    sourcePage: sourcePage,
   );
 }
 
 /// Payload written by Edit ([StyledMechanicsRecord.toJson]).
 StyledMechanicsRecord? _tryConditionFromEditedPayload(
-  Map<String, dynamic> payload,
-) {
+  Map<String, dynamic> payload, {
+  int? sourceFileId,
+}) {
   // Edited payloads always include iconKey from StyledMechanicsRecord.toJson().
   if (payload['iconKey'] is! String) return null;
   if (payload['name'] is! String) return null;
 
   try {
-    return StyledMechanicsRecord.fromJson(payload);
+    final record = StyledMechanicsRecord.fromJson(payload);
+    return record.copyWith(
+      sourceFileId: sourceFileId ?? record.sourceFileId,
+    );
   } catch (_) {
     return null;
   }
