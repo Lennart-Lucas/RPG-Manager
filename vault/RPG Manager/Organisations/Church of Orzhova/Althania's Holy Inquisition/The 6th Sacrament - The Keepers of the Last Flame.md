@@ -10,7 +10,7 @@ aliases:
 seatId: null
 memberIds: []
 parentId: 161
-imageUrl: ""
+imageUrl: "https://drive.google.com/thumbnail?id=1E7pRMXXQHULnxHrYekbwJbOSVIvgE3Fw&sz=w2000"
 ---
 
 # The 6th Sacrament — The Keepers of the Last Flame

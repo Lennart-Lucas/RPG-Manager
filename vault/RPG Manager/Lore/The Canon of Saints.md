@@ -17,7 +17,7 @@ tags:
 
 The One does not answer. The saints do. Whether that is the same thing is a settled question, and it is settled in the affirmative, and nobody with sense discusses it further.
 
-A cause is opened by a bishop and proved — or, nineteen times in twenty, disproved — by the **Attestors** of [[RPG Manager/Organisations/Althania's Holy Inquisition/The 1st Sacrament - The Keepers of Doctrine]]. Relics of a canonised saint make a see rich. This is why the Canon is short and the Attestors are unpopular.
+A cause is opened by a bishop and proved — or, nineteen times in twenty, disproved — by the **Attestors** of [[RPG Manager/RPG Manager/Organisations_Althania's Holy Inquisition_The 1st Sacrament - The Keepers of Doctrine]]. Relics of a canonised saint make a see rich. This is why the Canon is short and the Attestors are unpopular.
 
 ---
 
@@ -59,8 +59,8 @@ One exception, which the Canon states without commentary: Perenne's foundation a
 
 ## Lesser Saints of Note
 
-- **Saint Elvine of the Fen** — hedge-wives, midwives, fevers. Canonised in 402 AR after a cause the Attestors spent nine years trying to break. She is the patron of precisely the people [[RPG Manager/Organisations/Althania's Holy Inquisition/The 6th Sacrament - The Keepers of the Last Flame]] was founded to burn, and the awkwardness of this is felt by everyone and stated by nobody. Her shrine is at [[RPG Manager/Locations/Valmoria/Althania/Dunvicum]].
-- **Saint Grimald of the Horn** — Wardens, hunters, hounds, and the killing of what should not exist. Not formally in the Canon; his cause has been open since 604 AR. [[RPG Manager/Organisations/Althania's Holy Inquisition/The 5th Sacrament - The Wardens of the Argent Hunt]] venerate him anyway, and the First Sacrament has decided not to make an issue of it.
+- **Saint Elvine of the Fen** — hedge-wives, midwives, fevers. Canonised in 402 AR after a cause the Attestors spent nine years trying to break. She is the patron of precisely the people [[RPG Manager/RPG Manager/Organisations_Althania's Holy Inquisition_The 6th Sacrament - The Keepers of the Last Flame]] was founded to burn, and the awkwardness of this is felt by everyone and stated by nobody. Her shrine is at [[RPG Manager/Locations/Valmoria/Althania/Dunvicum]].
+- **Saint Grimald of the Horn** — Wardens, hunters, hounds, and the killing of what should not exist. Not formally in the Canon; his cause has been open since 604 AR. [[RPG Manager/RPG Manager/Organisations_Althania's Holy Inquisition_The 5th Sacrament - The Wardens of the Argent Hunt]] venerate him anyway, and the First Sacrament has decided not to make an issue of it.
 - **Saint Marit of the Coin** — almsgiving and honest debt. Popular with the Providence Houses, which have paid for eleven of her shrines.
 
 ## The Un-Canonised

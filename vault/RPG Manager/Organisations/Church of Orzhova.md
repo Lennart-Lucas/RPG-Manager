@@ -9,7 +9,7 @@ aliases:
 seatId: 172
 memberIds: []
 parentId: null
-imageUrl: ""
+imageUrl: "https://drive.google.com/thumbnail?id=1-8vlpc1XPbgpwu4bIv2PcXmV_lpzYcGL&sz=w2000"
 ---
 
 # The Church of Orzhova
@@ -18,9 +18,9 @@ imageUrl: ""
 > *Then came the knives, and the knives were called gods.*
 > — The Concordance, Book of the Voice, i.1
 
-The Church of Orzhova is the sole lawful faith of [[Althania]] and, in every practical sense, its government. It has been here since the Rising, and it has never once admitted to changing.
+The Church of Orzhova is the sole lawful faith of [[RPG Manager/Locations/Valmoria/Althania]] and, in every practical sense, its government. It has been here since the Rising, and it has never once admitted to changing.
 
-Its seat is [[Lucerna]].
+Its seat is [[RPG Manager/Locations/Valmoria/Althania/Lucerna]].
 
 ## The One and the Undivided
 
@@ -44,7 +44,7 @@ There is one book. It is called the **Concordance**, and it was sealed in 61 AR 
 - **The Book of the Voice** — the sayings of Ilsandra, the First Voice. Short, furious, largely concerned with bread, masters, and the uselessness of intermediaries. It is the half that gets people burned when quoted too enthusiastically.
 - **The Book of the Hand** — the ordering of the world under Orzhova: the offices, the tithes, the oaths, the wars that are permitted. Written, or at least assembled, under the first Hierarch.
 
-The Concordance is immutable. It is also, on occasion, corrected. The correction of scripture is the sole prerogative of [[The 1st Sacrament - The Keepers of Doctrine]], and when a passage is removed, the doctrine is not that it was cut — the doctrine is that it was **never there**. The technical term is an *effacement*; the vernacular term is a *never-was*.
+The Concordance is immutable. It is also, on occasion, corrected. The correction of scripture is the sole prerogative of [[RPG Manager/Organisations/Church of Orzhova/Althania's Holy Inquisition/The 1st Sacrament - The Keepers of Doctrine]], and when a passage is removed, the doctrine is not that it was cut — the doctrine is that it was **never there**. The technical term is an *effacement*; the vernacular term is a *never-was*.
 
 Copies are struck on **impression engines**, of which there are eleven in the realm, all licensed, sealed and counted. An unlicensed press is not a crime against property. It is a crime against the indivisibility of truth, and it is tried as heresy.
 
@@ -54,7 +54,7 @@ The One does not answer. The saints do — or the One answers through them, whic
 
 Saints are made, not born. A cause is opened by a bishop, and the **Attestors** of the First Sacrament are sent: they interrogate witnesses separately, take the relic apart, try to reproduce the miracle by mundane means, and exhume the body if there is one. Roughly nineteen causes in twenty collapse. The twentieth is written into the Canon, and the see that holds the bones becomes rich.
 
-The great saints and their patronages are set out in [[The Canon of Saints]].
+The great saints and their patronages are set out in [[RPG Manager/Lore/The Canon of Saints]].
 
 ## Grace
 
@@ -72,7 +72,7 @@ Arcane magic is a separate question and gets a separate answer, which is one lin
 
 Sorcery is held to be a property of creation rather than a gift of the One — like fire, or flood, or the strength of a horse. Wielding it is no heresy. Wielding it **unwatched** is the whole of the offence, because a power answering only to the man who holds it is a second authority, and there are no second authorities.
 
-So every caster is found young, registered by their curate, and taken north to the **White Tower** at [[Weissturm]] to be trained, sealed, and entered on the Roll of Sanctioned Grace. Most never leave it. A caster off the Roll is **unwritten**, and hunting the unwritten belongs to [[The 6th Sacrament - The Keepers of the Last Flame]].
+So every caster is found young, registered by their curate, and taken north to the **White Tower** at [[RPG Manager/Locations/Valmoria/Althania/Weissturm]] to be trained, sealed, and entered on the Roll of Sanctioned Grace. Most never leave it. A caster off the Roll is **unwritten**, and hunting the unwritten belongs to [[RPG Manager/Organisations/Church of Orzhova/Althania's Holy Inquisition/The 6th Sacrament - The Keepers of the Last Flame]].
 
 ## The Hierarchy
 
@@ -84,7 +84,7 @@ So every caster is found young, registered by their curate, and taken north to t
 | **Bishops** | One-and-thirty lesser sees. Some are wealthy. Most are not, and know it. |
 | **Abbots and Prioresses** | Rule abbey-lands owing nothing to any bishop, only to the Hierarch. A perpetual grievance. |
 | **Curates** | Parish priests. Underfed, half-lettered, and the only face of the Church nine in ten Althanians will ever see. |
-| **The Sixfold Holy Inquisition** | Outside all of it. Answers to the Hierarch alone. See [[Althania's Holy Inquisition]]. |
+| **The Sixfold Holy Inquisition** | Outside all of it. Answers to the Hierarch alone. See [[RPG Manager/Organisations/Church of Orzhova/Althania's Holy Inquisition]]. |
 
 ## The Year of the Church
 
@@ -92,7 +92,7 @@ The calendar begins at the Rising and turns on five great feasts.
 
 - **The Rising** (first day of the year) — bells from midnight to midnight. Bread is given away. Debts are not forgiven, whatever the sermons imply.
 - **The Ninefold Denial** (ninth day) — the old gods' names are spoken aloud, once, in order, by children, and denied. It is the only occasion on which speaking them is lawful. It is also the reason every Althanian peasant knows all nine, which the First Sacrament has petitioned four times to change and been refused four times.
-- **The Ascension of the Voice** (high summer) — the taking-up of Ilsandra at [[Salvamont]]. The great pilgrimage.
+- **The Ascension of the Voice** (high summer) — the taking-up of Ilsandra at [[RPG Manager/Locations/Valmoria/Althania/Salvamont]]. The great pilgrimage.
 - **The Sealing** — the closing of the Concordance. Scripture read aloud without pause for a day and a night, in Ecclesiast, which almost nobody understands.
 - **Cold Hearths** (deep winter) — instituted 841 AR to mark the quenching of the public pyres. Fires are put out at dusk and relit at dawn from a single flame carried from the church. Households that cannot relight are counted, and the list goes to the Sixth.
 

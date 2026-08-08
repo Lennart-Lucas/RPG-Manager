@@ -35,7 +35,7 @@ They work alone or in pairs, ride a circuit of the marches, take the Church's si
 - Curses, hauntings, blighted ground, and the burial of what will not stay buried.
 - Sanction to enter any land, break any door, dig any grave, and burn any building, without a bishop's leave and without compensation.
 
-They are explicitly **not** charged with cults, witches, or covens. Human heresy belongs to [[RPG Manager/Organisations/Althania's Holy Inquisition/The 6th Sacrament - The Keepers of the Last Flame]]. The division held for the first two centuries of the Fifth's existence and has not held since the Edict of Cold Hearths turned the Sixth outward.
+They are explicitly **not** charged with cults, witches, or covens. Human heresy belongs to [[RPG Manager/RPG Manager/Organisations_Althania's Holy Inquisition_The 6th Sacrament - The Keepers of the Last Flame]]. The division held for the first two centuries of the Fifth's existence and has not held since the Edict of Cold Hearths turned the Sixth outward.
 
 ## Ranks
 
@@ -55,7 +55,7 @@ The **argent hounds** of the chapter-houses are bred for a nose that finds what 
 
 Chronically under-funded, chronically over-committed, and the only Sacrament the common people are actually glad to see. A village will hide a Steward's cart and feed a Warden.
 
-Its quarrel with the Sixth is the great open wound of the Conclave. The Sixth's turn outward has left domestic cults to sprout in the emptied villages, and by long custom no Warden may open a case against people. So the Wardens have taken to arriving late, calling a coven a *beast-haunt* in the filing, and dealing with it — which is a lie in a Church document, which is a matter for [[RPG Manager/Organisations/Althania's Holy Inquisition/The 4th Sacrament - The Arbiters of Judgment]], and everyone concerned knows it.
+Its quarrel with the Sixth is the great open wound of the Conclave. The Sixth's turn outward has left domestic cults to sprout in the emptied villages, and by long custom no Warden may open a case against people. So the Wardens have taken to arriving late, calling a coven a *beast-haunt* in the filing, and dealing with it — which is a lie in a Church document, which is a matter for [[RPG Manager/RPG Manager/Organisations_Althania's Holy Inquisition_The 4th Sacrament - The Arbiters of Judgment]], and everyone concerned knows it.
 
 ## In 958 AR
 

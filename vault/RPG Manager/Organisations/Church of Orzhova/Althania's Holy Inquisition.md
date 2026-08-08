@@ -9,7 +9,7 @@ aliases:
 seatId: 172
 memberIds: []
 parentId: 169
-imageUrl: ""
+imageUrl: "https://drive.google.com/thumbnail?id=19Y6ydYDIxb23pSA6b1kV4EwXlgFjGzzH&sz=w2000"
 ---
 
 # The Sixfold Holy Inquisition
@@ -18,7 +18,7 @@ imageUrl: ""
 > *The body did not consent. The body was not asked.*
 > — Preamble to the Sixfold Rule
 
-The Inquisition is not a court, a police, or an army, though it has been all three before breakfast. It is the instrument by which the [[Church of Orzhova]] enforces the first doctrine — that **division is the wound** — upon a realm that keeps insisting on dividing.
+The Inquisition is not a court, a police, or an army, though it has been all three before breakfast. It is the instrument by which the [[RPG Manager/Organisations/Church of Orzhova]] enforces the first doctrine — that **division is the wound** — upon a realm that keeps insisting on dividing.
 
 It answers to the Hierarch. It answers to no bishop, no elector, no Concord, and no law that the Fourth Sacrament has not first agreed is a law.
 
@@ -28,18 +28,18 @@ Each Sacrament was founded, in its own century, against a specific catastrophe. 
 
 | | Order | Division healed | Founded |
 | --- | --- | --- | --- |
-| I | [[The 1st Sacrament - The Keepers of Doctrine]] | Divided **truth** | 61 AR |
-| II | [[The 2nd Sacrament - The Shepherds of the Host]] | Divided **sword** | 137 AR |
-| III | [[The 3rd Sacrament - The Stewards of Providence]] | Divided **purse** | 311 AR |
-| IV | [[The 4th Sacrament - The Arbiters of Judgment]] | Divided **law** | 418 AR |
-| V | [[The 5th Sacrament - The Wardens of the Argent Hunt]] | Divided **flesh** | 570 AR |
-| VI | [[The 6th Sacrament - The Keepers of the Last Flame]] | Divided **heart** | 701 AR |
+| I | [[RPG Manager/Organisations/Church of Orzhova/Althania's Holy Inquisition/The 1st Sacrament - The Keepers of Doctrine]] | Divided **truth** | 61 AR |
+| II | [[RPG Manager/Organisations/Church of Orzhova/Althania's Holy Inquisition/The 2nd Sacrament - The Shepherds of the Host]] | Divided **sword** | 137 AR |
+| III | [[RPG Manager/Organisations/Church of Orzhova/Althania's Holy Inquisition/The 3rd Sacrament - The Stewards of Providence]] | Divided **purse** | 311 AR |
+| IV | [[RPG Manager/Organisations/Church of Orzhova/Althania's Holy Inquisition/The 4th Sacrament - The Arbiters of Judgment]] | Divided **law** | 418 AR |
+| V | [[RPG Manager/Organisations/Church of Orzhova/Althania's Holy Inquisition/The 5th Sacrament - The Wardens of the Argent Hunt]] | Divided **flesh** | 570 AR |
+| VI | [[RPG Manager/Organisations/Church of Orzhova/Althania's Holy Inquisition/The 6th Sacrament - The Keepers of the Last Flame]] | Divided **heart** | 701 AR |
 
 Note what the pattern says about the realm's history: first they could not agree what was true, then their generals turned on them, then their money did, then their lords, then the dark, and last of all — six and a half centuries after the Rising — they discovered what had been sitting in the pews the whole time.
 
 ## The Conclave of Sacraments
 
-The six heads meet four times a year at [[Lucerna]], chaired by the Hierarch or, increasingly, by his chancellor. The Conclave settles jurisdiction, divides the Inquisition's share of the tithe, and refuses one another's requests.
+The six heads meet four times a year at [[RPG Manager/Locations/Valmoria/Althania/Lucerna]], chaired by the Hierarch or, increasingly, by his chancellor. The Conclave settles jurisdiction, divides the Inquisition's share of the tithe, and refuses one another's requests.
 
 There is one purse and six claims on it. Everything the Six do to each other proceeds from that fact.
 

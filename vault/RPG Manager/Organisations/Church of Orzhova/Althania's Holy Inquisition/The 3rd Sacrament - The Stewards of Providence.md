@@ -3,11 +3,9 @@ rpg_manager_id: 165
 rpg_manager_kind: "organisations"
 name: "The 3rd Sacrament - The Stewards of Providence"
 aliases:
-  - "The 3rd Sacrament - The Stewards of Providence"
   - "The Third"
   - "The Weights"
   - "The Counting Men"
-  - "The Watchers of the Threshold"
 seatId: null
 memberIds: []
 parentId: 161

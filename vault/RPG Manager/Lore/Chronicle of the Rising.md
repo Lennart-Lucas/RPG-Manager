@@ -2,16 +2,7 @@
 rpg_manager_id: 170
 rpg_manager_kind: "lore"
 name: "Chronicle of the Rising"
-aliases:
-  - "The Chronicle"
-  - "War of Two Gospels"
-  - "Anno Resurgentis"
-tags:
-  - "lore"
-  - "althania"
 ---
-
-# The Chronicle of the Rising
 
 *Being the reckoning of years from the Rising, as kept in the Great Register at Lucerna and abridged for parish use.*
 
@@ -19,65 +10,51 @@ tags:
 
 Dates before the Rising are given as *of the Diademed Age* and are not kept precisely, on the grounds that nothing in them requires remembering.
 
----
-
 ## The Diademed Age (before 1 AR)
-
 [[RPG Manager/Locations/Valmoria/Althania]] was ruled by the **Crowned Houses**, whose sons held the land and whose daughters held the temples, so that a man's lord and a man's god were cousins. Nine gods were served — **the Nine Names**, Aonir of the star-field first among them — and the priesthoods took a fifth of everything, which the Church notes is twice the tithe, and mentions often.
 
 ## The Rising (1–9 AR)
-
-**1 AR — The Tally Riot.** A famine winter, and the mine-tithe raised at **Endhoff** beneath the Aschen range. In the pit-yard a water-carrier named **Ilse** — later canonised as **Saint Ilsandra, the First Voice** — spoke to the assembled diggers. What she said is recorded in the Book of the Voice as: *"There is not one god for the lord and another for the ox. There is One, and it is not theirs."*
-
-The riot did not stop. It converted.
-
+**1 AR — The Tally Riot.** A famine winter, and the mine-tithe raised at **Endhoff** beneath the Aschen range. In the pit-yard a water-carrier named **Ilse** — later canonised as **Saint Ilsandra, the First Voice** — spoke to the assembled diggers. What she said is recorded in the Book of the Voice as: *"There is not one god for the lord and another for the ox. There is One, and it is not theirs."* The riot did not stop. It converted.
 **1–9 AR — The Nine Years' Rising.** The pit-companies took the mines, then the valleys, then the temples. **Bertald Grauhand**, a pit-captain, became its war-leader. The Crowned Houses were nine years falling; their priesthoods were killed to the last in three.
-
 **8 AR — The Burning at the Thornwood.** The last priests of the Nine Names are taken east and burned on the ground that is now the [[RPG Manager/Locations/Valmoria/Althania/Dornwald]].
-
 **9 AR — The Felling of the Whiteroot.** The great white-barked oak of Aonir, oldest holy thing in Althania, is cut down and burned. Its stump is capped in stone and the **White Tower** raised over it. The place is [[RPG Manager/Locations/Valmoria/Althania/Weissturm]], and the Hierarch is styled *Keeper of the Whiteroot Stone* to this day.
-
 **10 AR — The Ascension of the Voice.** Ilsandra is taken up at Endhoff, in the presence of her seven Companions. The Church keeps the day as the second-greatest feast of the year. The villages around [[RPG Manager/Locations/Valmoria/Althania/Salvamont]] keep it differently, and quietly.
-
 **11 AR — The Concord of Ash.** The first Concord. Bertald Grauhand acclaimed the first Hierarch. The Nine Names proscribed. The [[RPG Manager/Organisations/Church of Orzhova]] declared the sole and undivided faith.
-
 **12 AR — Endhoff renamed Salvamont**, the Mount of Salvation. The locals went on saying *Endhoff*, and still do, and have made a joke of it that the Church has never managed to stamp out.
-
-**30 AR — The Seat comes down from Endhoff.** The Hierarch's household moves to the new foundation on the empty plain at the meeting of the Elve and the Rill: [[Lucerna]], raised deliberately on ground where no Name had ever been spoken. Its electoral vote is suppressed in the same instrument, for the obvious reason.
+**30 AR — The Seat comes down from Endhoff.** The Hierarch's household moves to the new foundation on the empty plain at the meeting of the Elve and the Rill: [[RPG Manager/Locations/Valmoria/Althania/Lucerna]], raised deliberately on ground where no Name had ever been spoken. Its electoral vote is suppressed in the same instrument, for the obvious reason.
 
 ## The Sealing (34–61 AR)
-
 **34–61 AR — The War of Two Gospels.** The Voice and the Hand had not said the same things, and their followers went to war over the difference. Twenty-seven years, and by its end more Orzhovans had died at Orzhovan hands than the Crowned Houses ever managed.
 
-**61 AR — The Sealing of the Concordance.** Both gospels bound into one book, declared to agree, and closed. [[RPG Manager/Organisations/Althania's Holy Inquisition/The 1st Sacrament - The Keepers of Doctrine]] founded the same year to keep them agreeing.
+**61 AR — The Sealing of the Concordance.** Both gospels bound into one book, declared to agree, and closed. [[RPG Manager/RPG Manager/Organisations_Althania's Holy Inquisition_The 1st Sacrament - The Keepers of Doctrine]] founded the same year to keep them agreeing.
 
 ## The Building of the Six
 
-**134–137 AR — The March of the Marshal.** Marshal **Hedric Kaal** won the northern war and brought eleven thousand veterans to [[Lucerna]] to demand investiture. He was refused; his own captains killed him. **[[RPG Manager/Organisations/Althania's Holy Inquisition/The 2nd Sacrament - The Shepherds of the Host]]** founded, 137 AR.
+**134–137 AR — The March of the Marshal.** Marshal **Hedric Kaal** won the northern war and brought eleven thousand veterans to [[RPG Manager/Locations/Valmoria/Althania/Lucerna]] to demand investiture. He was refused; his own captains killed him. **[[RPG Manager/RPG Manager/Organisations_Althania's Holy Inquisition_The 2nd Sacrament - The Shepherds of the Host]]** founded, 137 AR.
 
-**214 AR — The Concord of Stone.** After long and undocumented unpleasantness at the mountain-gate, Althania and the thanes of the World Spine settle [[Weissturm]]: the surface is Althania's, the rock is the Thane's, the Gate is shared, and neither faith preaches to the other. In the same year the seventh crosier is raised at **Marisund**, replacing the vote Lucerna gave up.
+**214 AR — The Concord of Stone.** After long and undocumented unpleasantness at the mountain-gate, Althania and the thanes of the World Spine settle [[RPG Manager/Locations/Valmoria/Althania/Weissturm]]: the surface is Althania's, the rock is the Thane's, the Gate is shared, and neither faith preaches to the other. In the same year the seventh crosier is raised at **Marisund**, replacing the vote Lucerna gave up.
 
 **306 AR — The Bought Conclave.** A river-trade cartel purchased three electors and seated a Hierarch. He reigned nine months. Four sees were insolvent when he died.
 
-**311 AR — The Watchers of the Threshold** founded as toll-wardens on the Tern; reformed and renamed **[[RPG Manager/Organisations/Althania's Holy Inquisition/The 3rd Sacrament - The Stewards of Providence]]** in 344, when it became clear the money did not cross at the bridges.
+**311 AR — The Watchers of the Threshold** founded as toll-wardens on the Tern; reformed and renamed **[[RPG Manager/RPG Manager/Organisations_Althania's Holy Inquisition_The 3rd Sacrament - The Stewards of Providence]]** in 344, when it became clear the money did not cross at the bridges.
 
-**395 AR — The Edict of the Tower.** Every caster in the realm is ordered found, registered and gathered to the White Tower at [[Weissturm]]. The **Collegium of Sanctioned Grace** is instituted and the Roll opened. The doctrine given is one line: *fire is not sin; an unattended fire is.*
+**395 AR — The Edict of the Tower.** Every caster in the realm is ordered found, registered and gathered to the White Tower at [[RPG Manager/Locations/Valmoria/Althania/Weissturm]]. The **Collegium of Sanctioned Grace** is instituted and the Roll opened. The doctrine given is one line: *fire is not sin; an unattended fire is.*
 
 **415 AR — The Impunity.** The Elector-Bishop of Veldenau had two inquisitors killed in his own hall. No court in Althania was competent to try him.
 
-**418 AR — [[RPG Manager/Organisations/Althania's Holy Inquisition/The 4th Sacrament - The Arbiters of Judgment]]** founded. Its first tribunal, the **Judgment at Veldenau**, hanged that bishop from his own bell-frame in his vestments.
+**418 AR — [[RPG Manager/RPG Manager/Organisations_Althania's Holy Inquisition_The 4th Sacrament - The Arbiters of Judgment]]** founded. Its first tribunal, the **Judgment at Veldenau**, hanged that bishop from his own bell-frame in his vestments.
 
-**487–494 AR — The First Dark War.** Shall comes down the Low Pass out of the World Spine. [[Salvamont]] is besieged for eleven months and holds.
+**487–494 AR — The First Dark War.** Shall comes down the Low Pass out of the World Spine. [[RPG Manager/Locations/Valmoria/Althania/Salvamont]] is besieged for eleven months and holds.
 
-**491 AR — The Waking.** In the seventh month of the siege, miners cutting sideways from the Deep Workings for water break into a sealed gallery older than the Diademed Age. What is in it stands up. [[The Black Legion]] takes the field the following spring; the Lectors issue an opinion under seal and do not republish it.
+**491 AR — The Waking.** In the seventh month of the siege, miners cutting sideways from the Deep Workings for water break into a sealed gallery older than the Diademed Age. What is in it stands up. [[RPG Manager/Organisations/The Black Legion]] takes the field the following spring; the Lectors issue an opinion under seal and do not republish it.
 
 **563–571 AR — The Season of Teeth.** Something came out of the Dornwald. Forty-one villages emptied in eight winters. Two levies were sent east and did not return.
 
-**570 AR — [[RPG Manager/Organisations/Althania's Holy Inquisition/The 5th Sacrament - The Wardens of the Argent Hunt]]** founded from foresters, poachers and survivors. The Season ended the following year. The order has never claimed it ended the Season.
+**570 AR — [[RPG Manager/RPG Manager/Organisations_Althania's Holy Inquisition_The 5th Sacrament - The Wardens of the Argent Hunt]]** founded from foresters, poachers and survivors. The Season ended the following year. The order has never claimed it ended the Season.
 
 **698 AR — The Grey Communion.** The diocese of Aschenberg was found to have been served for two generations by a coven wearing the offices and faces of its clergy. Every rite since 649 was declared void; forty thousand souls were declared unbaptised, and baptised again.
 
-**701 AR — [[RPG Manager/Organisations/Althania's Holy Inquisition/The 6th Sacrament - The Keepers of the Last Flame]]** founded.
+**701 AR — [[RPG Manager/RPG Manager/Organisations_Althania's Holy Inquisition_The 6th Sacrament - The Keepers of the Last Flame]]** founded.
 
 ## The Century of Pyres (701–838 AR)
 
