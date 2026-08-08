@@ -89,9 +89,14 @@ class AuthApi {
   Future<UserProfile> updatePreferences({
     required String accessToken,
     required bool aiIntegration,
+    String? themeId,
   }) async {
     final sync = OfflineSyncController.instance;
     final meUri = _uri('/auth/me');
+    final body = <String, dynamic>{
+      'ai_integration': aiIntegration,
+      'theme_id': ?themeId,
+    };
     final response = await _http.mutate(
       method: 'PATCH',
       uri: meUri,
@@ -99,9 +104,7 @@ class AuthApi {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $accessToken',
       },
-      body: jsonEncode({
-        'ai_integration': aiIntegration,
-      }),
+      body: jsonEncode(body),
       successStatus: 200,
       entityCacheUri: meUri,
       buildOptimisticBody: (_) {
@@ -111,6 +114,8 @@ class AuthApi {
           'is_active': true,
           'is_dm': true,
           'ai_integration': aiIntegration,
+          'theme_id': ?themeId,
+          'campaign_theme_id': ?themeId,
         };
       },
       applyOptimisticCache: (_, optimistic) async {
@@ -120,6 +125,10 @@ class AuthApi {
         if (existing != null) {
           final map = Map<String, dynamic>.from(jsonDecode(existing) as Map);
           map['ai_integration'] = aiIntegration;
+          if (themeId != null) {
+            map['theme_id'] = themeId;
+            map['campaign_theme_id'] = themeId;
+          }
           await sync.cache.putJson(userId: userId, uri: meUri, json: map);
           optimistic
             ..clear()

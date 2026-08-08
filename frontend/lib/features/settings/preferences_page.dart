@@ -17,10 +17,14 @@ class PreferencesBody extends StatefulWidget {
     super.key,
     required this.auth,
     required this.themeController,
+    this.onViewAsPlayerEnabled,
   });
 
   final AuthController auth;
   final ThemeController themeController;
+
+  /// Called when a DM enables "View as player" (e.g. leave DM Tools pages).
+  final VoidCallback? onViewAsPlayerEnabled;
 
   @override
   State<PreferencesBody> createState() => _PreferencesBodyState();
@@ -266,6 +270,7 @@ class _PreferencesBodyState extends State<PreferencesBody> {
       builder: (context, _) {
         final scheme = Theme.of(context).colorScheme;
         final aiEnabled = widget.auth.user?.aiIntegration ?? false;
+        final isDm = widget.auth.user?.isDm == true;
         final export = ObsidianExportController.instance;
         return ListView(
           padding: const EdgeInsets.all(16),
@@ -273,6 +278,15 @@ class _PreferencesBodyState extends State<PreferencesBody> {
             Text(
               'Theme',
               style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              isDm
+                  ? 'Campaign theme for all players on this server.'
+                  : 'Set by your Dungeon Master.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
             ),
             const SizedBox(height: 8),
             ...AppThemeId.values.map((id) {
@@ -302,11 +316,54 @@ class _PreferencesBodyState extends State<PreferencesBody> {
                     trailing: selected
                         ? Icon(Icons.check_circle, color: scheme.primary)
                         : const Icon(Icons.circle_outlined),
-                    onTap: () => widget.themeController.setTheme(id),
+                    onTap: !isDm
+                        ? null
+                        : () async {
+                            final previous = widget.themeController.themeId;
+                            await widget.themeController.setTheme(id);
+                            final ok = await widget.auth
+                                .setCampaignTheme(id.storageValue);
+                            if (!context.mounted) return;
+                            if (!ok) {
+                              await widget.themeController.setTheme(previous);
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    widget.auth.errorMessage ??
+                                        'Could not update theme',
+                                  ),
+                                ),
+                              );
+                            }
+                          },
                   ),
                 ),
               );
             }),
+            if (isDm) ...[
+              const Divider(height: 32),
+              Text(
+                'Display',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('View as player'),
+                subtitle: const Text(
+                  'Hide DM Tools and catalog edit actions so you see the app '
+                  'as players do. Your account stays a Dungeon Master.',
+                ),
+                value: widget.auth.viewAsPlayer,
+                onChanged: (value) async {
+                  await widget.auth.setViewAsPlayer(value);
+                  if (value) {
+                    widget.onViewAsPlayerEnabled?.call();
+                  }
+                },
+              ),
+            ],
             const Divider(height: 32),
             Text(
               'AI',

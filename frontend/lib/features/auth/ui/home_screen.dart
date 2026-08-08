@@ -291,8 +291,7 @@ class _HomeBodyState extends State<HomeBody>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final user = widget.auth.user;
-    final role = user?.isDm == true ? 'Dungeon Master' : 'Player';
+    final role = widget.auth.showsDmUi ? 'Dungeon Master' : 'Player';
     final query = _searchController.text.trim();
 
     return DecoratedBox(

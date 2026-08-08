@@ -25,6 +25,8 @@ class UserProfile {
     required this.isActive,
     required this.isDm,
     this.aiIntegration = false,
+    this.themeId = 'default',
+    this.campaignThemeId = 'default',
   });
 
   final int id;
@@ -32,6 +34,8 @@ class UserProfile {
   final bool isActive;
   final bool isDm;
   final bool aiIntegration;
+  final String themeId;
+  final String campaignThemeId;
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
@@ -40,6 +44,10 @@ class UserProfile {
       isActive: json['is_active'] as bool,
       isDm: json['is_dm'] as bool,
       aiIntegration: json['ai_integration'] as bool? ?? false,
+      themeId: json['theme_id'] as String? ?? 'default',
+      campaignThemeId: json['campaign_theme_id'] as String? ??
+          json['theme_id'] as String? ??
+          'default',
     );
   }
 
@@ -49,6 +57,8 @@ class UserProfile {
     bool? isActive,
     bool? isDm,
     bool? aiIntegration,
+    String? themeId,
+    String? campaignThemeId,
   }) {
     return UserProfile(
       id: id ?? this.id,
@@ -56,6 +66,8 @@ class UserProfile {
       isActive: isActive ?? this.isActive,
       isDm: isDm ?? this.isDm,
       aiIntegration: aiIntegration ?? this.aiIntegration,
+      themeId: themeId ?? this.themeId,
+      campaignThemeId: campaignThemeId ?? this.campaignThemeId,
     );
   }
 }

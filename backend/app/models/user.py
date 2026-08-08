@@ -26,6 +26,9 @@ class User(Base):
     ai_integration: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False
     )
+    theme_id: Mapped[str] = mapped_column(
+        String(32), default="default", nullable=False
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

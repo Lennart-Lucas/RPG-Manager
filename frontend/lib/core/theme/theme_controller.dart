@@ -20,7 +20,8 @@ class ThemeController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setTheme(AppThemeId id) async {
+  /// Apply the campaign theme from the server (local cache for offline paint).
+  Future<void> applyCampaignTheme(AppThemeId id) async {
     if (_themeId == id) {
       return;
     }
@@ -28,5 +29,10 @@ class ThemeController extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_prefsKey, id.storageValue);
+  }
+
+  /// Local-only theme change (caller persists to the API when needed).
+  Future<void> setTheme(AppThemeId id) async {
+    await applyCampaignTheme(id);
   }
 }

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/offline/authenticated_http.dart';
 import '../../../core/offline/offline_sync_controller.dart';
@@ -18,6 +19,8 @@ class AuthController extends ChangeNotifier {
   })  : _api = api ?? AuthApi(),
         _tokenStore = tokenStore ?? TokenStore();
 
+  static const _viewAsPlayerKey = 'view_as_player';
+
   final AuthApi _api;
   final TokenStore _tokenStore;
 
@@ -25,6 +28,7 @@ class AuthController extends ChangeNotifier {
   UserProfile? user;
   String? errorMessage;
   bool busy = false;
+  bool viewAsPlayer = false;
 
   String? _accessToken;
   String? _refreshToken;
@@ -33,7 +37,11 @@ class AuthController extends ChangeNotifier {
   String? get accessToken => _accessToken;
 
   /// Players may browse; only Dungeon Masters may create/edit/delete catalog.
-  bool get canMutateCatalog => user?.isDm == true;
+  /// Honors [viewAsPlayer] for UI preview without changing server role.
+  bool get canMutateCatalog => user?.isDm == true && !viewAsPlayer;
+
+  /// Sidebar DM Tools and role label; same gate as catalog mutation UI.
+  bool get showsDmUi => user?.isDm == true && !viewAsPlayer;
 
   /// True when [token] is missing exp or past exp (with a small skew).
   static bool _accessTokenNeedsRefresh(String? token, {int skewSeconds = 30}) {
@@ -119,6 +127,9 @@ class AuthController extends ChangeNotifier {
   Future<void> bootstrap() async {
     status = AuthStatus.unknown;
     notifyListeners();
+
+    final prefs = await SharedPreferences.getInstance();
+    viewAsPlayer = prefs.getBool(_viewAsPlayerKey) ?? false;
 
     final sync = OfflineSyncController.instance;
     final refresh = await _tokenStore.readRefreshToken();
@@ -264,6 +275,14 @@ class AuthController extends ChangeNotifier {
     }
   }
 
+  Future<void> setViewAsPlayer(bool enabled) async {
+    if (viewAsPlayer == enabled) return;
+    viewAsPlayer = enabled;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_viewAsPlayerKey, enabled);
+  }
+
   Future<bool> setAiIntegration(bool enabled) async {
     final token = await requireAccessToken();
     if (token == null || user == null) {
@@ -291,6 +310,43 @@ class AuthController extends ChangeNotifier {
     } catch (_) {
       user = previous;
       errorMessage = 'Could not update preferences';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Persists campaign theme (DM only on the server). Updates local profile.
+  Future<bool> setCampaignTheme(String themeId) async {
+    final token = await requireAccessToken();
+    if (token == null || user == null) {
+      errorMessage = 'Not authenticated';
+      notifyListeners();
+      return false;
+    }
+    final previous = user!;
+    user = previous.copyWith(
+      themeId: themeId,
+      campaignThemeId: themeId,
+    );
+    notifyListeners();
+    try {
+      user = await _api.updatePreferences(
+        accessToken: token,
+        aiIntegration: previous.aiIntegration,
+        themeId: themeId,
+      );
+      await OfflineSyncController.instance.cacheUserProfile(user!);
+      errorMessage = null;
+      notifyListeners();
+      return true;
+    } on AuthApiException catch (e) {
+      user = previous;
+      errorMessage = e.message;
+      notifyListeners();
+      return false;
+    } catch (_) {
+      user = previous;
+      errorMessage = 'Could not update theme';
       notifyListeners();
       return false;
     }

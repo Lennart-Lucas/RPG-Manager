@@ -253,6 +253,8 @@ class OfflineSyncController extends ChangeNotifier {
       'is_active': profile.isActive,
       'is_dm': profile.isDm,
       'ai_integration': profile.aiIntegration,
+      'theme_id': profile.themeId,
+      'campaign_theme_id': profile.campaignThemeId,
     }), flush: true);
   }
 

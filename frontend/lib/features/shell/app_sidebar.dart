@@ -106,7 +106,7 @@ class _AppSidebarState extends State<AppSidebar> {
   @override
   Widget build(BuildContext context) {
     final user = widget.auth.user;
-    final isDm = user?.isDm == true;
+    final isDm = widget.auth.showsDmUi;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final preferencesSelected = switch (widget.currentPage) {

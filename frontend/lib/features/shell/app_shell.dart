@@ -111,6 +111,19 @@ class _AppShellState extends State<AppShell> {
     setState(() => _page = page);
   }
 
+  static const _dmToolPages = {
+    AppPage.generator,
+    AppPage.mapMaker,
+    AppPage.playlists,
+    AppPage.resources,
+  };
+
+  void _onViewAsPlayerEnabled() {
+    if (_dmToolPages.contains(_page)) {
+      setState(() => _page = AppPage.home);
+    }
+  }
+
   Widget _catalog(CatalogKind kind, IconData icon) {
     return CatalogBody(
       auth: widget.auth,
@@ -143,6 +156,7 @@ class _AppShellState extends State<AppShell> {
         AppPage.preferences => PreferencesBody(
             auth: widget.auth,
             themeController: widget.themeController,
+            onViewAsPlayerEnabled: _onViewAsPlayerEnabled,
           ),
         AppPage.generator => GeneratorsBody(auth: widget.auth),
         AppPage.resources => ResourcesBody(auth: widget.auth),

@@ -54,12 +54,17 @@ class TokenResponse(BaseModel):
     expires_in: int
 
 
+ALLOWED_THEME_IDS = frozenset({"default", "warlock"})
+
+
 class UserResponse(BaseModel):
     id: int
     email: EmailStr
     is_active: bool
     is_dm: bool
     ai_integration: bool
+    theme_id: str = "default"
+    campaign_theme_id: str = "default"
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -67,3 +72,12 @@ class UserResponse(BaseModel):
 
 class UserPreferencesUpdate(BaseModel):
     ai_integration: bool
+    theme_id: str | None = None
+
+    @model_validator(mode="after")
+    def check_theme_id(self) -> "UserPreferencesUpdate":
+        if self.theme_id is not None and self.theme_id not in ALLOWED_THEME_IDS:
+            raise ValueError(
+                f"theme_id must be one of: {', '.join(sorted(ALLOWED_THEME_IDS))}"
+            )
+        return self
