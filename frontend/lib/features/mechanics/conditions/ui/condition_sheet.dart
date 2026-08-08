@@ -91,6 +91,10 @@ class ConditionSheet extends StatelessWidget {
                       child: Container(
                         decoration: BoxDecoration(
                           color: colors.surfaceContainerLowest,
+                          borderRadius: const BorderRadius.only(
+                            bottomLeft: Radius.circular(radius),
+                            bottomRight: Radius.circular(radius),
+                          ),
                         ),
                         clipBehavior: Clip.antiAlias,
                         child: Stack(
@@ -127,13 +131,6 @@ class ConditionSheet extends StatelessWidget {
                           ],
                         ),
                       ),
-                    ),
-                    _ConditionFooterBand(
-                      icon: icon,
-                      colors: colors,
-                      bottomRadius: radius,
-                      maxFontSize: maxFontSize,
-                      sourcePage: record.sourcePage,
                     ),
                   ],
                 ),
@@ -275,68 +272,6 @@ class _ConditionHeaderBand extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _ConditionFooterBand extends StatelessWidget {
-  final IconData icon;
-  final ColorScheme colors;
-  final double bottomRadius;
-  final double maxFontSize;
-  final int? sourcePage;
-
-  const _ConditionFooterBand({
-    required this.icon,
-    required this.colors,
-    required this.bottomRadius,
-    required this.maxFontSize,
-    this.sourcePage,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final footerColor = _darkerVariant(
-      colors.primaryContainer,
-      amount: 0.12,
-    );
-    final footerFontSize = maxFontSize;
-    final footerText = sourcePage != null ? 'Page $sourcePage' : 'Condition';
-
-    return Material(
-      color: footerColor,
-      borderRadius: BorderRadius.only(
-        bottomLeft: Radius.circular(bottomRadius),
-        bottomRight: Radius.circular(bottomRadius),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(8, 6, 8, 7),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            catalogAppearanceIconWidget(
-              icon,
-              size: _conditionCardBandIconSize(maxFontSize),
-              color: colors.onPrimaryContainer,
-            ),
-            const SizedBox(width: 5),
-            Expanded(
-              child: Text(
-                footerText,
-                maxLines: 4,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: colors.onPrimaryContainer,
-                  fontSize: footerFontSize,
-                  fontWeight: FontWeight.w600,
-                  height: 1.2,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
