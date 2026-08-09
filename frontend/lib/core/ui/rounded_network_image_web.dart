@@ -1,7 +1,4 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:web/web.dart' as web;
 
 Widget buildRoundedNetworkImage({
@@ -42,35 +39,6 @@ Widget buildRoundedFitWidthNetworkImage({
     loadingBuilder: loadingBuilder,
   );
 }
-
-// #region agent log
-void _agentLog({
-  required String hypothesisId,
-  required String location,
-  required String message,
-  required Map<String, Object?> data,
-}) {
-  http
-      .post(
-        Uri.parse(
-          'http://127.0.0.1:7277/ingest/6a76c2b7-0d0c-42f0-879f-b33f045ca01b',
-        ),
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Debug-Session-Id': '3f8c3c',
-        },
-        body: jsonEncode({
-          'sessionId': '3f8c3c',
-          'hypothesisId': hypothesisId,
-          'location': location,
-          'message': message,
-          'data': data,
-          'timestamp': DateTime.now().millisecondsSinceEpoch,
-        }),
-      )
-      .catchError((_) => http.Response('', 500));
-}
-// #endregion
 
 String _cssObjectFit(BoxFit fit) {
   return switch (fit) {
@@ -196,7 +164,6 @@ class _WebFitWidthRoundedImage extends StatefulWidget {
 class _WebFitWidthRoundedImageState extends State<_WebFitWidthRoundedImage> {
   double? _aspectRatio;
   Object? _error;
-  bool _loggedLoad = false;
 
   @override
   void didUpdateWidget(covariant _WebFitWidthRoundedImage oldWidget) {
@@ -204,7 +171,6 @@ class _WebFitWidthRoundedImageState extends State<_WebFitWidthRoundedImage> {
     if (oldWidget.url != widget.url) {
       _aspectRatio = null;
       _error = null;
-      _loggedLoad = false;
     }
   }
 
@@ -219,7 +185,6 @@ class _WebFitWidthRoundedImageState extends State<_WebFitWidthRoundedImage> {
     final displayRatio = natural == null
         ? widget.placeholderAspectRatio
         : (natural < minRatio ? minRatio : natural);
-    final cropped = natural != null && natural < minRatio;
 
     return AspectRatio(
       aspectRatio: displayRatio,
@@ -244,27 +209,6 @@ class _WebFitWidthRoundedImageState extends State<_WebFitWidthRoundedImage> {
                 final h = img.naturalHeight;
                 if (!mounted || w == 0 || h == 0) return;
                 final next = w / h;
-                // #region agent log
-                if (!_loggedLoad) {
-                  _loggedLoad = true;
-                  _agentLog(
-                    hypothesisId: 'A',
-                    location: 'rounded_network_image_web.dart:onLoad',
-                    message: 'web image capped aspect',
-                    data: {
-                      'runId': 'post-fix',
-                      'naturalWidth': w,
-                      'naturalHeight': h,
-                      'naturalRatio': next,
-                      'minAspectRatio': minRatio,
-                      'displayRatio':
-                          next < minRatio ? minRatio : next,
-                      'cropped': next < minRatio,
-                      'urlHost': Uri.tryParse(widget.url)?.host,
-                    },
-                  );
-                }
-                // #endregion
                 if (_aspectRatio != next) {
                   setState(() => _aspectRatio = next);
                 }
