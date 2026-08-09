@@ -202,6 +202,25 @@ SpellAiTemplateData parseSpellAiTemplate({
     rethrow;
   }
 
+  return parseSpellAiTemplateMap(
+    map: map,
+    casterClasses: casterClasses,
+    spellTags: spellTags,
+    allowUnknownNames: allowUnknownNames,
+  );
+}
+
+/// Parse a process/extract-style spell map into form-ready template data.
+///
+/// When [snapRangedDistance] is true, ranged `distanceFeet` snaps to the
+/// nearest allowed form distance instead of requiring an exact match.
+SpellAiTemplateData parseSpellAiTemplateMap({
+  required Map<String, dynamic> map,
+  required List<CatalogItem> casterClasses,
+  required List<CatalogItem> spellTags,
+  bool allowUnknownNames = false,
+  bool snapRangedDistance = false,
+}) {
   final name = (map['name'] as String?)?.trim() ?? '';
   final level = _asInt(map['level'], field: 'level') ?? 0;
   if (level < 0 || level > 9) {
@@ -231,18 +250,25 @@ SpellAiTemplateData parseSpellAiTemplate({
 
   final range = _asMap(map['range'], field: 'range');
   final rangeType = ((range['type'] as String?)?.trim().toLowerCase() ?? 'self');
-  final distanceFeet = _asInt(range['distanceFeet'], field: 'range.distanceFeet');
+  var distanceFeet = _asInt(range['distanceFeet'], field: 'range.distanceFeet');
+  if (snapRangedDistance &&
+      rangeType == 'ranged' &&
+      distanceFeet != null &&
+      !spellAiRangedDistances.contains(distanceFeet)) {
+    distanceFeet = _nearestRangedDistance(distanceFeet);
+  }
   final rangeKey = switch (rangeType) {
     'self' => 'self',
     'touch' => 'touch',
     'ranged' => () {
-        if (distanceFeet == null ||
-            !spellAiRangedDistances.contains(distanceFeet)) {
+        final feet = distanceFeet ??
+            (snapRangedDistance ? spellAiRangedDistances.first : null);
+        if (feet == null || !spellAiRangedDistances.contains(feet)) {
           throw SpellAiTemplateException(
             'range.distanceFeet must be one of $spellAiRangedDistances',
           );
         }
-        return 'ranged:$distanceFeet';
+        return 'ranged:$feet';
       }(),
     _ => throw SpellAiTemplateException(
         'range.type must be self, touch, or ranged',
@@ -316,6 +342,19 @@ SpellAiTemplateData parseSpellAiTemplate({
     higherLevels: higherLevels,
     sourcePage: sourcePage,
   );
+}
+
+int _nearestRangedDistance(int feet) {
+  var best = spellAiRangedDistances.first;
+  var bestDelta = (feet - best).abs();
+  for (final option in spellAiRangedDistances.skip(1)) {
+    final delta = (feet - option).abs();
+    if (delta < bestDelta) {
+      best = option;
+      bestDelta = delta;
+    }
+  }
+  return best;
 }
 
 List<int> _resolveNamesToIds({

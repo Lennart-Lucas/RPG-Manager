@@ -223,3 +223,113 @@ SPELL_EXTRACT_JSON_SCHEMA: dict[str, Any] = {
         "unknown_fields",
     ],
 }
+
+_DURATION_TYPES = [
+    "instantaneous",
+    "oneRound",
+    "oneMinute",
+    "tenMinutes",
+    "oneHour",
+    "eightHours",
+    "twentyFourHours",
+    "oneDay",
+    "sevenDays",
+    "tenDays",
+    "thirtyDays",
+    "untilDispelled",
+    "untilDispelledOrTriggered",
+    "special",
+]
+
+_CASTING_UNITS = [
+    "action",
+    "bonus action",
+    "reaction",
+    "minute",
+    "hour",
+]
+
+# Complete spell object for form AI process (no nulls; classes/tags are names).
+SPELL_PROCESS_JSON_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "name": {"type": "string"},
+        "level": {"type": "integer", "minimum": 0, "maximum": 9},
+        "school": {
+            "type": "string",
+            "enum": list(SPELL_SCHOOLS),
+        },
+        "castingTime": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "amount": {"type": "integer", "minimum": 1},
+                "unit": {"type": "string", "enum": _CASTING_UNITS},
+                "reactionTrigger": {"type": ["string", "null"]},
+            },
+            "required": ["amount", "unit", "reactionTrigger"],
+        },
+        "range": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "enum": ["self", "touch", "ranged"],
+                },
+                "distanceFeet": {"type": ["integer", "null"]},
+            },
+            "required": ["type", "distanceFeet"],
+        },
+        "components": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "verbal": {"type": "boolean"},
+                "somatic": {"type": "boolean"},
+                "material": {"type": "boolean"},
+                "materialDescription": {"type": ["string", "null"]},
+                "materialCostGp": {"type": ["number", "null"]},
+                "materialConsumed": {"type": "boolean"},
+            },
+            "required": [
+                "verbal",
+                "somatic",
+                "material",
+                "materialDescription",
+                "materialCostGp",
+                "materialConsumed",
+            ],
+        },
+        "duration": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "type": {"type": "string", "enum": _DURATION_TYPES},
+                "concentration": {"type": "boolean"},
+                "special": {"type": ["string", "null"]},
+            },
+            "required": ["type", "concentration", "special"],
+        },
+        "classes": {"type": "array", "items": {"type": "string"}},
+        "tags": {"type": "array", "items": {"type": "string"}},
+        "description": {"type": "string"},
+        "higherLevels": {"type": "string"},
+        "sourcePage": {"type": ["integer", "null"]},
+    },
+    "required": [
+        "name",
+        "level",
+        "school",
+        "castingTime",
+        "range",
+        "components",
+        "duration",
+        "classes",
+        "tags",
+        "description",
+        "higherLevels",
+        "sourcePage",
+    ],
+}

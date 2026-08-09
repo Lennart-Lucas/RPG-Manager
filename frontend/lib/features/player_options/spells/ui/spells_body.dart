@@ -477,12 +477,12 @@ class _SpellsBodyState extends State<SpellsBody>
       if (!mounted) return;
       final spell = await showSpellFormSheet(
         context,
+        auth: widget.auth,
         casterClasses: _casters,
         spellTags: _spellTags,
         resourceFiles: _files,
         searchLinks: (query) => _searchLinks(token, query),
         loadAutoLinkTargets: () => _loadAutoLinkTargets(token),
-        aiIntegrationEnabled: widget.auth.user?.aiIntegration ?? false,
       );
       if (spell == null || !mounted) return;
       await _api.create(
@@ -513,13 +513,13 @@ class _SpellsBodyState extends State<SpellsBody>
       final existing = _spellFromItem(item);
       final spell = await showSpellFormSheet(
         context,
+        auth: widget.auth,
         initial: existing,
         casterClasses: _casters,
         spellTags: _spellTags,
         resourceFiles: _files,
         searchLinks: (query) => _searchLinks(token, query),
         loadAutoLinkTargets: () => _loadAutoLinkTargets(token),
-        aiIntegrationEnabled: widget.auth.user?.aiIntegration ?? false,
       );
       if (spell == null || !mounted) return;
       await _api.update(

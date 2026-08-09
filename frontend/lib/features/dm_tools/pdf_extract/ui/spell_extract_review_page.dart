@@ -206,13 +206,13 @@ class _SpellExtractReviewPageState extends State<SpellExtractReviewPage> {
     );
     final edited = await showSpellFormSheet(
       context,
+      auth: widget.auth,
       initial: spell,
       casterClasses: _casters,
       spellTags: _spellTags,
       resourceFiles: _files,
       searchLinks: _searchLinks,
       loadAutoLinkTargets: () async => _autoLinkTargets,
-      aiIntegrationEnabled: true,
     );
     if (edited == null || !mounted) return;
     setState(() {

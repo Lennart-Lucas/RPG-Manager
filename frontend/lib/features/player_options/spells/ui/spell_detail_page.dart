@@ -155,13 +155,13 @@ class _SpellDetailPageState extends State<SpellDetailPage> {
       if (!mounted) return;
       final spell = await showSpellFormSheet(
         context,
+        auth: widget.auth,
         initial: _spell,
         casterClasses: lookups.casters,
         spellTags: lookups.spellTags,
         resourceFiles: lookups.files,
         searchLinks: (query) => _searchLinks(token, query),
         loadAutoLinkTargets: () => _loadAutoLinkTargets(token),
-        aiIntegrationEnabled: widget.auth.user?.aiIntegration ?? false,
       );
       if (spell == null || !mounted) return;
       final updated = await _api.update(

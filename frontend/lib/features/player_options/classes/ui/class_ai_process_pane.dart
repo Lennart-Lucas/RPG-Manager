@@ -2,18 +2,24 @@ import 'package:flutter/material.dart';
 
 import '../../../dm_tools/resources/ui/resource_form_helpers.dart';
 
-/// Multline prompt + Process button for class/subclass AI fill.
+/// Multiline prompt + Process button for catalog AI fill.
 class ClassAiProcessPane extends StatelessWidget {
   const ClassAiProcessPane({
     super.key,
     required this.controller,
     required this.processing,
     required this.onProcess,
+    this.description =
+        'Paste class text or describe changes. Process updates the Edit tab '
+            'without saving.',
+    this.hintText = 'Paste features text, or ask to rewrite wording…',
   });
 
   final TextEditingController controller;
   final bool processing;
   final VoidCallback onProcess;
+  final String description;
+  final String hintText;
 
   @override
   Widget build(BuildContext context) {
@@ -22,8 +28,7 @@ class ClassAiProcessPane extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          'Paste class text or describe changes. Process updates the Edit tab '
-          'without saving.',
+          description,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -37,7 +42,7 @@ class ClassAiProcessPane extends StatelessWidget {
           decoration: ResourceFormStyles.inputDecoration(
             context,
             label: 'Prompt / source text',
-            hintText: 'Paste features text, or ask to rewrite wording…',
+            hintText: hintText,
           ),
         ),
         const SizedBox(height: ResourceFormStyles.sectionSpacing),

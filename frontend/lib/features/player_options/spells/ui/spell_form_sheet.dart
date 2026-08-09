@@ -2,62 +2,74 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/ui/markdown_form_field.dart';
+import '../../../auth/data/auth_api.dart';
+import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_models.dart';
+import '../../../dm_tools/pdf_extract/data/anthropic_key_store.dart';
+import '../../../dm_tools/pdf_extract/data/extract_api.dart';
 import '../../../dm_tools/resources/data/resource_models.dart';
 import '../../../dm_tools/resources/ui/resource_form_helpers.dart';
+import '../../classes/ui/class_ai_process_pane.dart';
 import '../data/spell_ai_template.dart';
 import '../data/spell_model.dart';
 
 Future<Spell?> showSpellFormSheet(
   BuildContext context, {
+  required AuthController auth,
   Spell? initial,
   required List<CatalogItem> casterClasses,
   required List<CatalogItem> spellTags,
   required List<ResourceFile> resourceFiles,
   CatalogLinkSearch? searchLinks,
   CatalogAutoLinkLoader? loadAutoLinkTargets,
-  bool aiIntegrationEnabled = false,
 }) {
   final editing = initial != null;
-  return showAdaptiveResourceForm<Spell>(
+  final compact = MediaQuery.sizeOf(context).width < 720;
+  return showAdaptiveResourceFormHost<Spell>(
     context,
-    title: editing ? 'Edit spell' : 'New spell',
-    child: _SpellForm(
+    builder: (context) => _SpellForm(
+      title: editing ? 'Edit spell' : 'New spell',
+      compact: compact,
+      auth: auth,
       initial: initial,
       casterClasses: casterClasses,
       spellTags: spellTags,
       resourceFiles: resourceFiles,
       searchLinks: searchLinks,
       loadAutoLinkTargets: loadAutoLinkTargets,
-      aiIntegrationEnabled: aiIntegrationEnabled,
     ),
   );
 }
 
 class _SpellForm extends StatefulWidget {
   const _SpellForm({
+    required this.title,
+    required this.compact,
+    required this.auth,
     this.initial,
     required this.casterClasses,
     required this.spellTags,
     required this.resourceFiles,
     this.searchLinks,
     this.loadAutoLinkTargets,
-    this.aiIntegrationEnabled = false,
   });
 
+  final String title;
+  final bool compact;
+  final AuthController auth;
   final Spell? initial;
   final List<CatalogItem> casterClasses;
   final List<CatalogItem> spellTags;
   final List<ResourceFile> resourceFiles;
   final CatalogLinkSearch? searchLinks;
   final CatalogAutoLinkLoader? loadAutoLinkTargets;
-  final bool aiIntegrationEnabled;
 
   @override
   State<_SpellForm> createState() => _SpellFormState();
 }
 
-class _SpellFormState extends State<_SpellForm> {
+class _SpellFormState extends State<_SpellForm>
+    with SingleTickerProviderStateMixin {
   static const _castingTimeOptions = <String>[
     'action',
     'bonus action',
@@ -69,6 +81,8 @@ class _SpellFormState extends State<_SpellForm> {
   static const _rangedDistances = <int>[30, 60, 90, 120, 150, 300, 500];
 
   final _formKey = GlobalKey<FormState>();
+  final _extractApi = ExtractApi();
+  final _keyStore = AnthropicKeyStore();
 
   late final _nameController =
       TextEditingController(text: widget.initial?.name ?? '');
@@ -95,6 +109,7 @@ class _SpellFormState extends State<_SpellForm> {
   late final _sourcePageController = TextEditingController(
     text: widget.initial?.sourcePage?.toString() ?? '',
   );
+  final _processController = TextEditingController();
 
   late int _level = widget.initial?.level ?? 1;
   late SpellSchool _school = widget.initial?.school ?? SpellSchool.evocation;
@@ -115,12 +130,25 @@ class _SpellFormState extends State<_SpellForm> {
   late int? _sourceFileId = widget.initial?.sourceFileId;
   int _dropdownEpoch = 0;
 
+  TabController? _tabController;
+  bool _processing = false;
+
   bool get _castingTimeAllowsCustomAmount =>
       _castingTimeUnit == 'minute' || _castingTimeUnit == 'hour';
-  bool get _showAiTemplateActions => !widget.aiIntegrationEnabled;
+  bool get _showProcessTab => widget.auth.user?.aiIntegration == true;
+  bool get _showAiTemplateActions => !_showProcessTab;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_showProcessTab) {
+      _tabController = TabController(length: 2, vsync: this);
+    }
+  }
 
   @override
   void dispose() {
+    _tabController?.dispose();
     _nameController.dispose();
     _descriptionController.dispose();
     _reactionTriggerController.dispose();
@@ -130,6 +158,7 @@ class _SpellFormState extends State<_SpellForm> {
     _durationSpecialController.dispose();
     _higherLevelsController.dispose();
     _sourcePageController.dispose();
+    _processController.dispose();
     super.dispose();
   }
 
@@ -175,6 +204,105 @@ class _SpellFormState extends State<_SpellForm> {
     return SpellRange(type: RangeType.ranged, distanceFeet: feet);
   }
 
+  Map<String, dynamic> _snapshotProcessJson() {
+    final range = _buildRange();
+    final classNames = [
+      for (final item in widget.casterClasses)
+        if (_classIds.contains(item.id)) item.name,
+    ]..sort();
+    final tagNames = [
+      for (final item in widget.spellTags)
+        if (_tagIds.contains(item.id)) item.name,
+    ]..sort();
+    return {
+      'name': _nameController.text.trim(),
+      'level': _level,
+      'school': _school.name,
+      'castingTime': {
+        'amount': _castingTimeAllowsCustomAmount
+            ? (_parseInt(_castAmountController.text) ?? 1)
+            : 1,
+        'unit': _castingTimeUnit,
+        'reactionTrigger': _castingTimeUnit == 'reaction'
+            ? _reactionTriggerController.text.trim().nullIfEmpty
+            : null,
+      },
+      'range': {
+        'type': _rangeKey == 'self'
+            ? 'self'
+            : _rangeKey == 'touch'
+                ? 'touch'
+                : 'ranged',
+        'distanceFeet': range.distanceFeet,
+      },
+      'components': {
+        'verbal': _verbal,
+        'somatic': _somatic,
+        'material': _material,
+        'materialDescription': _material
+            ? _materialDescriptionController.text.trim().nullIfEmpty
+            : null,
+        'materialCostGp':
+            _material ? _parseDouble(_materialCostController.text) : null,
+        'materialConsumed': _material && _materialConsumed,
+      },
+      'duration': {
+        'type': _durationType.name,
+        'concentration': _concentration,
+        'special': _durationType == DurationType.special
+            ? _durationSpecialController.text.trim().nullIfEmpty
+            : null,
+      },
+      'classes': classNames,
+      'tags': tagNames,
+      'description': _descriptionController.text.trim(),
+      'higherLevels': _higherLevelsController.text.trim(),
+      'sourcePage': _parseInt(_sourcePageController.text),
+    };
+  }
+
+  Map<String, dynamic> _processDefinition() => {
+        'classOptions': [
+          for (final item in widget.casterClasses) item.name,
+        ]..sort(),
+        'tagOptions': [
+          for (final item in widget.spellTags) item.name,
+        ]..sort(),
+      };
+
+  void _applyTemplate(SpellAiTemplateData template) {
+    setState(() {
+      _nameController.text = template.name;
+      _level = template.level;
+      _school = template.school;
+      _castAmountController.text = '${template.castAmount}';
+      _castingTimeUnit = template.castUnit;
+      _reactionTriggerController.text = template.reactionTrigger ?? '';
+      _rangeKey = template.rangeKey;
+      _verbal = template.verbal;
+      _somatic = template.somatic;
+      _material = template.material;
+      _materialDescriptionController.text =
+          template.materialDescription ?? '';
+      _materialCostController.text =
+          template.materialCostGp?.toString() ?? '';
+      _materialConsumed = template.materialConsumed;
+      _durationType = template.durationType;
+      _concentration = template.concentration;
+      _durationSpecialController.text = template.durationSpecial ?? '';
+      _classIds
+        ..clear()
+        ..addAll(template.classIds);
+      _tagIds
+        ..clear()
+        ..addAll(template.tagIds);
+      _descriptionController.text = template.description;
+      _higherLevelsController.text = template.higherLevels;
+      _sourcePageController.text = template.sourcePage?.toString() ?? '';
+      _dropdownEpoch++;
+    });
+  }
+
   Future<void> _copyAiTemplate() async {
     await Clipboard.setData(
       ClipboardData(
@@ -206,36 +334,7 @@ class _SpellFormState extends State<_SpellForm> {
         casterClasses: widget.casterClasses,
         spellTags: widget.spellTags,
       );
-      setState(() {
-        _nameController.text = template.name;
-        _level = template.level;
-        _school = template.school;
-        _castAmountController.text = '${template.castAmount}';
-        _castingTimeUnit = template.castUnit;
-        _reactionTriggerController.text = template.reactionTrigger ?? '';
-        _rangeKey = template.rangeKey;
-        _verbal = template.verbal;
-        _somatic = template.somatic;
-        _material = template.material;
-        _materialDescriptionController.text =
-            template.materialDescription ?? '';
-        _materialCostController.text =
-            template.materialCostGp?.toString() ?? '';
-        _materialConsumed = template.materialConsumed;
-        _durationType = template.durationType;
-        _concentration = template.concentration;
-        _durationSpecialController.text = template.durationSpecial ?? '';
-        _classIds
-          ..clear()
-          ..addAll(template.classIds);
-        _tagIds
-          ..clear()
-          ..addAll(template.tagIds);
-        _descriptionController.text = template.description;
-        _higherLevelsController.text = template.higherLevels;
-        _sourcePageController.text = template.sourcePage?.toString() ?? '';
-        _dropdownEpoch++;
-      });
+      _applyTemplate(template);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Template applied')),
@@ -250,6 +349,65 @@ class _SpellFormState extends State<_SpellForm> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Could not apply template')),
       );
+    }
+  }
+
+  Future<void> _process() async {
+    final prompt = _processController.text.trim();
+    if (prompt.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a prompt or paste source text')),
+      );
+      return;
+    }
+    final apiKey = (await _keyStore.read())?.trim() ?? '';
+    if (apiKey.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Add your Anthropic API key in Preferences.'),
+        ),
+      );
+      return;
+    }
+    setState(() => _processing = true);
+    try {
+      final token = await widget.auth.requireAccessToken();
+      if (token == null) return;
+      final payload = await _extractApi.processSpell(
+        accessToken: token,
+        anthropicApiKey: apiKey,
+        prompt: prompt,
+        current: _snapshotProcessJson(),
+        definition: _processDefinition(),
+      );
+      if (!mounted) return;
+      final template = parseSpellAiTemplateMap(
+        map: payload,
+        casterClasses: widget.casterClasses,
+        spellTags: widget.spellTags,
+        allowUnknownNames: true,
+        snapRangedDistance: true,
+      );
+      _applyTemplate(template);
+      _tabController?.animateTo(0);
+    } on AuthApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } on SpellAiTemplateException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not process spell')),
+      );
+    } finally {
+      if (mounted) setState(() => _processing = false);
     }
   }
 
@@ -366,14 +524,36 @@ class _SpellFormState extends State<_SpellForm> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget? _buildHeaderTabs(BuildContext context) {
+    final controller = _tabController;
+    if (!_showProcessTab || controller == null) return null;
+    final scheme = Theme.of(context).colorScheme;
+    final labelStyle = Theme.of(context).textTheme.titleSmall;
+    return TabBar(
+      controller: controller,
+      indicatorSize: TabBarIndicatorSize.label,
+      dividerColor: Colors.transparent,
+      labelColor: scheme.primary,
+      unselectedLabelColor: scheme.onSurfaceVariant,
+      labelStyle: labelStyle?.copyWith(fontWeight: FontWeight.w600),
+      unselectedLabelStyle: labelStyle,
+      labelPadding: const EdgeInsets.symmetric(horizontal: 16),
+      tabs: const [
+        Tab(text: 'Edit', height: 40),
+        Tab(text: 'Process', height: 40),
+      ],
+    );
+  }
+
+  Widget _buildEditFields(BuildContext context) {
     _durationType = _resolveDurationType(_durationType);
 
     return Form(
       key: _formKey,
       child: Column(
+        key: ValueKey('spell-edit-$_dropdownEpoch'),
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
         children: [
           _section('Basics'),
           TextFormField(
@@ -804,6 +984,37 @@ class _SpellFormState extends State<_SpellForm> {
             ),
         ],
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final body = (!_showProcessTab || _tabController == null)
+        ? _buildEditFields(context)
+        : AnimatedBuilder(
+            animation: _tabController!,
+            builder: (context, _) {
+              if (_tabController!.index == 0) {
+                return _buildEditFields(context);
+              }
+              return ClassAiProcessPane(
+                controller: _processController,
+                processing: _processing,
+                onProcess: _process,
+                description:
+                    'Paste spell text or describe changes. Process updates the '
+                    'Edit tab without saving.',
+                hintText:
+                    'Paste a spell block, or ask to rewrite wording…',
+              );
+            },
+          );
+
+    return ResourceFormScaffold(
+      title: widget.title,
+      compact: widget.compact,
+      headerTabs: _buildHeaderTabs(context),
+      child: body,
     );
   }
 }

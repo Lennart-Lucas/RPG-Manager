@@ -66,3 +66,13 @@ class ProcessClassRequest(BaseModel):
 
 class ProcessClassResponse(BaseModel):
     payload: dict[str, Any]
+
+
+class ProcessSpellRequest(BaseModel):
+    prompt: str = Field(min_length=1, max_length=500_000)
+    current: dict[str, Any] = Field(default_factory=dict)
+    definition: dict[str, Any] | None = None
+
+
+class ProcessSpellResponse(BaseModel):
+    payload: dict[str, Any]

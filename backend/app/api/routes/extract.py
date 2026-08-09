@@ -13,10 +13,13 @@ from app.schemas.extract import (
     ExtractJobResponse,
     ProcessClassRequest,
     ProcessClassResponse,
+    ProcessSpellRequest,
+    ProcessSpellResponse,
 )
 from app.services.extract import claude_client
 from app.services.extract.pipeline import run_extract_job
 from app.services.extract.process_class import process_class_record
+from app.services.extract.process_spell import process_spell_record
 
 router = APIRouter(prefix="/extract", tags=["extract"])
 
@@ -109,3 +112,28 @@ async def process_class(
     except claude_client.ClaudeError as exc:
         _raise_claude_http(exc)
     return ProcessClassResponse(payload=payload)
+
+
+@router.post("/process-spell", response_model=ProcessSpellResponse)
+@limiter.limit("10/minute")
+async def process_spell(
+    request: Request,
+    body: ProcessSpellRequest,
+    user: User = Depends(get_current_dm_user),
+    api_key: str = Depends(_require_anthropic_key),
+) -> ProcessSpellResponse:
+    if not user.ai_integration:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="AI integration is disabled. Enable it in Preferences.",
+        )
+    try:
+        payload = await process_spell_record(
+            api_key=api_key,
+            prompt=body.prompt,
+            current=body.current,
+            definition=body.definition,
+        )
+    except claude_client.ClaudeError as exc:
+        _raise_claude_http(exc)
+    return ProcessSpellResponse(payload=payload)
