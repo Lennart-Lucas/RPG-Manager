@@ -54,10 +54,11 @@ class ResourceFormStyles {
   }
 }
 
-Future<T?> showAdaptiveResourceForm<T>(
+/// Adaptive dialog / bottom-sheet host for a prebuilt [ResourceFormScaffold]
+/// (or any full form chrome widget).
+Future<T?> showAdaptiveResourceFormHost<T>(
   BuildContext context, {
-  required String title,
-  required Widget child,
+  required WidgetBuilder builder,
 }) {
   final width = MediaQuery.sizeOf(context).width;
   final compact = width < 720;
@@ -67,11 +68,7 @@ Future<T?> showAdaptiveResourceForm<T>(
       isScrollControlled: true,
       useSafeArea: true,
       showDragHandle: true,
-      builder: (context) => _ResourceFormScaffold(
-        title: title,
-        compact: true,
-        child: child,
-      ),
+      builder: builder,
     );
   }
   return showDialog<T>(
@@ -80,69 +77,108 @@ Future<T?> showAdaptiveResourceForm<T>(
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 640, maxHeight: 760),
-        child: _ResourceFormScaffold(
-          title: title,
-          compact: false,
-          child: child,
-        ),
+        child: builder(context),
       ),
     ),
   );
 }
 
-class _ResourceFormScaffold extends StatelessWidget {
-  const _ResourceFormScaffold({
+Future<T?> showAdaptiveResourceForm<T>(
+  BuildContext context, {
+  required String title,
+  required Widget child,
+}) {
+  final compact = MediaQuery.sizeOf(context).width < 720;
+  return showAdaptiveResourceFormHost<T>(
+    context,
+    builder: (context) => ResourceFormScaffold(
+      title: title,
+      compact: compact,
+      child: child,
+    ),
+  );
+}
+
+class ResourceFormScaffold extends StatelessWidget {
+  const ResourceFormScaffold({
+    super.key,
     required this.title,
     required this.compact,
     required this.child,
+    this.headerTabs,
   });
 
   final String title;
   final bool compact;
   final Widget child;
+  final Widget? headerTabs;
+
+  static const double dialogHeight = 760;
 
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    // Keep a stable frame when header tabs are present so switching panes
+    // does not resize the dialog / sheet.
+    final fillHeight = headerTabs != null;
+    final sheetHeight = MediaQuery.sizeOf(context).height * 0.92;
+
+    final body = Column(
+      mainAxisSize: fillHeight ? MainAxisSize.max : MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 8, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Close',
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.close),
+              ),
+            ],
+          ),
+        ),
+        ?headerTabs,
+        const Divider(height: 1),
+        if (fillHeight)
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+              child: child,
+            ),
+          )
+        else
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+              child: child,
+            ),
+          ),
+      ],
+    );
+
+    final frameHeight = compact ? sheetHeight : dialogHeight;
 
     return AnimatedPadding(
       duration: const Duration(milliseconds: 160),
       curve: Curves.easeOut,
-      padding: EdgeInsets.only(bottom: bottomInset),
+      padding: EdgeInsets.only(bottom: fillHeight ? 0 : bottomInset),
       child: SafeArea(
         top: !compact,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 8, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: 'Close',
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-                child: child,
-              ),
-            ),
-          ],
-        ),
+        child: fillHeight
+            ? SizedBox(
+                height: (frameHeight - bottomInset).clamp(280.0, frameHeight),
+                child: body,
+              )
+            : body,
       ),
     );
   }

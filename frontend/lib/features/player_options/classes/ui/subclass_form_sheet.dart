@@ -22,10 +22,12 @@ Future<SubclassRecord?> showSubclassFormSheet(
   CatalogAutoLinkLoader? loadAutoLinkTargets,
 }) {
   final editing = initial != null;
-  return showAdaptiveResourceForm<SubclassRecord>(
+  final compact = MediaQuery.sizeOf(context).width < 720;
+  return showAdaptiveResourceFormHost<SubclassRecord>(
     context,
-    title: editing ? 'Edit subclass' : 'New subclass',
-    child: _SubclassForm(
+    builder: (context) => _SubclassForm(
+      title: editing ? 'Edit subclass' : 'New subclass',
+      compact: compact,
       auth: auth,
       initial: initial,
       parentClasses: parentClasses,
@@ -38,6 +40,8 @@ Future<SubclassRecord?> showSubclassFormSheet(
 
 class _SubclassForm extends StatefulWidget {
   const _SubclassForm({
+    required this.title,
+    required this.compact,
     required this.auth,
     this.initial,
     required this.parentClasses,
@@ -46,6 +50,8 @@ class _SubclassForm extends StatefulWidget {
     this.loadAutoLinkTargets,
   });
 
+  final String title;
+  final bool compact;
   final AuthController auth;
   final SubclassRecord? initial;
   final List<CatalogItem> parentClasses;
@@ -322,37 +328,50 @@ class _SubclassFormState extends State<_SubclassForm>
     );
   }
 
+  Widget? _buildHeaderTabs(BuildContext context) {
+    final controller = _tabController;
+    if (!_showProcessTab || controller == null) return null;
+    final scheme = Theme.of(context).colorScheme;
+    final labelStyle = Theme.of(context).textTheme.titleSmall;
+    return TabBar(
+      controller: controller,
+      indicatorSize: TabBarIndicatorSize.label,
+      dividerColor: Colors.transparent,
+      labelColor: scheme.primary,
+      unselectedLabelColor: scheme.onSurfaceVariant,
+      labelStyle: labelStyle?.copyWith(fontWeight: FontWeight.w600),
+      unselectedLabelStyle: labelStyle,
+      labelPadding: const EdgeInsets.symmetric(horizontal: 16),
+      tabs: const [
+        Tab(text: 'Edit', height: 40),
+        Tab(text: 'Process', height: 40),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (!_showProcessTab || _tabController == null) {
-      return _buildEditFields(context);
-    }
-    return AnimatedBuilder(
-      animation: _tabController!,
-      builder: (context, _) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TabBar(
-              controller: _tabController,
-              tabs: const [
-                Tab(text: 'Edit'),
-                Tab(text: 'Process'),
-              ],
-            ),
-            const SizedBox(height: ResourceFormStyles.fieldSpacing),
-            if (_tabController!.index == 0)
-              _buildEditFields(context)
-            else
-              ClassAiProcessPane(
+    final body = (!_showProcessTab || _tabController == null)
+        ? _buildEditFields(context)
+        : AnimatedBuilder(
+            animation: _tabController!,
+            builder: (context, _) {
+              if (_tabController!.index == 0) {
+                return _buildEditFields(context);
+              }
+              return ClassAiProcessPane(
                 controller: _processController,
                 processing: _processing,
                 onProcess: _process,
-              ),
-          ],
-        );
-      },
+              );
+            },
+          );
+
+    return ResourceFormScaffold(
+      title: widget.title,
+      compact: widget.compact,
+      headerTabs: _buildHeaderTabs(context),
+      child: body,
     );
   }
 }
