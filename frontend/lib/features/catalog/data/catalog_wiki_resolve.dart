@@ -1,5 +1,6 @@
 import '../../auth/data/auth_api.dart';
 import '../../auth/state/auth_controller.dart';
+import '../../player_options/races/data/race_model.dart';
 import '../../world/locations/data/location_model.dart';
 import '../../world/organisations/data/organisation_model.dart';
 import 'catalog_api.dart';
@@ -148,6 +149,15 @@ Future<CatalogItem?> _resolveCatalogItemByWikiRefUncached({
     if (kind == CatalogKind.organisations) {
       for (final item in listed) {
         final record = OrganisationRecord.fromCatalogPayload(
+          name: item.name,
+          payload: item.payload,
+        );
+        if (record.matchesNameOrAlias(needle)) return item;
+      }
+    }
+    if (kind == CatalogKind.races) {
+      for (final item in listed) {
+        final record = RaceRecord.fromCatalogPayload(
           name: item.name,
           payload: item.payload,
         );

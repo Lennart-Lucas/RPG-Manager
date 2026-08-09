@@ -174,6 +174,15 @@ class _RaceDetailPageState extends State<RaceDetailPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(_item.name, style: textTheme.headlineSmall),
+                        if (race.aliases.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            race.aliases.join(', '),
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 4),
                         Text(
                           'Race',

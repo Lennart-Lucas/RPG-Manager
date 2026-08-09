@@ -2,15 +2,18 @@ class RaceRecord {
   const RaceRecord({
     required this.name,
     required this.description,
+    this.aliases = const [],
   });
 
   final String name;
   final String description;
+  final List<String> aliases;
 
   factory RaceRecord.fromJson(Map<String, dynamic> json) {
     return RaceRecord(
       name: json['name'] as String? ?? '',
       description: json['description'] as String? ?? '',
+      aliases: _parseAliases(json['aliases']),
     );
   }
 
@@ -24,12 +27,14 @@ class RaceRecord {
     return RaceRecord(
       name: payload['name'] as String? ?? name,
       description: payload['description'] as String? ?? '',
+      aliases: _parseAliases(payload['aliases']),
     );
   }
 
   Map<String, dynamic> toJson() => {
         'name': name,
         'description': description,
+        'aliases': aliases,
       };
 
   String get descriptionPreview {
@@ -40,5 +45,29 @@ class RaceRecord {
         .trim();
     if (plain.length <= 140) return plain;
     return '${plain.substring(0, 137)}…';
+  }
+
+  bool matchesNameOrAlias(String query) {
+    final needle = query.trim().toLowerCase();
+    if (needle.isEmpty) return false;
+    if (name.trim().toLowerCase() == needle) return true;
+    for (final alias in aliases) {
+      if (alias.trim().toLowerCase() == needle) return true;
+    }
+    return false;
+  }
+
+  static List<String> _parseAliases(Object? raw) {
+    if (raw is! List) return const [];
+    final out = <String>[];
+    final seen = <String>{};
+    for (final entry in raw) {
+      final text = '$entry'.trim();
+      if (text.isEmpty) continue;
+      final key = text.toLowerCase();
+      if (!seen.add(key)) continue;
+      out.add(text);
+    }
+    return out;
   }
 }

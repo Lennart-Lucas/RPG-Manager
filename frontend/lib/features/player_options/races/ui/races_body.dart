@@ -229,6 +229,7 @@ class _RacesBodyState extends State<RacesBody> {
                   payload: item.payload,
                 );
                 final preview = race.descriptionPreview;
+                final aliases = race.aliases.join(', ');
                 return RecordListCard(
                   leading: Container(
                     width: 42,
@@ -244,7 +245,7 @@ class _RacesBodyState extends State<RacesBody> {
                     ),
                   ),
                   title: item.name,
-                  subtitle: 'Race',
+                  subtitle: aliases.isEmpty ? 'Race' : aliases,
                   trailing: widget.auth.canMutateCatalog
                       ? IconButton(
                           tooltip: 'Delete',
