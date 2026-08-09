@@ -1,3 +1,4 @@
+from app.services.extract.condition_schema import ConditionExtractPayload
 from app.services.extract.item_schema import (
     ItemExtractPayload,
     normalize_item_rarity,
@@ -5,6 +6,7 @@ from app.services.extract.item_schema import (
 )
 from app.services.extract.tier1_split import (
     health_check_section,
+    looks_like_condition_chunk,
     looks_like_item_chunk,
     looks_like_spell_chunk,
     split_document,
@@ -294,3 +296,141 @@ These palm-size wafers of magical minerals can be consumed.
     assert any(
         e.name_hint and "Hex-Stone" in e.name_hint for e in section.entries
     )
+
+
+SAMPLE_CONDITION_LIST = """
+Conditions
+
+Blinded
+A blinded creature can't see and automatically fails any ability check that requires sight.
+Attack rolls against the creature have advantage, and the creature's attack rolls have disadvantage.
+
+Frightened
+A frightened creature has disadvantage on ability checks and attack rolls while the source of its fear is within line of sight.
+The creature can't willingly move closer to the source of its fear.
+
+Poisoned
+A poisoned creature has disadvantage on attack rolls and ability checks.
+
+Restrained
+A restrained creature's speed becomes 0, and it can't benefit from any bonus to its speed.
+Attack rolls against the creature have advantage, and the creature's attack rolls have disadvantage.
+The creature has disadvantage on Dexterity saving throws.
+"""
+
+
+def test_tier1_splits_condition_list():
+    result = split_document(SAMPLE_CONDITION_LIST, kind="conditions")
+    assert len(result.sections) >= 1
+    section = result.sections[0]
+    assert section.health_ok, section.health_reasons
+    assert len(section.entries) == 4
+    names = [e.name_hint for e in section.entries]
+    assert names[0] and "Blinded" in names[0]
+    assert any(e.name_hint and "Frightened" in e.name_hint for e in section.entries)
+    assert any(e.name_hint and "Restrained" in e.name_hint for e in section.entries)
+
+
+def test_tier1_splits_new_condition_headers():
+    text = """
+New Conditions
+
+New Condition: Rampaging
+The creature loses its free will as it enters a mindless Rampage.
+Any Charmed or Frightened effects on the creature are suspended.
+The creature can't cast spells or maintain Concentration.
+On each of its turns, the creature must take the Attack action against the nearest hostile creature.
+
+New Condition: Marked
+A marked creature can't hide from the one who marked it.
+Attack rolls against the marked creature have advantage.
+The creature must succeed on a Wisdom saving throw to move away.
+
+New Condition: Anchored
+An anchored creature's speed becomes 0.
+The creature can't teleport or otherwise leave its space by magical means.
+"""
+    result = split_document(text, kind="conditions")
+    section = result.sections[0]
+    assert section.health_ok, section.health_reasons
+    assert len(section.entries) == 3
+    names = [e.name_hint for e in section.entries]
+    assert any(n and "Rampaging" in n for n in names)
+    assert any(n and "Marked" in n for n in names)
+    assert any(n and "Anchored" in n for n in names)
+
+
+def test_tier1_splits_ocr_broken_new_condition():
+    text = """
+Conditions
+
+N
+ew Condition: Rampaging
+The creature loses its free will as it enters a mindless Rampage.
+Any Charmed or Frightened effects on the creature are suspended.
+The creature can't cast spells or maintain Concentration on spells or other effects.
+On each of its turns, the creature must take the Attack action against the nearest hostile creature it can see within range.
+
+Blinded
+A blinded creature can't see and automatically fails any ability check that requires sight.
+Attack rolls against the creature have advantage.
+
+Frightened
+A frightened creature has disadvantage on ability checks and attack rolls while the source of its fear is within line of sight.
+The creature can't willingly move closer to the source of its fear.
+"""
+    result = split_document(text, kind="conditions")
+    section = result.sections[0]
+    assert len(section.entries) >= 3
+    names = [e.name_hint for e in section.entries]
+    assert any(n and "Rampaging" in n for n in names)
+    rampaging = next(e for e in section.entries if e.name_hint and "Rampaging" in e.name_hint)
+    assert looks_like_condition_chunk(rampaging.text)
+
+
+def test_looks_like_condition_chunk_accepts_effects():
+    text = (
+        "Blinded\n"
+        "A blinded creature can't see and automatically fails any ability check "
+        "that requires sight. Attack rolls against the creature have advantage."
+    )
+    assert looks_like_condition_chunk(text)
+
+
+def test_looks_like_condition_chunk_accepts_new_condition_header():
+    text = (
+        "New Condition: Rampaging\n"
+        "The creature loses its free will as it enters a mindless Rampage. "
+        "The creature can't cast spells. On each of its turns, the creature "
+        "must take the Attack action against the nearest hostile creature."
+    )
+    assert looks_like_condition_chunk(text)
+
+
+def test_looks_like_condition_chunk_rejects_spell():
+    text = "Fire Bolt\nEvocation cantrip\nCasting Time: 1 action\nRange: 120 feet"
+    assert not looks_like_condition_chunk(text)
+    assert looks_like_spell_chunk(text)
+
+
+def test_looks_like_condition_chunk_rejects_item():
+    text = (
+        "Cloak of Darkness\n"
+        "Wonderous item, very rare\n"
+        "This cloak shrouds the wearer in shadow."
+    )
+    assert not looks_like_condition_chunk(text)
+    assert looks_like_item_chunk(text)
+
+
+def test_condition_payload_strips_new_condition_prefix():
+    payload = ConditionExtractPayload.model_validate(
+        {
+            "name": "New Condition: Rampaging",
+            "description": "The creature must Attack.",
+            "sourcePage": 10,
+            "notes": None,
+            "unknown_fields": None,
+        }
+    )
+    assert payload.name == "Rampaging"

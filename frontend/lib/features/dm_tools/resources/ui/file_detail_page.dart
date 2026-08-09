@@ -7,6 +7,8 @@ import '../../../catalog/data/catalog_auto_link.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../../catalog/ui/open_catalog_detail.dart';
+import '../../../mechanics/conditions/ui/condition_list_item_card.dart';
+import '../../../mechanics/data/styled_mechanics_record.dart';
 import '../../../player_options/classes/data/class_model.dart';
 import '../../../player_options/items/data/item_list_derived_data.dart';
 import '../../../player_options/items/data/item_model.dart';
@@ -28,6 +30,13 @@ class _LinkedItemEntry {
 
   final CatalogItem item;
   final Item entry;
+}
+
+class _LinkedConditionEntry {
+  const _LinkedConditionEntry({required this.item, required this.record});
+
+  final CatalogItem item;
+  final StyledMechanicsRecord record;
 }
 
 class FileDetailPage extends StatefulWidget {
@@ -65,6 +74,7 @@ class _FileDetailPageState extends State<FileDetailPage> {
   String? _spellsError;
   List<SpellCatalogEntry> _linkedSpells = const [];
   List<_LinkedItemEntry> _linkedItems = const [];
+  List<_LinkedConditionEntry> _linkedConditions = const [];
   Map<String, List<String>> _classNamesBySpellKey = const {};
   Map<String, List<({String id, String name})>> _tagEntriesBySpellKey =
       const {};
@@ -98,6 +108,19 @@ class _FileDetailPageState extends State<FileDetailPage> {
     }
   }
 
+  StyledMechanicsRecord? _conditionFromCatalog(CatalogItem item) {
+    final payload = item.payload;
+    if (payload == null) return null;
+    try {
+      return StyledMechanicsRecord.fromCatalogPayload(
+        name: item.name,
+        payload: payload,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _loadLinkedSpells() async {
     setState(() {
       _spellsLoading = true;
@@ -111,13 +134,15 @@ class _FileDetailPageState extends State<FileDetailPage> {
       final results = await Future.wait([
         _catalogApi.list(token, CatalogKind.spells),
         _catalogApi.list(token, CatalogKind.items),
+        _catalogApi.list(token, CatalogKind.conditions),
         _catalogApi.list(token, CatalogKind.classes),
         _catalogApi.list(token, CatalogKind.spellTags),
       ]);
       final spellItems = results[0];
       final itemItems = results[1];
-      final classItems = results[2];
-      final spellTags = results[3];
+      final conditionItems = results[2];
+      final classItems = results[3];
+      final spellTags = results[4];
       final casters = classItems.where((item) {
         return ClassRecord.fromCatalogPayload(
           name: item.name,
@@ -154,6 +179,20 @@ class _FileDetailPageState extends State<FileDetailPage> {
       linkedItems.sort(
         (a, b) =>
             a.entry.name.toLowerCase().compareTo(b.entry.name.toLowerCase()),
+      );
+
+      final linkedConditions = <_LinkedConditionEntry>[];
+      for (final catalogItem in conditionItems) {
+        final record = _conditionFromCatalog(catalogItem);
+        if (record == null) continue;
+        if (record.sourceFileId != _file.id) continue;
+        linkedConditions.add(
+          _LinkedConditionEntry(item: catalogItem, record: record),
+        );
+      }
+      linkedConditions.sort(
+        (a, b) =>
+            a.record.name.toLowerCase().compareTo(b.record.name.toLowerCase()),
       );
 
       final classNamesById = {
@@ -193,6 +232,7 @@ class _FileDetailPageState extends State<FileDetailPage> {
       setState(() {
         _linkedSpells = linked;
         _linkedItems = linkedItems;
+        _linkedConditions = linkedConditions;
         _classNamesBySpellKey = classNamesBySpellKey;
         _tagEntriesBySpellKey = tagEntriesBySpellKey;
         _spellsLoading = false;
@@ -215,7 +255,9 @@ class _FileDetailPageState extends State<FileDetailPage> {
 
   Future<void> _autoLinkImported() async {
     if (_autoLinking || _spellsLoading) return;
-    final total = _linkedSpells.length + _linkedItems.length;
+    final total = _linkedSpells.length +
+        _linkedItems.length +
+        _linkedConditions.length;
     if (total == 0) return;
 
     setState(() => _autoLinking = true);
@@ -255,6 +297,22 @@ class _FileDetailPageState extends State<FileDetailPage> {
         await _catalogApi.update(
           accessToken: token,
           kind: CatalogKind.items,
+          itemId: linked.item.id,
+          name: result.value.name,
+          payload: result.value.toJson(),
+        );
+        updated++;
+      }
+
+      for (final linked in _linkedConditions) {
+        final result = autoLinkStyledMechanicsFields(linked.record, targets);
+        if (!result.changed) {
+          unchanged++;
+          continue;
+        }
+        await _catalogApi.update(
+          accessToken: token,
+          kind: CatalogKind.conditions,
           itemId: linked.item.id,
           name: result.value.name,
           payload: result.value.toJson(),
@@ -479,6 +537,17 @@ class _FileDetailPageState extends State<FileDetailPage> {
     await _loadLinkedSpells();
   }
 
+  Future<void> _openCondition(_LinkedConditionEntry linked) async {
+    await openCatalogRecordDetail(
+      context: context,
+      auth: widget.auth,
+      kindApiValue: linked.item.kind.apiValue,
+      itemId: linked.item.id,
+    );
+    if (!mounted) return;
+    await _loadLinkedSpells();
+  }
+
   Future<void> _deleteFile() async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -527,7 +596,9 @@ class _FileDetailPageState extends State<FileDetailPage> {
     final aiEnabled = widget.auth.user?.aiIntegration ?? false;
     final canExtract = hasLocal && aiEnabled && !busy;
     final canExportText = hasLocal && !busy;
-    final importedCount = _linkedSpells.length + _linkedItems.length;
+    final importedCount = _linkedSpells.length +
+        _linkedItems.length +
+        _linkedConditions.length;
     final canAutoLink = !_spellsLoading &&
         _spellsError == null &&
         importedCount > 0 &&
@@ -938,7 +1009,7 @@ class _FileDetailPageState extends State<FileDetailPage> {
                 if (_linkedItems.isEmpty)
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 48),
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                       child: DecoratedBox(
                         decoration: BoxDecoration(
                           color: scheme.surfaceContainerLow,
@@ -960,7 +1031,7 @@ class _FileDetailPageState extends State<FileDetailPage> {
                   )
                 else
                   SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 48),
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                     sliver: SliverLayoutBuilder(
                       builder: (context, constraints) {
                         const itemSpacing = 10.0;
@@ -1031,6 +1102,100 @@ class _FileDetailPageState extends State<FileDetailPage> {
                               );
                             },
                             childCount: rowEntries.length,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                    child: Text(
+                      'Conditions',
+                      style: textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+                if (_linkedConditions.isEmpty)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 48),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: scheme.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: scheme.outlineVariant),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Text(
+                            'No conditions linked to this file yet.',
+                            textAlign: TextAlign.center,
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 48),
+                    sliver: SliverLayoutBuilder(
+                      builder: (context, constraints) {
+                        const itemSpacing = 10.0;
+                        const minItemWidth = 280.0;
+                        final availableWidth = constraints.crossAxisExtent;
+                        final desiredColumns =
+                            ((availableWidth + itemSpacing) /
+                                    (minItemWidth + itemSpacing))
+                                .floor()
+                                .clamp(1, 3);
+                        final rows = <List<_LinkedConditionEntry>>[];
+                        for (var i = 0;
+                            i < _linkedConditions.length;
+                            i += desiredColumns) {
+                          final end = (i + desiredColumns)
+                              .clamp(0, _linkedConditions.length);
+                          rows.add(_linkedConditions.sublist(i, end));
+                        }
+
+                        return SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              final row = rows[index];
+                              return Padding(
+                                padding: EdgeInsets.only(
+                                  bottom: index == rows.length - 1 ? 0 : 10,
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    for (var i = 0; i < row.length; i++) ...[
+                                      if (i > 0)
+                                        const SizedBox(width: itemSpacing),
+                                      Expanded(
+                                        child: ConditionListItemCard(
+                                          record: row[i].record,
+                                          onTap: () =>
+                                              _openCondition(row[i]),
+                                        ),
+                                      ),
+                                    ],
+                                    for (var i = row.length;
+                                        i < desiredColumns;
+                                        i++) ...[
+                                      const SizedBox(width: itemSpacing),
+                                      const Expanded(child: SizedBox.shrink()),
+                                    ],
+                                  ],
+                                ),
+                              );
+                            },
+                            childCount: rows.length,
                           ),
                         );
                       },

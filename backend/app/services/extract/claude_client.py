@@ -7,6 +7,7 @@ from typing import Any
 import httpx
 
 from app.config import settings
+from app.services.extract.condition_schema import CONDITION_EXTRACT_JSON_SCHEMA
 from app.services.extract.item_schema import ITEM_EXTRACT_JSON_SCHEMA
 from app.services.extract.spell_schema import SPELL_EXTRACT_JSON_SCHEMA
 from app.services.extract.tier2_anchors import ANCHOR_JSON_SCHEMA
@@ -151,8 +152,15 @@ async def detect_anchors(
     section_text: str,
     kind: str = "spells",
 ) -> dict[str, Any]:
-    entry_label = "item" if kind == "items" else "spell"
-    tool_name = "item_anchors" if kind == "items" else "spell_anchors"
+    if kind == "items":
+        entry_label = "item"
+        tool_name = "item_anchors"
+    elif kind == "conditions":
+        entry_label = "condition"
+        tool_name = "condition_anchors"
+    else:
+        entry_label = "spell"
+        tool_name = "spell_anchors"
     system = (
         f"You identify individual {entry_label} entry boundaries in RPG source text. "
         f"For each {entry_label} entry, quote the exact first line and exact last line "
@@ -232,3 +240,47 @@ async def extract_item(
         tool_name="item_extract",
     )
     return _tool_input(response, "item_extract")
+
+
+CONDITION_EXTRACT_SYSTEM = (
+    "You extract structured D&D 5e condition data from source text. "
+    "Extract only what is explicitly present in the text. "
+    "Use null for any field that is missing or unclear. "
+    "Never invent, infer, or fill gaps. "
+    "name is the condition name only — strip prefixes like "
+    "'New Condition:', 'Condition:', and OCR artifacts that split those "
+    "prefixes across lines (e.g. 'N' then 'ew Condition: Rampaging' → Rampaging). "
+    "description should be the full body text as markdown; when the source lists "
+    "effects as separate sentences or bullets, format them as a markdown bullet list. "
+    "Tolerate OCR noise (broken lines, doubled glyphs) when reading the name. "
+    "If the chunk is not a condition entry (cover, art credit, TOC, spell, item), "
+    "leave name/description null and briefly say so in notes. "
+    "Do not put illustration credits or page decoration into unknown_fields."
+)
+
+
+async def extract_condition(
+    *,
+    api_key: str,
+    entry_text: str,
+) -> dict[str, Any]:
+    tools = [
+        {
+            "name": "condition_extract",
+            "description": "Structured condition fields extracted from the source text.",
+            "input_schema": CONDITION_EXTRACT_JSON_SCHEMA,
+        }
+    ]
+    user = (
+        "Extract the condition from the following source text into the "
+        "condition_extract tool.\n\n"
+        f"---\n{entry_text}\n---"
+    )
+    response = await _messages_create(
+        api_key=api_key,
+        system=CONDITION_EXTRACT_SYSTEM,
+        user=user,
+        tools=tools,
+        tool_name="condition_extract",
+    )
+    return _tool_input(response, "condition_extract")

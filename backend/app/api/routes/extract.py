@@ -43,10 +43,10 @@ async def create_extract_job(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="AI integration is disabled. Enable it in Preferences.",
         )
-    if body.kind not in ("spells", "items"):
+    if body.kind not in ("spells", "items", "conditions"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only kind=spells or kind=items is supported",
+            detail="Only kind=spells, kind=items, or kind=conditions is supported",
         )
     if len(body.text) > 1_000_000:
         raise HTTPException(

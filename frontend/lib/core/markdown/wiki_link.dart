@@ -141,6 +141,34 @@ String formatWikiLink({
   return embed ? '!$inner' : inner;
 }
 
+/// Resolves bare `[[kind/id]]` / `![[kind/id]]` targets to aliased links so
+/// renderers (and PDF captures) show names instead of numeric ids.
+Future<String> materializeWikiLinkLabels(
+  String text, {
+  required Future<String?> Function(String kind, String id) resolveLabel,
+}) async {
+  final links = parseWikiLinksAndEmbeds(text);
+  if (links.isEmpty) return text;
+
+  var result = text;
+  for (final link in links.reversed) {
+    if (link.hasAlias) continue;
+    final name = (await resolveLabel(link.kind, link.id))?.trim();
+    if (name == null || name.isEmpty) continue;
+    result = result.replaceRange(
+      link.start,
+      link.end,
+      formatWikiLink(
+        kind: link.kind,
+        id: link.id,
+        alias: name,
+        embed: link.isEmbed,
+      ),
+    );
+  }
+  return result;
+}
+
 /// Finds an unfinished `[[…` or `![[…` at [cursor] (no closing `]]` yet).
 IncompleteWikiLink? findIncompleteWikiLink(String text, int cursor) {
   if (cursor < 0 || cursor > text.length) return null;

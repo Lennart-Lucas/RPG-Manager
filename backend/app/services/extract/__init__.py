@@ -1,1 +1,1 @@
-"""PDF text extraction pipeline (spells V1)."""
+"""PDF text extraction pipeline (spells, items, conditions)."""

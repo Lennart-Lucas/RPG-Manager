@@ -8,6 +8,8 @@ import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
+import '../../../catalog/data/catalog_wiki_resolve.dart';
+import '../../../catalog/ui/open_catalog_detail.dart';
 import '../../../export/card_export_pdf.dart';
 import '../../../export/card_png_export_present.dart';
 import '../../player_options_icons.dart';
@@ -152,6 +154,11 @@ class _FeatDetailPageState extends State<FeatDetailPage> {
         context: context,
         feat: _entry,
         theme: Theme.of(context),
+        resolveWikiLinkLabel: (kind, id) => resolveCatalogWikiLinkLabel(
+          auth: widget.auth,
+          kindApiValue: kind,
+          target: id,
+        ),
       );
       if (!mounted) return;
       await presentCardPngExport(
@@ -268,6 +275,18 @@ class _FeatDetailPageState extends State<FeatDetailPage> {
                     _entry,
                     cardScale: desktopScale,
                     maxFontSize: kMtgCardRulesMaxFontSize * desktopScale,
+                    onWikiLinkTap: (kind, id) => openCatalogWikiLink(
+                      context: context,
+                      auth: widget.auth,
+                      kindApiValue: kind,
+                      target: id,
+                    ),
+                    resolveWikiLinkLabel: (kind, id) =>
+                        resolveCatalogWikiLinkLabel(
+                      auth: widget.auth,
+                      kindApiValue: kind,
+                      target: id,
+                    ),
                   ),
                   scaleFactor: desktopScale,
                 ),

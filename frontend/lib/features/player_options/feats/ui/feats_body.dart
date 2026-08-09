@@ -8,6 +8,7 @@ import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
+import '../../../catalog/data/catalog_wiki_resolve.dart';
 import '../../../catalog/ui/open_catalog_detail.dart';
 import '../../../export/card_export_pdf.dart';
 import '../../../export/card_export_theme.dart';
@@ -192,6 +193,11 @@ class _FeatsBodyState extends State<FeatsBody>
           context: context,
           feat: entry.entry,
           theme: theme,
+          resolveWikiLinkLabel: (kind, id) => resolveCatalogWikiLinkLabel(
+            auth: widget.auth,
+            kindApiValue: kind,
+            target: id,
+          ),
         ),
       );
     }

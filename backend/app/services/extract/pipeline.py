@@ -20,18 +20,20 @@ from app.services.extract.tier1_split import (
     SplitSection,
     filter_decorative_unknown_fields,
     looks_like_entry_chunk,
+    looks_like_item_chunk,
     looks_like_item_type_line,
     looks_like_spell_chunk,
     split_document,
 )
 from app.services.extract.tier2_anchors import (
     parse_anchor_response,
+    try_parse_condition_payload,
     try_parse_item_payload,
     try_parse_spell_payload,
     verify_anchor_pair,
 )
 
-ExtractKind = Literal["spells", "items"]
+ExtractKind = Literal["spells", "items", "conditions"]
 
 
 def _norm_name(name: str | None) -> str:
@@ -41,11 +43,19 @@ def _norm_name(name: str | None) -> str:
 
 
 def _catalog_kind_for(kind: ExtractKind) -> CatalogKind:
-    return CatalogKind.items if kind == "items" else CatalogKind.spells
+    if kind == "items":
+        return CatalogKind.items
+    if kind == "conditions":
+        return CatalogKind.conditions
+    return CatalogKind.spells
 
 
 def _not_a_entry_flag(kind: ExtractKind) -> str:
-    return "not_an_item" if kind == "items" else "not_a_spell"
+    if kind == "items":
+        return "not_an_item"
+    if kind == "conditions":
+        return "not_a_condition"
+    return "not_a_spell"
 
 
 async def _library_names(
@@ -125,6 +135,10 @@ async def _extract_entry_with_retry(
                 data = await claude_client.extract_item(
                     api_key=api_key, entry_text=entry_text
                 )
+            elif kind == "conditions":
+                data = await claude_client.extract_condition(
+                    api_key=api_key, entry_text=entry_text
+                )
             else:
                 data = await claude_client.extract_spell(
                     api_key=api_key, entry_text=entry_text
@@ -143,6 +157,8 @@ async def _extract_entry_with_retry(
 
         if kind == "items":
             payload, err = try_parse_item_payload(data)
+        elif kind == "conditions":
+            payload, err = try_parse_condition_payload(data)
         else:
             payload, err = try_parse_spell_payload(data)
 
@@ -191,6 +207,11 @@ def _mark_not_an_entry_if_needed(
             if flag not in needs:
                 needs.append(flag)
         return
+    if kind == "conditions":
+        if not has_name and not has_description:
+            if flag not in needs:
+                needs.append(flag)
+        return
     if (
         not has_name
         and payload.get("level") is None
@@ -219,6 +240,11 @@ def _not_an_entry_draft(
         notes = (
             "Skipped Claude: chunk lacks item-shaped signals "
             "(type/rarity line or requires attunement)."
+        )
+    elif kind == "conditions":
+        notes = (
+            "Skipped Claude: chunk lacks condition-shaped signals "
+            "(named condition with effect prose)."
         )
     else:
         notes = (
@@ -358,6 +384,20 @@ def _should_skip_items_tier2(body: str) -> bool:
     return False
 
 
+def _should_skip_conditions_tier2(body: str) -> bool:
+    """Skip Tier2 when a section is clearly spell or item prose."""
+    item_hits, spell_hits = _item_signal_counts(body)
+    if spell_hits >= 3 or item_hits >= 3:
+        return True
+    if looks_like_spell_chunk(body) and not looks_like_item_chunk(body):
+        # Strong spell signals without condition-ish body
+        from app.services.extract.tier1_split import CONDITION_EFFECT_RE
+
+        if spell_hits >= 2 and not CONDITION_EFFECT_RE.search(body):
+            return True
+    return False
+
+
 async def _process_tier2_section(
     *,
     api_key: str,
@@ -391,6 +431,8 @@ async def _process_tier2_section(
         return
 
     if kind == "items" and _should_skip_items_tier2(body):
+        return
+    if kind == "conditions" and _should_skip_conditions_tier2(body):
         return
 
     try:
@@ -516,7 +558,13 @@ async def run_extract_job(
     api_key: str,
     request: ExtractJobRequest,
 ) -> ExtractJobResponse:
-    kind: ExtractKind = "items" if request.kind == "items" else "spells"
+    kind: ExtractKind
+    if request.kind == "items":
+        kind = "items"
+    elif request.kind == "conditions":
+        kind = "conditions"
+    else:
+        kind = "spells"
     split = split_document(request.text, kind=kind)
     drafts: list[ExtractDraft] = []
     summaries: list[ExtractSectionSummary] = []
@@ -581,4 +629,19 @@ async def run_item_pipeline(
         user_id=user_id,
         api_key=api_key,
         request=request.model_copy(update={"kind": "items"}),
+    )
+
+
+async def run_condition_pipeline(
+    *,
+    session: AsyncSession,
+    user_id: int,
+    api_key: str,
+    request: ExtractJobRequest,
+) -> ExtractJobResponse:
+    return await run_extract_job(
+        session=session,
+        user_id=user_id,
+        api_key=api_key,
+        request=request.model_copy(update={"kind": "conditions"}),
     )

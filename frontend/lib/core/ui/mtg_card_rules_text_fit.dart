@@ -30,6 +30,7 @@ class MtgCardRulesTextFit extends StatefulWidget {
   final double maxFontSize;
   final MtgCardRulesScaleController? scaleController;
   final void Function(String kind, String id)? onWikiLinkTap;
+  final Future<String?> Function(String kind, String id)? resolveWikiLinkLabel;
 
   const MtgCardRulesTextFit({
     super.key,
@@ -38,6 +39,7 @@ class MtgCardRulesTextFit extends StatefulWidget {
     this.maxFontSize = kMtgCardRulesMaxFontSize,
     this.scaleController,
     this.onWikiLinkTap,
+    this.resolveWikiLinkLabel,
   });
 
   @override
@@ -219,6 +221,7 @@ class _MtgCardRulesTextFitState extends State<MtgCardRulesTextFit> {
                     height: _kBaseHeight,
                   ),
                   onWikiLinkTap: widget.onWikiLinkTap,
+                  resolveWikiLinkLabel: widget.resolveWikiLinkLabel,
                 ),
               ),
             ),

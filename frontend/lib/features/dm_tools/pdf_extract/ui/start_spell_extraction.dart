@@ -8,6 +8,7 @@ import '../data/extract_api.dart';
 import '../data/extract_models.dart';
 import '../data/pdf_text_extractor.dart';
 import 'extract_options_dialog.dart';
+import 'condition_extract_review_page.dart';
 import 'item_extract_review_page.dart';
 import 'spell_extract_review_page.dart';
 
@@ -157,6 +158,13 @@ Future<void> startExtraction({
                 sectionSummaries: result.sectionSummaries,
               ),
             ExtractRecordKind.items => ItemExtractReviewPage(
+                auth: auth,
+                sourceFile: file,
+                localPath: localPath,
+                drafts: result.drafts,
+                sectionSummaries: result.sectionSummaries,
+              ),
+            ExtractRecordKind.conditions => ConditionExtractReviewPage(
                 auth: auth,
                 sourceFile: file,
                 localPath: localPath,

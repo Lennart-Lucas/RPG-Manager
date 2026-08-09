@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../../core/ui/card_text_pagination.dart';
 import '../../../../core/ui/mtg_card_layout.dart';
 import '../../../../core/ui/mtg_card_rules_text_fit.dart';
+import '../../../catalog/ui/catalog_appearance.dart';
+import '../../data/styled_mechanics_record.dart';
 import '../../mechanics_icons.dart';
-import '../data/item_property_model.dart';
 
 Color _darkerVariant(Color base, {double amount = 0.08}) {
   final hsl = HSLColor.fromColor(base);
@@ -12,12 +13,13 @@ Color _darkerVariant(Color base, {double amount = 0.08}) {
   return hsl.withLightness(adjusted).toColor();
 }
 
-double _itemPropertyCardBandIconSize(double maxFontSize) =>
+double _conditionCardBandIconSize(double maxFontSize) =>
     (maxFontSize * 14 / kMtgCardRulesMaxFontSize).clamp(13.0, 19.0);
 
-/// MTG-sized presentation card for an [ItemPropertyRecord].
-class ItemPropertySheet extends StatelessWidget {
-  final ItemPropertyRecord property;
+/// MTG-sized presentation card for a condition.
+class ConditionSheet extends StatelessWidget {
+  final StyledMechanicsRecord record;
+  final IconData fallbackIcon;
   final EdgeInsetsGeometry padding;
   final String? descriptionOverride;
   final int? continuationIndex;
@@ -28,8 +30,9 @@ class ItemPropertySheet extends StatelessWidget {
   final void Function(String kind, String id)? onWikiLinkTap;
   final Future<String?> Function(String kind, String id)? resolveWikiLinkLabel;
 
-  const ItemPropertySheet({
-    required this.property,
+  const ConditionSheet({
+    required this.record,
+    this.fallbackIcon = conditionsPageIcon,
     this.padding = EdgeInsets.zero,
     this.maxFontSize = kMtgCardRulesMaxFontSize,
     this.descriptionOverride,
@@ -46,9 +49,11 @@ class ItemPropertySheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final headerName =
-        property.name.trim().isEmpty ? 'Item property' : property.name.trim();
-    final effectiveDescription = descriptionOverride ?? property.description;
+        record.name.trim().isEmpty ? 'Condition' : record.name.trim();
+    final effectiveDescription = descriptionOverride ?? record.description;
     final hasDescription = effectiveDescription.trim().isNotEmpty;
+    final accent = record.resolvedColor(fallback: colors.primary);
+    final icon = record.resolvedIcon(fallback: fallbackIcon);
 
     const radius = 14.0;
 
@@ -73,8 +78,9 @@ class ItemPropertySheet extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _ItemPropertyHeaderBand(
+                    _ConditionHeaderBand(
                       name: headerName,
+                      icon: icon,
                       colors: colors,
                       topRadius: radius,
                       maxFontSize: maxFontSize,
@@ -85,6 +91,10 @@ class ItemPropertySheet extends StatelessWidget {
                       child: Container(
                         decoration: BoxDecoration(
                           color: colors.surfaceContainerLowest,
+                          borderRadius: const BorderRadius.only(
+                            bottomLeft: Radius.circular(radius),
+                            bottomRight: Radius.circular(radius),
+                          ),
                         ),
                         clipBehavior: Clip.antiAlias,
                         child: Stack(
@@ -92,10 +102,10 @@ class ItemPropertySheet extends StatelessWidget {
                           children: [
                             IgnorePointer(
                               child: Center(
-                                child: Icon(
-                                  itemPropertiesPageIcon,
+                                child: catalogAppearanceIconWidget(
+                                  icon,
                                   size: size.shortestSide * 0.58,
-                                  color: colors.primary.withValues(
+                                  color: accent.withValues(
                                     alpha: kItemCardWatermarkIconAlpha,
                                   ),
                                 ),
@@ -122,11 +132,6 @@ class ItemPropertySheet extends StatelessWidget {
                         ),
                       ),
                     ),
-                    _ItemPropertyFooterBand(
-                      colors: colors,
-                      bottomRadius: radius,
-                      maxFontSize: maxFontSize,
-                    ),
                   ],
                 ),
               ),
@@ -138,21 +143,23 @@ class ItemPropertySheet extends StatelessWidget {
   }
 }
 
-List<ItemPropertySheet> buildItemPropertySheets(
-  ItemPropertyRecord property, {
+List<ConditionSheet> buildConditionSheets(
+  StyledMechanicsRecord record, {
+  IconData fallbackIcon = conditionsPageIcon,
   EdgeInsetsGeometry padding = EdgeInsets.zero,
   double maxFontSize = kMtgCardRulesMaxFontSize,
   double cardScale = 1.0,
   void Function(String kind, String id)? onWikiLinkTap,
   Future<String?> Function(String kind, String id)? resolveWikiLinkLabel,
 }) {
-  final pages = paginateCardBodyText(property.description);
+  final pages = paginateCardBodyText(record.description);
   final sharedScaleController =
       pages.length > 1 ? MtgCardRulesScaleController() : null;
   if (pages.length <= 1) {
     return [
-      ItemPropertySheet(
-        property: property,
+      ConditionSheet(
+        record: record,
+        fallbackIcon: fallbackIcon,
         padding: padding,
         maxFontSize: maxFontSize,
         cardScale: cardScale,
@@ -161,9 +168,10 @@ List<ItemPropertySheet> buildItemPropertySheets(
       ),
     ];
   }
-  return List<ItemPropertySheet>.generate(pages.length, (i) {
-    return ItemPropertySheet(
-      property: property,
+  return List<ConditionSheet>.generate(pages.length, (i) {
+    return ConditionSheet(
+      record: record,
+      fallbackIcon: fallbackIcon,
       padding: padding,
       maxFontSize: maxFontSize,
       cardScale: cardScale,
@@ -177,16 +185,18 @@ List<ItemPropertySheet> buildItemPropertySheets(
   });
 }
 
-class _ItemPropertyHeaderBand extends StatelessWidget {
+class _ConditionHeaderBand extends StatelessWidget {
   final String name;
+  final IconData icon;
   final ColorScheme colors;
   final double topRadius;
   final double maxFontSize;
   final int? continuationIndex;
   final int? continuationTotal;
 
-  const _ItemPropertyHeaderBand({
+  const _ConditionHeaderBand({
     required this.name,
+    required this.icon,
     required this.colors,
     required this.topRadius,
     required this.maxFontSize,
@@ -204,16 +214,8 @@ class _ItemPropertyHeaderBand extends StatelessWidget {
     final titleFontSize = maxFontSize * kMtgCardTitleToRulesMaxFontScale;
     final continuationText =
         continuationIndex != null && continuationTotal != null
-            ? 'Part $continuationIndex/$continuationTotal'
+            ? ' · Part $continuationIndex/$continuationTotal'
             : '';
-    final summaryStyle = TextStyle(
-      color: colors.onPrimaryContainer,
-      fontSize: summaryFontSize,
-      fontWeight: FontWeight.w600,
-      height: 1.0,
-    );
-    final subheaderText =
-        continuationText.isEmpty ? 'Item property' : continuationText;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -247,27 +249,22 @@ class _ItemPropertyHeaderBand extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Icon(
-                itemPropertiesPageIcon,
-                size: (maxFontSize * 11 / kMtgCardRulesMaxFontSize).clamp(
-                  10.0,
-                  16.0,
-                ),
+              catalogAppearanceIconWidget(
+                icon,
+                size: _conditionCardBandIconSize(maxFontSize),
                 color: colors.onPrimaryContainer,
               ),
               const SizedBox(width: 5),
               Expanded(
                 child: Text(
-                  subheaderText,
-                  maxLines: 4,
+                  'Condition$continuationText',
+                  maxLines: 3,
                   overflow: TextOverflow.ellipsis,
-                  style: summaryStyle,
-                  strutStyle: StrutStyle(
+                  style: TextStyle(
+                    color: colors.onPrimaryContainer,
                     fontSize: summaryFontSize,
-                    height: 1.0,
-                    leading: 0,
                     fontWeight: FontWeight.w600,
-                    forceStrutHeight: true,
+                    height: 1.0,
                   ),
                 ),
               ),
@@ -275,69 +272,6 @@ class _ItemPropertyHeaderBand extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _ItemPropertyFooterBand extends StatelessWidget {
-  final ColorScheme colors;
-  final double bottomRadius;
-  final double maxFontSize;
-
-  const _ItemPropertyFooterBand({
-    required this.colors,
-    required this.bottomRadius,
-    required this.maxFontSize,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final footerColor = _darkerVariant(
-      colors.primaryContainer,
-      amount: 0.12,
-    );
-    final footerFontSize = maxFontSize;
-    return Material(
-      color: footerColor,
-      borderRadius: BorderRadius.only(
-        bottomLeft: Radius.circular(bottomRadius),
-        bottomRight: Radius.circular(bottomRadius),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(8, 6, 8, 7),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Icon(
-              itemPropertiesPageIcon,
-              size: _itemPropertyCardBandIconSize(maxFontSize),
-              color: colors.onPrimaryContainer,
-            ),
-            const SizedBox(width: 5),
-            Expanded(
-              child: Text(
-                'Item property',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: colors.onPrimaryContainer,
-                  fontSize: footerFontSize,
-                  fontWeight: FontWeight.w600,
-                  height: 1.2,
-                ),
-                strutStyle: StrutStyle(
-                  fontSize: footerFontSize,
-                  height: 1.2,
-                  leading: 0,
-                  fontWeight: FontWeight.w600,
-                  forceStrutHeight: true,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

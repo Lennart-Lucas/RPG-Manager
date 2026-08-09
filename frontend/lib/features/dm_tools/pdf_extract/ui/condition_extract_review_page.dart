@@ -7,18 +7,20 @@ import '../../../catalog/data/catalog_auto_link.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../../catalog/data/catalog_wiki_resolve.dart';
+import '../../../catalog/ui/catalog_appearance.dart';
 import '../../../../core/ui/markdown_form_field.dart';
+import '../../../../core/ui/mtg_card_rules_text_fit.dart';
 import '../../../dm_tools/resources/data/local_resource_file_copy.dart';
 import '../../../dm_tools/resources/data/resource_models.dart';
-import '../../../dm_tools/resources/data/resources_api.dart';
-import '../../../player_options/items/data/item_model.dart';
-import '../../../player_options/items/ui/item_form_sheet.dart';
-import '../../../player_options/items/ui/item_sheet.dart';
+import '../../../mechanics/conditions/ui/condition_sheet.dart';
+import '../../../mechanics/data/styled_mechanics_record.dart';
+import '../../../mechanics/mechanics_icons.dart';
+import '../../../mechanics/ui/styled_mechanics_ui.dart';
+import '../data/condition_from_draft.dart';
 import '../data/extract_models.dart';
-import '../data/item_from_draft.dart';
 
-class ItemExtractReviewPage extends StatefulWidget {
-  const ItemExtractReviewPage({
+class ConditionExtractReviewPage extends StatefulWidget {
+  const ConditionExtractReviewPage({
     super.key,
     required this.auth,
     required this.sourceFile,
@@ -34,14 +36,15 @@ class ItemExtractReviewPage extends StatefulWidget {
   final List<ExtractSectionSummary> sectionSummaries;
 
   @override
-  State<ItemExtractReviewPage> createState() => _ItemExtractReviewPageState();
+  State<ConditionExtractReviewPage> createState() =>
+      _ConditionExtractReviewPageState();
 }
 
 enum _ReviewFilter { all, hard, soft, complete, junk }
 
-class _ItemExtractReviewPageState extends State<ItemExtractReviewPage> {
+class _ConditionExtractReviewPageState
+    extends State<ConditionExtractReviewPage> {
   final _catalogApi = CatalogApi();
-  final _resourcesApi = ResourcesApi();
   final _fileCopy = LocalResourceFileCopy();
 
   late List<ExtractDraft> _drafts;
@@ -51,8 +54,7 @@ class _ItemExtractReviewPageState extends State<ItemExtractReviewPage> {
   bool _hideJunk = false;
   _ReviewFilter _filter = _ReviewFilter.all;
   String? _sectionFilter;
-  List<ResourceFile> _files = const [];
-  List<CatalogItem> _existingItems = const [];
+  List<CatalogItem> _existingConditions = const [];
   List<CatalogLinkTarget> _autoLinkTargets = const [];
   String? _loadError;
 
@@ -114,10 +116,10 @@ class _ItemExtractReviewPageState extends State<ItemExtractReviewPage> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Reject all non-items?'),
+        title: const Text('Reject all non-conditions?'),
         content: Text(
           'Mark $count draft${count == 1 ? '' : 's'} flagged '
-          'not_an_item as rejected. You can still find them via the Junk filter.',
+          'not_a_condition as rejected. You can still find them via the Junk filter.',
         ),
         actions: [
           TextButton(
@@ -147,14 +149,12 @@ class _ItemExtractReviewPageState extends State<ItemExtractReviewPage> {
     try {
       final token = await _token();
       if (token == null) return;
-      final items = await _catalogApi.list(token, CatalogKind.items);
-      final files = await _resourcesApi.listFiles(token);
+      final conditions = await _catalogApi.list(token, CatalogKind.conditions);
       final autoLinkTargets =
           await loadConditionDamageAutoLinkTargets(_catalogApi, token);
       if (!mounted) return;
       setState(() {
-        _existingItems = items;
-        _files = files;
+        _existingConditions = conditions;
         _autoLinkTargets = autoLinkTargets;
         _loadError = null;
       });
@@ -172,7 +172,7 @@ class _ItemExtractReviewPageState extends State<ItemExtractReviewPage> {
 
   CatalogItem? _findLibraryItem(String name) {
     final key = name.trim().toLowerCase();
-    for (final item in _existingItems) {
+    for (final item in _existingConditions) {
       if (item.name.trim().toLowerCase() == key) return item;
     }
     return null;
@@ -192,14 +192,19 @@ class _ItemExtractReviewPageState extends State<ItemExtractReviewPage> {
   Future<void> _editCurrent() async {
     final draft = _current;
     if (draft == null || draft.rejected) return;
-    final item = itemFromExtractDraft(
+    final record = conditionFromExtractDraft(
       draft: draft,
       sourceFileId: widget.sourceFile.id,
     );
-    final edited = await showItemFormSheet(
+    final edited = await showStyledMechanicsFormSheet(
       context,
-      initial: item,
-      resourceFiles: _files,
+      singularLabel: 'condition',
+      fallbackIcon: conditionsPageIcon,
+      defaultIconKey: 'monitor_heart',
+      initial: record,
+      resourceFiles: [widget.sourceFile],
+      appearanceIcons: kConditionAppearanceIcons,
+      appearancePickerTitle: 'Condition icon & color',
       searchLinks: _searchLinks,
       loadAutoLinkTargets: () async => _autoLinkTargets,
     );
@@ -232,20 +237,20 @@ class _ItemExtractReviewPageState extends State<ItemExtractReviewPage> {
     final draft = _current;
     if (draft == null || draft.rejected || _busy) return;
 
-    var item = itemFromExtractDraft(
+    var record = conditionFromExtractDraft(
       draft: draft,
       sourceFileId: widget.sourceFile.id,
     );
 
-    final existing = _findLibraryItem(item.name);
+    final existing = _findLibraryItem(record.name);
     if (existing != null || draft.duplicateNameInLibrary) {
       final match = existing ??
           (draft.libraryMatchId != null
               ? CatalogItem(
                   id: draft.libraryMatchId!,
                   userId: 0,
-                  kind: CatalogKind.items,
-                  name: draft.libraryMatchName ?? item.name,
+                  kind: CatalogKind.conditions,
+                  name: draft.libraryMatchName ?? record.name,
                 )
               : null);
       final action = await showDialog<_DupAction>(
@@ -253,7 +258,7 @@ class _ItemExtractReviewPageState extends State<ItemExtractReviewPage> {
         builder: (context) => AlertDialog(
           title: const Text('Name already in library'),
           content: Text(
-            '"${item.name}" already exists'
+            '"${record.name}" already exists'
             '${match != null ? ' (id ${match.id})' : ''}. '
             'Choose how to proceed.',
           ),
@@ -285,13 +290,13 @@ class _ItemExtractReviewPageState extends State<ItemExtractReviewPage> {
         return;
       }
       if (action == _DupAction.rename) {
-        final renamed = await _promptRename(item.name);
+        final renamed = await _promptRename(record.name);
         if (renamed == null || !mounted) return;
-        item = item.copyWith(name: renamed, id: Item.slugify(renamed));
+        record = record.copyWith(name: renamed);
       }
       if (action == _DupAction.overwrite && match != null) {
         await _commit(
-          item: item,
+          record: record,
           updateId: match.id,
           draft: draft,
         );
@@ -305,7 +310,7 @@ class _ItemExtractReviewPageState extends State<ItemExtractReviewPage> {
         builder: (context) => AlertDialog(
           title: const Text('Duplicate in this batch'),
           content: Text(
-            'Another draft in this import also uses "${item.name}". '
+            'Another draft in this import also uses "${record.name}". '
             'Approve this copy anyway?',
           ),
           actions: [
@@ -323,7 +328,7 @@ class _ItemExtractReviewPageState extends State<ItemExtractReviewPage> {
       if (proceed != true || !mounted) return;
     }
 
-    await _commit(item: item, draft: draft);
+    await _commit(record: record, draft: draft);
   }
 
   Future<String?> _promptRename(String current) async {
@@ -331,7 +336,7 @@ class _ItemExtractReviewPageState extends State<ItemExtractReviewPage> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Rename item'),
+        title: const Text('Rename condition'),
         content: TextField(
           controller: controller,
           autofocus: true,
@@ -356,7 +361,7 @@ class _ItemExtractReviewPageState extends State<ItemExtractReviewPage> {
   }
 
   Future<void> _commit({
-    required Item item,
+    required StyledMechanicsRecord record,
     required ExtractDraft draft,
     int? updateId,
   }) async {
@@ -369,11 +374,11 @@ class _ItemExtractReviewPageState extends State<ItemExtractReviewPage> {
         targets = await loadConditionDamageAutoLinkTargets(_catalogApi, token);
         if (mounted) setState(() => _autoLinkTargets = targets);
       }
-      final linked = autoLinkItemFields(item, targets).value;
+      final linked = autoLinkStyledMechanicsFields(record, targets).value;
       if (updateId != null) {
         await _catalogApi.update(
           accessToken: token,
-          kind: CatalogKind.items,
+          kind: CatalogKind.conditions,
           itemId: updateId,
           name: linked.name,
           payload: linked.toJson(),
@@ -381,7 +386,7 @@ class _ItemExtractReviewPageState extends State<ItemExtractReviewPage> {
       } else {
         await _catalogApi.create(
           accessToken: token,
-          kind: CatalogKind.items,
+          kind: CatalogKind.conditions,
           name: linked.name,
           payload: linked.toJson(),
         );
@@ -424,7 +429,7 @@ class _ItemExtractReviewPageState extends State<ItemExtractReviewPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Review items (${widget.sourceFile.name})'),
+        title: Text('Review conditions (${widget.sourceFile.name})'),
         actions: [
           IconButton(
             tooltip: 'Open local file',
@@ -608,14 +613,14 @@ class _ItemExtractReviewPageState extends State<ItemExtractReviewPage> {
                             Expanded(
                               child: Builder(
                                 builder: (context) {
-                                  final item = itemFromExtractDraft(
+                                  final record = conditionFromExtractDraft(
                                     draft: draft,
                                     sourceFileId: widget.sourceFile.id,
                                   );
                                   return _DraftDetailPane(
                                     auth: widget.auth,
                                     draft: draft,
-                                    item: item,
+                                    record: record,
                                     libraryMatchLabel:
                                         draft.libraryMatchName ??
                                             draft.libraryMatchId?.toString(),
@@ -692,13 +697,13 @@ class _DraftDetailPane extends StatelessWidget {
   const _DraftDetailPane({
     required this.auth,
     required this.draft,
-    required this.item,
+    required this.record,
     this.libraryMatchLabel,
   });
 
   final AuthController auth;
   final ExtractDraft draft;
-  final Item item;
+  final StyledMechanicsRecord record;
   final String? libraryMatchLabel;
 
   @override
@@ -715,15 +720,6 @@ class _DraftDetailPane extends StatelessWidget {
     final hasNotes = notes != null && notes.isNotEmpty;
     final unknown = draft.unknownFields;
     final hasUnknown = unknown != null && unknown.isNotEmpty;
-    final cards = buildItemSheets(
-      item,
-      cardScale: 1.05,
-      resolveWikiLinkLabel: (kind, id) => resolveCatalogWikiLinkLabel(
-        auth: auth,
-        kindApiValue: kind,
-        target: id,
-      ),
-    );
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -793,35 +789,50 @@ class _DraftDetailPane extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Item card', style: textTheme.titleSmall),
+                Text('Condition preview', style: textTheme.titleSmall),
                 const SizedBox(height: 8),
-                if (flags.isNotEmpty) ...[
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: [
-                      for (final flag in flags)
-                        Chip(
-                          visualDensity: VisualDensity.compact,
-                          label: Text(flag),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                ],
                 Expanded(
                   child: SingleChildScrollView(
-                    child: Align(
-                      alignment: Alignment.topCenter,
-                      child: Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        alignment: WrapAlignment.center,
-                        children: [
-                          for (final card in cards)
-                            SizedBox(width: 360, child: card),
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (flags.isNotEmpty) ...[
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: [
+                              for (final flag in flags)
+                                Chip(
+                                  visualDensity: VisualDensity.compact,
+                                  label: Text(flag),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
                         ],
-                      ),
+                        for (final card in buildConditionSheets(
+                          record,
+                          cardScale: 0.95,
+                          maxFontSize: kMtgCardRulesMaxFontSize * 0.95,
+                          resolveWikiLinkLabel: (kind, id) =>
+                              resolveCatalogWikiLinkLabel(
+                            auth: auth,
+                            kindApiValue: kind,
+                            target: id,
+                          ),
+                        ))
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Align(
+                              alignment: Alignment.topCenter,
+                              child: SizedBox(
+                                width: 340,
+                                child: card,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),

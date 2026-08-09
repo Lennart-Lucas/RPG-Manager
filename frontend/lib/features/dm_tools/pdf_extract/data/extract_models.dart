@@ -110,6 +110,8 @@ class ExtractDraft {
 
   bool get isItems => kind == 'items';
 
+  bool get isConditions => kind == 'conditions';
+
   bool get hasCompleteCoreFields {
     final name = payload['name'];
     final hasName = name is String && name.trim().isNotEmpty;
@@ -121,6 +123,9 @@ class ExtractDraft {
           payload['itemType'] != null &&
           payload['rarity'] != null &&
           hasDescription;
+    }
+    if (isConditions) {
+      return hasName && hasDescription;
     }
     return hasName &&
         payload['level'] != null &&
@@ -140,7 +145,9 @@ class ExtractDraft {
 
   bool get isNotAnItem => needsReview.contains('not_an_item');
 
-  bool get isJunk => isNotASpell || isNotAnItem;
+  bool get isNotACondition => needsReview.contains('not_a_condition');
+
+  bool get isJunk => isNotASpell || isNotAnItem || isNotACondition;
 
   bool get isSoftReviewOnly =>
       !isHardReviewIssue &&
@@ -158,7 +165,9 @@ class ExtractDraft {
   String get displayName {
     final name = payload['name'];
     if (name is String && name.trim().isNotEmpty) return name.trim();
-    return isItems ? 'Untitled item' : 'Untitled spell';
+    if (isItems) return 'Untitled item';
+    if (isConditions) return 'Untitled condition';
+    return 'Untitled spell';
   }
 }
 

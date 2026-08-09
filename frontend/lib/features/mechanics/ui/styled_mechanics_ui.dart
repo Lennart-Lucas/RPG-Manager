@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/offline/offline_marker.dart';
 import '../../../core/ui/markdown_form_field.dart';
@@ -11,6 +12,8 @@ import '../../catalog/data/catalog_kind.dart';
 import '../../catalog/data/catalog_models.dart';
 import '../../catalog/ui/catalog_appearance.dart';
 import '../../catalog/ui/catalog_rich_text.dart';
+import '../../dm_tools/resources/data/resource_models.dart';
+import '../../dm_tools/resources/data/resources_api.dart';
 import '../../dm_tools/resources/ui/resource_form_helpers.dart';
 import '../data/styled_mechanics_record.dart';
 
@@ -20,6 +23,9 @@ Future<StyledMechanicsRecord?> showStyledMechanicsFormSheet(
   required IconData fallbackIcon,
   required String defaultIconKey,
   StyledMechanicsRecord? initial,
+  List<ResourceFile> resourceFiles = const [],
+  List<CatalogAppearanceIconEntry>? appearanceIcons,
+  String appearancePickerTitle = 'Icon & color',
   CatalogLinkSearch? searchLinks,
   CatalogAutoLinkLoader? loadAutoLinkTargets,
 }) {
@@ -32,6 +38,9 @@ Future<StyledMechanicsRecord?> showStyledMechanicsFormSheet(
       fallbackIcon: fallbackIcon,
       defaultIconKey: defaultIconKey,
       initial: initial,
+      resourceFiles: resourceFiles,
+      appearanceIcons: appearanceIcons,
+      appearancePickerTitle: appearancePickerTitle,
       searchLinks: searchLinks,
       loadAutoLinkTargets: loadAutoLinkTargets,
     ),
@@ -44,6 +53,9 @@ class _StyledMechanicsForm extends StatefulWidget {
     required this.fallbackIcon,
     required this.defaultIconKey,
     this.initial,
+    this.resourceFiles = const [],
+    this.appearanceIcons,
+    this.appearancePickerTitle = 'Icon & color',
     this.searchLinks,
     this.loadAutoLinkTargets,
   });
@@ -52,6 +64,9 @@ class _StyledMechanicsForm extends StatefulWidget {
   final IconData fallbackIcon;
   final String defaultIconKey;
   final StyledMechanicsRecord? initial;
+  final List<ResourceFile> resourceFiles;
+  final List<CatalogAppearanceIconEntry>? appearanceIcons;
+  final String appearancePickerTitle;
   final CatalogLinkSearch? searchLinks;
   final CatalogAutoLinkLoader? loadAutoLinkTargets;
 
@@ -65,14 +80,25 @@ class _StyledMechanicsFormState extends State<_StyledMechanicsForm> {
       TextEditingController(text: widget.initial?.name ?? '');
   late final _descriptionController =
       TextEditingController(text: widget.initial?.description ?? '');
+  late final _sourcePageController = TextEditingController(
+    text: widget.initial?.sourcePage?.toString() ?? '',
+  );
   late String _iconKey = widget.initial?.iconKey ?? widget.defaultIconKey;
   late int? _colorArgb = widget.initial?.colorArgb;
+  late int? _sourceFileId = widget.initial?.sourceFileId;
 
   @override
   void dispose() {
     _nameController.dispose();
     _descriptionController.dispose();
+    _sourcePageController.dispose();
     super.dispose();
+  }
+
+  int? _parseInt(String raw) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) return null;
+    return int.tryParse(trimmed);
   }
 
   void _submit() {
@@ -85,6 +111,8 @@ class _StyledMechanicsFormState extends State<_StyledMechanicsForm> {
         description: _descriptionController.text.trim(),
         iconKey: _iconKey,
         colorArgb: _colorArgb,
+        sourceFileId: _sourceFileId,
+        sourcePage: _parseInt(_sourcePageController.text),
       ),
     );
   }
@@ -113,10 +141,55 @@ class _StyledMechanicsFormState extends State<_StyledMechanicsForm> {
             },
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 2,
+                child: DropdownButtonFormField<int?>(
+                  initialValue: _sourceFileId,
+                  decoration: ResourceFormStyles.inputDecoration(
+                    context,
+                    label: 'Source',
+                    helperText: widget.resourceFiles.isEmpty
+                        ? 'No resource files available'
+                        : null,
+                  ),
+                  items: [
+                    const DropdownMenuItem<int?>(
+                      value: null,
+                      child: Text('None'),
+                    ),
+                    for (final file in widget.resourceFiles)
+                      DropdownMenuItem<int?>(
+                        value: file.id,
+                        child: Text(file.name),
+                      ),
+                  ],
+                  onChanged: (value) => setState(() => _sourceFileId = value),
+                ),
+              ),
+              const SizedBox(width: ResourceFormStyles.fieldSpacing),
+              Expanded(
+                child: TextFormField(
+                  controller: _sourcePageController,
+                  decoration: ResourceFormStyles.inputDecoration(
+                    context,
+                    label: 'Page',
+                  ),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
           CatalogIconColorFields(
             iconKey: _iconKey,
             colorArgb: _colorArgb,
             fallbackIcon: widget.fallbackIcon,
+            icons: widget.appearanceIcons,
+            pickerTitle: widget.appearancePickerTitle,
             onIconChanged: (key) => setState(() => _iconKey = key),
             onColorChanged: (argb) => setState(() => _colorArgb = argb),
           ),
@@ -168,11 +241,12 @@ class StyledMechanicsListItemCard extends StatelessWidget {
       leading: Container(
         width: 42,
         height: 42,
+        alignment: Alignment.center,
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.18),
           borderRadius: BorderRadius.circular(13),
         ),
-        child: Icon(icon, size: 22, color: color),
+        child: catalogAppearanceIconWidget(icon, size: 22, color: color),
       ),
       title: record.name.trim().isEmpty ? kindLabel : record.name.trim(),
       subtitle: kindLabel,
@@ -227,7 +301,10 @@ class StyledMechanicsDetailPage extends StatefulWidget {
 
 class _StyledMechanicsDetailPageState extends State<StyledMechanicsDetailPage> {
   final _api = CatalogApi();
+  final _resourcesApi = ResourcesApi();
   late CatalogItem _item = widget.item;
+  List<ResourceFile> _resourceFiles = const [];
+  String? _sourceFileName;
 
   Future<String?> _token() => widget.auth.requireAccessToken();
 
@@ -237,16 +314,54 @@ class _StyledMechanicsDetailPageState extends State<StyledMechanicsDetailPage> {
         defaultIconKey: widget.defaultIconKey,
       );
 
+  @override
+  void initState() {
+    super.initState();
+    _loadResources();
+  }
+
+  Future<void> _loadResources() async {
+    try {
+      final token = await _token();
+      if (token == null) return;
+      final files = await _resourcesApi.listFiles(token);
+      if (!mounted) return;
+      String? sourceName;
+      final sourceId = _record.sourceFileId;
+      if (sourceId != null) {
+        for (final f in files) {
+          if (f.id == sourceId) {
+            sourceName = f.name;
+            break;
+          }
+        }
+      }
+      setState(() {
+        _resourceFiles = files;
+        _sourceFileName = sourceName;
+      });
+    } catch (_) {
+      // Source label is optional; ignore load failures.
+    }
+  }
+
   Future<void> _edit() async {
     try {
       final token = await _token();
       if (token == null || !mounted) return;
+      if (_resourceFiles.isEmpty) {
+        try {
+          _resourceFiles = await _resourcesApi.listFiles(token);
+        } catch (_) {}
+      }
+      if (!mounted) return;
       final updatedRecord = await showStyledMechanicsFormSheet(
         context,
         singularLabel: widget.singularLabel,
         fallbackIcon: widget.fallbackIcon,
         defaultIconKey: widget.defaultIconKey,
         initial: _record,
+        resourceFiles: _resourceFiles,
         searchLinks: (q) => searchCatalogLinkTargets(_api, token, q),
         loadAutoLinkTargets: () =>
             loadConditionDamageAutoLinkTargets(_api, token),
@@ -261,6 +376,7 @@ class _StyledMechanicsDetailPageState extends State<StyledMechanicsDetailPage> {
       );
       if (!mounted) return;
       setState(() => _item = updated);
+      await _loadResources();
     } on AuthApiException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
@@ -346,7 +462,11 @@ class _StyledMechanicsDetailPageState extends State<StyledMechanicsDetailPage> {
               child: Center(
                 child: Opacity(
                   opacity: 0.08,
-                  child: Icon(icon, size: 440, color: color),
+                  child: catalogAppearanceIconWidget(
+                    icon,
+                    size: 440,
+                    color: color,
+                  ),
                 ),
               ),
             ),
@@ -363,7 +483,11 @@ class _StyledMechanicsDetailPageState extends State<StyledMechanicsDetailPage> {
                       color: color.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: Icon(icon, color: color, size: 28),
+                    child: catalogAppearanceIconWidget(
+                      icon,
+                      color: color,
+                      size: 28,
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -401,6 +525,32 @@ class _StyledMechanicsDetailPageState extends State<StyledMechanicsDetailPage> {
                   ),
                 ),
               ],
+              if (record.sourceFileId != null ||
+                  record.sourcePage != null ||
+                  (_sourceFileName?.isNotEmpty ?? false)) ...[
+                const SizedBox(height: 24),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: scheme.outlineVariant),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Sources', style: textTheme.titleMedium),
+                        const SizedBox(height: 8),
+                        Text(
+                          '${_sourceFileName ?? 'Resource ${record.sourceFileId}'}'
+                          '${record.sourcePage != null ? ' · p. ${record.sourcePage}' : ''}',
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ],
@@ -435,9 +585,11 @@ class StyledMechanicsBody extends StatefulWidget {
 
 class _StyledMechanicsBodyState extends State<StyledMechanicsBody> {
   final _api = CatalogApi();
+  final _resourcesApi = ResourcesApi();
   bool _loading = true;
   String? _error;
   List<CatalogItem> _items = const [];
+  List<ResourceFile> _resourceFiles = const [];
 
   @override
   void initState() {
@@ -456,9 +608,14 @@ class _StyledMechanicsBodyState extends State<StyledMechanicsBody> {
       final token = await _token();
       if (token == null) throw AuthApiException('Not authenticated');
       final items = await _api.list(token, widget.kind);
+      List<ResourceFile> files = const [];
+      try {
+        files = await _resourcesApi.listFiles(token);
+      } catch (_) {}
       if (!mounted) return;
       setState(() {
         _items = items;
+        _resourceFiles = files;
         _loading = false;
       });
     } on AuthApiException catch (e) {
@@ -485,6 +642,7 @@ class _StyledMechanicsBodyState extends State<StyledMechanicsBody> {
         singularLabel: widget.singularLabel,
         fallbackIcon: widget.fallbackIcon,
         defaultIconKey: widget.defaultIconKey,
+        resourceFiles: _resourceFiles,
         searchLinks: (q) => searchCatalogLinkTargets(_api, token, q),
         loadAutoLinkTargets: () =>
             loadConditionDamageAutoLinkTargets(_api, token),

@@ -42,6 +42,32 @@ ITEM_SECTION_HEADER_RE = re.compile(
     r")\s*$"
 )
 
+# Common RPG section headers for condition lists
+CONDITION_SECTION_HEADER_RE = re.compile(
+    r"(?im)^\s*(?:"
+    r"conditions?|"
+    r"new\s+conditions?|"
+    r"condition\s+descriptions?|"
+    r"appendix\s*[:.\-]?\s*conditions?"
+    r")\s*$"
+)
+
+# "New Condition: Rampaging" / OCR-broken "ew Condition: Rampaging"
+NEW_CONDITION_HEADER_RE = re.compile(
+    r"(?im)^\s*(?:new\s+|ew\s+)?condition\s*:\s*"
+    r"(?P<name>[A-Z][A-Za-z0-9'’\-\s]{1,60}?)\s*$"
+)
+
+# Effect-language signals common in condition bodies
+CONDITION_EFFECT_RE = re.compile(
+    r"(?i)\b(?:"
+    r"can'?t|cannot|must|advantage|disadvantage|"
+    r"creature|attack|action|reaction|bonus\s+action|"
+    r"speed|incapacitated|charmed|frightened|"
+    r"unless\s+an\s+ability|on\s+each\s+of\s+its\s+turns"
+    r")\b"
+)
+
 # Back-compat alias used by spell-only call sites / tests
 SECTION_HEADER_RE = SPELL_SECTION_HEADER_RE
 
@@ -90,7 +116,7 @@ REQUIRES_ATTUNEMENT_RE = re.compile(r"(?i)\brequires\s+attunement\b")
 # PDF text often doubles glyphs: "CCllooaakk" → "Cloak"
 _DOUBLED_GLYPH_RE = re.compile(r"([A-Za-z])\1")
 
-ExtractKind = Literal["spells", "items"]
+ExtractKind = Literal["spells", "items", "conditions"]
 
 # Decorative / non-mechanical unknown_fields keys to drop after extraction.
 DECORATIVE_UNKNOWN_KEYS = frozenset(
@@ -113,7 +139,11 @@ DECORATIVE_UNKNOWN_KEYS = frozenset(
 
 
 def section_header_re(kind: ExtractKind) -> re.Pattern[str]:
-    return ITEM_SECTION_HEADER_RE if kind == "items" else SPELL_SECTION_HEADER_RE
+    if kind == "items":
+        return ITEM_SECTION_HEADER_RE
+    if kind == "conditions":
+        return CONDITION_SECTION_HEADER_RE
+    return SPELL_SECTION_HEADER_RE
 
 
 def looks_like_spell_chunk(text: str) -> bool:
@@ -156,6 +186,35 @@ def looks_like_item_chunk(text: str) -> bool:
     return False
 
 
+def looks_like_condition_chunk(text: str) -> bool:
+    """True when chunk looks like a named condition with effect prose."""
+    if not text or not text.strip():
+        return False
+    if looks_like_spell_chunk(text) or looks_like_item_chunk(text):
+        return False
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    if len(lines) < 2:
+        return False
+    first = lines[0]
+    # OCR may put a lone "N" before "ew Condition: …"
+    if re.fullmatch(r"[Nn]", first) and len(lines) >= 3:
+        first = lines[1]
+        body_start = 2
+    else:
+        body_start = 1
+    if NEW_CONDITION_HEADER_RE.match(first):
+        return bool(CONDITION_EFFECT_RE.search("\n".join(lines[body_start:])))
+    if not ENTRY_START_RE.match(first):
+        return False
+    if len(first) > 60:
+        return False
+    body = "\n".join(lines[body_start:])
+    if not CONDITION_EFFECT_RE.search(body):
+        return False
+    # Prefer chunks that are mostly prose (not spell/item meta)
+    return len(body) >= 40
+
+
 def collapse_doubled_pdf_glyphs(text: str) -> str:
     """Collapse common pdfrx doubled-letter artifacts on heavily doubled lines."""
     out_lines: list[str] = []
@@ -180,6 +239,8 @@ def collapse_doubled_pdf_glyphs(text: str) -> str:
 def looks_like_entry_chunk(text: str, kind: ExtractKind) -> bool:
     if kind == "items":
         return looks_like_item_chunk(text)
+    if kind == "conditions":
+        return looks_like_condition_chunk(text)
     return looks_like_spell_chunk(text)
 
 
@@ -260,6 +321,35 @@ def _looks_like_entry_start(
         return False
     if re.search(r"(?i)\d+(?:st|nd|rd|th)[\-\s]?level\b", stripped):
         return False
+
+    if kind == "conditions":
+        if NEW_CONDITION_HEADER_RE.match(stripped):
+            return True
+        # Lone OCR "N" before "ew Condition: …"
+        if re.fullmatch(r"[Nn]", stripped):
+            for peek in next_lines[:2]:
+                if peek.strip() and NEW_CONDITION_HEADER_RE.match(peek.strip()):
+                    return True
+            return False
+        if not ENTRY_START_RE.match(stripped):
+            return False
+        # Condition entries: Title Case / ALL CAPS name followed by effect prose
+        for peek in next_lines[:4]:
+            if not peek.strip():
+                continue
+            if META_LINE_RE.match(peek) or looks_like_item_type_line(peek.strip()):
+                return False
+            if CONDITION_EFFECT_RE.search(peek):
+                return True
+            # Body started; accept Title Case names with following prose
+            if len(peek.strip()) >= 20:
+                return True
+            break
+        letters = re.sub(r"[^A-Za-z]", "", stripped)
+        if letters and letters.isupper() and 2 <= len(letters) <= 40:
+            return True
+        return False
+
     if not ENTRY_START_RE.match(stripped):
         return False
     # Prefer starts followed by meta / school-level / item type-rarity lines
@@ -343,6 +433,16 @@ def _split_section_entries(
         if not chunk:
             continue
         name_hint = lines[start].strip()
+        if kind == "conditions":
+            # OCR may start with a lone "N" before "ew Condition: Name"
+            header_line = name_hint
+            if re.fullmatch(r"[Nn]", header_line) and start + 1 < end:
+                peek = lines[start + 1].strip()
+                if NEW_CONDITION_HEADER_RE.match(peek):
+                    header_line = peek
+            m = NEW_CONDITION_HEADER_RE.match(header_line)
+            if m:
+                name_hint = m.group("name").strip()
         # Approximate offset for page lookup
         prefix = "\n".join(lines[:start])
         offset = base_offset + len(prefix)
@@ -399,7 +499,7 @@ def health_check_section(entries: list[SplitEntry], leftover: str) -> tuple[bool
 def split_document(text: str, kind: ExtractKind = "spells") -> Tier1Result:
     used_markers = bool(PAGE_MARKER_RE.search(text))
     working = text
-    if kind == "items":
+    if kind in ("items", "conditions"):
         working = collapse_doubled_pdf_glyphs(working)
     header_re = section_header_re(kind)
     sections_raw = _split_into_sections(working, header_re)
