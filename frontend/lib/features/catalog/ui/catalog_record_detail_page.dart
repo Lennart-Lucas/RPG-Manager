@@ -59,6 +59,7 @@ class _CatalogRecordDetailPageState extends State<CatalogRecordDetailPage> {
           if (!mounted) return;
           final record = await showClassFormSheet(
             context,
+            auth: widget.auth,
             initial: ClassRecord.fromCatalogPayload(
               name: _item.name,
               payload: _item.payload,
