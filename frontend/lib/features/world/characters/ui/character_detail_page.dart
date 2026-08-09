@@ -10,11 +10,10 @@ import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../../catalog/ui/catalog_rich_text.dart';
 import '../../../catalog/ui/open_catalog_detail.dart';
-import '../../ui/catalog_overview_box.dart';
 import '../../world_icons.dart';
 import '../data/character_model.dart';
 import 'character_form_sheet.dart';
-import 'mtg_alignment_chips.dart';
+import 'character_overview_box.dart';
 
 class CharacterDetailPage extends StatefulWidget {
   const CharacterDetailPage({
@@ -170,61 +169,18 @@ class _CharacterDetailPageState extends State<CharacterDetailPage> {
   }
 
   Widget _overviewBox(CharacterRecord record) {
-    return CatalogOverviewBox(
+    return CharacterOverviewBox(
       auth: widget.auth,
-      title: record.name,
-      icon: charactersPageIcon,
-      imageUrl: record.imageUrl,
-      overviewSections: record.overviewSections,
-      leading: [
-        if (_raceName != null || record.playerName.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                if (_raceName != null)
-                  ActionChip(
-                    label: Text(_raceName!),
-                    avatar: const Icon(Icons.diversity_3_outlined, size: 18),
-                    onPressed: record.raceId == null
-                        ? null
-                        : () => openCatalogRecordDetail(
-                              context: context,
-                              auth: widget.auth,
-                              kindApiValue: CatalogKind.races.apiValue,
-                              itemId: record.raceId!,
-                            ),
-                  ),
-                if (record.playerName.isNotEmpty)
-                  Chip(
-                    avatar: const Icon(Icons.person_outline, size: 18),
-                    label: Text(record.playerName),
-                  ),
-              ],
-            ),
-          ),
-        if (record.mtgAlignment.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Alignment',
-                  style: Theme.of(context).textTheme.titleSmall,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                MtgAlignmentChips(
-                  colors: record.mtgAlignment,
-                  wrapAlignment: WrapAlignment.center,
-                ),
-              ],
-            ),
-          ),
-      ],
+      record: record,
+      raceName: _raceName,
+      onRaceTap: record.raceId == null
+          ? null
+          : () => openCatalogRecordDetail(
+                context: context,
+                auth: widget.auth,
+                kindApiValue: CatalogKind.races.apiValue,
+                itemId: record.raceId!,
+              ),
     );
   }
 
@@ -246,7 +202,7 @@ class _CharacterDetailPageState extends State<CharacterDetailPage> {
       auth: widget.auth,
       content: record.description,
       floatEnd: floatEnd,
-      floatEndWidth: CatalogOverviewBox.preferredWidth,
+      floatEndWidth: CharacterOverviewBox.preferredWidth,
     );
   }
 
@@ -301,7 +257,7 @@ class _CharacterDetailPageState extends State<CharacterDetailPage> {
                     readableLineLength: widget.auth.readableLineLength,
                     title: _articleTitle(record),
                     overview: overview,
-                    overviewWidth: CatalogOverviewBox.preferredWidth,
+                    overviewWidth: CharacterOverviewBox.preferredWidth,
                     bodyBuilder: (floatOverview) => _description(
                       record,
                       floatEnd: floatOverview,
