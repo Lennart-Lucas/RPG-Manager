@@ -161,6 +161,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.1"
+  float_column:
+    dependency: "direct main"
+    description:
+      name: float_column
+      sha256: b7affc971d2fd499b043541fd9f65fa6540a41ba8df0f59c224b35a8a7344d23
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.1.0"
   flutter:
     dependency: "direct main"
     description: flutter

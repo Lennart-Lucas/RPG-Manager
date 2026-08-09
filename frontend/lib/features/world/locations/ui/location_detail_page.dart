@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/offline/offline_marker.dart';
+import '../../../../core/ui/wiki_article_layout.dart';
 import '../../../auth/data/auth_api.dart';
 import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
@@ -30,8 +31,6 @@ class LocationDetailPage extends StatefulWidget {
 }
 
 class _LocationDetailPageState extends State<LocationDetailPage> {
-  static const _wideBreakpoint = 900.0;
-
   final _api = CatalogApi();
   late CatalogItem _item = widget.item;
   List<CatalogItem> _all = const [];
@@ -209,10 +208,13 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
     );
   }
 
-  Widget _description(LocationRecord record) {
+  Widget _description(LocationRecord record, {Widget? floatEnd}) {
     final textTheme = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
     if (record.description.trim().isEmpty) {
+      if (floatEnd != null) {
+        return Align(alignment: Alignment.topRight, child: floatEnd);
+      }
       return Text(
         'No description yet.',
         style: textTheme.bodyLarge?.copyWith(
@@ -223,6 +225,8 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
     return CatalogRichText(
       auth: widget.auth,
       content: record.description,
+      floatEnd: floatEnd,
+      floatEndWidth: LocationOverviewBox.preferredWidth,
     );
   }
 
@@ -297,48 +301,29 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
               ),
             ),
           ),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final wide = constraints.maxWidth >= _wideBreakpoint;
+          AnimatedBuilder(
+            animation: widget.auth,
+            builder: (context, _) {
+              final overview = _overviewBox();
               return ListView(
                 padding: const EdgeInsets.all(24),
                 children: [
-                  if (wide)
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              _articleTitle(record),
-                              const SizedBox(height: 20),
-                              _description(record),
-                              if (_hasSubLocations) ...[
-                                const SizedBox(height: 28),
-                                _subLocations(),
-                              ],
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 24),
-                        SizedBox(
-                          width: LocationOverviewBox.preferredWidth,
-                          child: _overviewBox(),
-                        ),
+                  WikiArticleLayout(
+                    readableLineLength: widget.auth.readableLineLength,
+                    title: _articleTitle(record),
+                    overview: overview,
+                    overviewWidth: LocationOverviewBox.preferredWidth,
+                    bodyBuilder: (floatOverview) => _description(
+                      record,
+                      floatEnd: floatOverview,
+                    ),
+                    trailing: [
+                      if (_hasSubLocations) ...[
+                        const SizedBox(height: 28),
+                        _subLocations(),
                       ],
-                    )
-                  else ...[
-                    _articleTitle(record),
-                    const SizedBox(height: 16),
-                    _overviewBox(),
-                    const SizedBox(height: 20),
-                    _description(record),
-                    if (_hasSubLocations) ...[
-                      const SizedBox(height: 28),
-                      _subLocations(),
                     ],
-                  ],
+                  ),
                 ],
               );
             },

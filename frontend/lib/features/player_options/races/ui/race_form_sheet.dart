@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/ui/catalog_image_slot.dart';
 import '../../../../core/ui/markdown_form_field.dart';
 import '../../../dm_tools/resources/ui/resource_form_helpers.dart';
+import '../../../world/characters/data/character_model.dart';
+import '../../../world/characters/ui/mtg_mana_symbol.dart';
 import '../data/race_model.dart';
 
 Future<RaceRecord?> showRaceFormSheet(
@@ -43,12 +46,16 @@ class _RaceFormState extends State<_RaceForm> {
       TextEditingController(text: widget.initial?.name ?? '');
   late final _descriptionController =
       TextEditingController(text: widget.initial?.description ?? '');
+  late final _imageUrlController =
+      TextEditingController(text: widget.initial?.imageUrl ?? '');
   late List<String> _aliases = [...?widget.initial?.aliases];
+  late Set<MtgColor> _alignment = {...?widget.initial?.mtgAlignment};
 
   @override
   void dispose() {
     _nameController.dispose();
     _descriptionController.dispose();
+    _imageUrlController.dispose();
     super.dispose();
   }
 
@@ -67,6 +74,8 @@ class _RaceFormState extends State<_RaceForm> {
                 a.trim().toLowerCase() != name.toLowerCase())
               a.trim(),
         ],
+        mtgAlignment: MtgColor.values.where(_alignment.contains).toList(),
+        imageUrl: normalizeCatalogImageUrl(_imageUrlController.text),
       ),
     );
   }
@@ -98,6 +107,60 @@ class _RaceFormState extends State<_RaceForm> {
           _AliasesEditor(
             values: _aliases,
             onChanged: (next) => setState(() => _aliases = next),
+          ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          Text(
+            'Alignment',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Pick one or more mana colors',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              for (final color in MtgColor.values)
+                Tooltip(
+                  message: color.displayName,
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: () {
+                      setState(() {
+                        if (_alignment.contains(color)) {
+                          _alignment = {..._alignment}..remove(color);
+                        } else {
+                          _alignment = {..._alignment, color};
+                        }
+                      });
+                    },
+                    child: MtgManaSymbol(
+                      color: color,
+                      size: 40,
+                      selected: _alignment.contains(color),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          TextFormField(
+            controller: _imageUrlController,
+            decoration: ResourceFormStyles.inputDecoration(
+              context,
+              label: 'Image URL',
+              hintText: 'https://… or Google Drive share link',
+            ),
+            keyboardType: TextInputType.url,
+            autocorrect: false,
+            validator: validateOptionalHttpUrl,
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
           MarkdownFormField(

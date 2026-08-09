@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/ui/catalog_image_slot.dart';
 import '../../../../core/ui/record_list_card.dart';
 import '../../../auth/data/auth_api.dart';
 import '../../../auth/state/auth_controller.dart';
@@ -8,6 +9,7 @@ import '../../../catalog/data/catalog_auto_link.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../../catalog/ui/open_catalog_detail.dart';
+import '../../../world/characters/ui/mtg_alignment_chips.dart';
 import '../../player_options_icons.dart';
 import '../data/race_model.dart';
 import 'race_form_sheet.dart';
@@ -231,17 +233,20 @@ class _RacesBodyState extends State<RacesBody> {
                 final preview = race.descriptionPreview;
                 final aliases = race.aliases.join(', ');
                 return RecordListCard(
-                  leading: Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: scheme.primaryContainer.withValues(alpha: 0.88),
-                      borderRadius: BorderRadius.circular(13),
-                    ),
-                    child: Icon(
-                      racesPageIcon,
-                      size: 22,
-                      color: scheme.onPrimaryContainer,
+                  leading: CatalogImageThumb(
+                    imageUrl: race.imageUrl,
+                    fallback: Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: scheme.primaryContainer.withValues(alpha: 0.88),
+                        borderRadius: BorderRadius.circular(13),
+                      ),
+                      child: Icon(
+                        racesPageIcon,
+                        size: 22,
+                        color: scheme.onPrimaryContainer,
+                      ),
                     ),
                   ),
                   title: item.name,
@@ -258,6 +263,10 @@ class _RacesBodyState extends State<RacesBody> {
                       : null,
                   onTap: () => _open(item),
                   children: [
+                    if (race.mtgAlignment.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      MtgAlignmentChips(colors: race.mtgAlignment, size: 24),
+                    ],
                     if (preview.isNotEmpty) ...[
                       const SizedBox(height: 10),
                       Text(

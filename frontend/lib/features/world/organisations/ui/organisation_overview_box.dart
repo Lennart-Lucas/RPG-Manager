@@ -4,6 +4,8 @@ import '../../../../core/ui/catalog_image_slot.dart';
 import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../../catalog/ui/catalog_rich_text.dart';
+import '../../characters/data/character_model.dart';
+import '../../characters/ui/mtg_alignment_chips.dart';
 import '../../world_icons.dart';
 import '../data/organisation_model.dart';
 
@@ -43,6 +45,8 @@ class OrganisationOverviewBox extends StatelessWidget {
     final borderColor = scheme.outline.withValues(alpha: 0.55);
 
     final detailRows = <_OverviewRow>[
+      if (record.mtgAlignment.isNotEmpty)
+        _OverviewRow.alignment(colors: record.mtgAlignment),
       if (record.type.trim().isNotEmpty)
         _OverviewRow.markdown(label: 'Type', markdown: record.type),
       if (record.founding.trim().isNotEmpty)
@@ -203,6 +207,7 @@ class _OverviewRow {
     this.value,
     this.markdown,
     this.onTap,
+    this.alignmentColors,
   });
 
   const _OverviewRow.markdown({
@@ -216,13 +221,19 @@ class _OverviewRow {
     required VoidCallback onTap,
   }) : this._(label: label, value: value, onTap: onTap);
 
+  const _OverviewRow.alignment({
+    required List<MtgColor> colors,
+  }) : this._(label: 'Alignment', alignmentColors: colors);
+
   final String label;
   final String? value;
   final String? markdown;
   final VoidCallback? onTap;
+  final List<MtgColor>? alignmentColors;
 
   bool get isLink => onTap != null;
   bool get isMarkdown => markdown != null;
+  bool get isAlignment => alignmentColors != null;
 }
 
 class _SectionHeader extends StatelessWidget {
@@ -328,13 +339,18 @@ class _InfoRow extends StatelessWidget {
                       ),
                       child: Align(
                         alignment: Alignment.centerLeft,
-                        child: row.isMarkdown
-                            ? CatalogRichText(
-                                auth: auth,
-                                content: row.markdown!,
-                                baseStyle: valueStyle,
+                        child: row.isAlignment
+                            ? MtgAlignmentChips(
+                                colors: row.alignmentColors!,
+                                size: 26,
                               )
-                            : Text(row.value ?? '', style: valueStyle),
+                            : row.isMarkdown
+                                ? CatalogRichText(
+                                    auth: auth,
+                                    content: row.markdown!,
+                                    baseStyle: valueStyle,
+                                  )
+                                : Text(row.value ?? '', style: valueStyle),
                       ),
                     ),
                   ),

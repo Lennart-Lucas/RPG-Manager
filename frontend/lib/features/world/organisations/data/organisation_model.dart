@@ -1,4 +1,5 @@
 import '../../../catalog/data/catalog_models.dart';
+import '../../characters/data/character_model.dart';
 
 class OrganisationRecord {
   const OrganisationRecord({
@@ -12,6 +13,7 @@ class OrganisationRecord {
     this.memberIds = const [],
     this.parentId,
     this.imageUrl = '',
+    this.mtgAlignment = const [],
   });
 
   final String name;
@@ -24,6 +26,7 @@ class OrganisationRecord {
   final List<int> memberIds;
   final int? parentId;
   final String imageUrl;
+  final List<MtgColor> mtgAlignment;
 
   factory OrganisationRecord.fromCatalogPayload({
     required String name,
@@ -38,6 +41,14 @@ class OrganisationRecord {
         if (id != null) members.add(id);
       }
     }
+    final rawAlign = payload['mtgAlignment'];
+    final colors = <MtgColor>[];
+    if (rawAlign is List) {
+      for (final entry in rawAlign) {
+        final parsed = MtgColor.tryParse(entry?.toString());
+        if (parsed != null && !colors.contains(parsed)) colors.add(parsed);
+      }
+    }
     return OrganisationRecord(
       name: payload['name'] as String? ?? name,
       description: payload['description'] as String? ?? '',
@@ -49,6 +60,7 @@ class OrganisationRecord {
       memberIds: members,
       parentId: (payload['parentId'] as num?)?.toInt(),
       imageUrl: payload['imageUrl'] as String? ?? '',
+      mtgAlignment: colors,
     );
   }
 
@@ -63,6 +75,7 @@ class OrganisationRecord {
         'memberIds': memberIds,
         'parentId': parentId,
         'imageUrl': imageUrl,
+        'mtgAlignment': [for (final c in mtgAlignment) c.apiValue],
       };
 
   String get descriptionPreview =>

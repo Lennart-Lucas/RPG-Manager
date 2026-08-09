@@ -286,12 +286,23 @@ class _PreferencesBodyState extends State<PreferencesBody> {
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            if (isDm) ...[
-              Text(
-                'Display',
-                style: Theme.of(context).textTheme.titleMedium,
+            Text(
+              'Display',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Readable line length'),
+              subtitle: const Text(
+                'Limit Wikipedia-style article pages to a comfortable '
+                'reading width, like Obsidian. Overview boxes stay floated '
+                'so text wraps around them.',
               ),
-              const SizedBox(height: 8),
+              value: widget.auth.readableLineLength,
+              onChanged: (value) => widget.auth.setReadableLineLength(value),
+            ),
+            if (isDm) ...[
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('View as player'),
@@ -310,8 +321,8 @@ class _PreferencesBodyState extends State<PreferencesBody> {
                   }
                 },
               ),
-              const Divider(height: 32),
             ],
+            const Divider(height: 32),
             Text(
               'Theme',
               style: Theme.of(context).textTheme.titleMedium,

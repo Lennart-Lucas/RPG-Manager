@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/ui/catalog_image_slot.dart';
 import '../../../catalog/data/catalog_models.dart';
+import '../../characters/ui/mtg_alignment_chips.dart';
 import '../../world_icons.dart';
 import '../data/organisation_model.dart';
 
@@ -191,6 +192,13 @@ class OrganisationTreeView extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
+                      if (record.mtgAlignment.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        MtgAlignmentChips(
+                          colors: record.mtgAlignment,
+                          size: 20,
+                        ),
+                      ],
                       Text(
                         '$count member${count == 1 ? '' : 's'}',
                         style: muted,

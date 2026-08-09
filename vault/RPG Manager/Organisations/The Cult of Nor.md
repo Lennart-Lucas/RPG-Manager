@@ -1,5 +1,5 @@
 ---
-rpg_manager_id: 195
+rpg_manager_id: 198
 rpg_manager_kind: "organisations"
 name: "The Cult of Nor"
 aliases:

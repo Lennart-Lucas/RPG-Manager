@@ -45,6 +45,7 @@ enum LocationType {
           LocationType.nation,
         ],
         LocationType.city => const [
+          LocationType.continent,
           LocationType.region,
           LocationType.nation,
         ],

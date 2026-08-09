@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/offline/offline_marker.dart';
+import '../../../../core/ui/wiki_article_layout.dart';
 import '../../../auth/data/auth_api.dart';
 import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
@@ -30,8 +31,6 @@ class OrganisationDetailPage extends StatefulWidget {
 }
 
 class _OrganisationDetailPageState extends State<OrganisationDetailPage> {
-  static const _wideBreakpoint = 900.0;
-
   final _api = CatalogApi();
   late CatalogItem _item = widget.item;
   Map<int, String> _characterNames = const {};
@@ -239,12 +238,29 @@ class _OrganisationDetailPageState extends State<OrganisationDetailPage> {
     );
   }
 
-  Widget _description(OrganisationRecord record) {
-    if (record.description.trim().isEmpty) return const SizedBox.shrink();
+  Widget _description(OrganisationRecord record, {Widget? floatEnd}) {
+    if (record.description.trim().isEmpty) {
+      if (floatEnd != null) {
+        return Align(alignment: Alignment.topRight, child: floatEnd);
+      }
+      return const SizedBox.shrink();
+    }
     return CatalogRichText(
       auth: widget.auth,
       content: record.description,
+      floatEnd: floatEnd,
+      floatEndWidth: OrganisationOverviewBox.preferredWidth,
     );
+  }
+
+  bool get _hasSubOrganisations {
+    return _all.any((item) {
+      final parentId = OrganisationRecord.fromCatalogPayload(
+        name: item.name,
+        payload: item.payload,
+      ).parentId;
+      return parentId == _item.id;
+    });
   }
 
   Widget _subOrganisations() {
@@ -303,58 +319,41 @@ class _OrganisationDetailPageState extends State<OrganisationDetailPage> {
               ),
             ),
           ),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final wide = constraints.maxWidth >= _wideBreakpoint;
+          AnimatedBuilder(
+            animation: widget.auth,
+            builder: (context, _) {
               final hasMembers = record.memberIds.isNotEmpty;
               final hasDescription = record.description.trim().isNotEmpty;
+              final overview = _overviewBox();
               return ListView(
                 padding: const EdgeInsets.all(24),
                 children: [
-                  if (wide)
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  WikiArticleLayout(
+                    readableLineLength: widget.auth.readableLineLength,
+                    title: _articleTitle(record),
+                    overview: overview,
+                    overviewWidth: OrganisationOverviewBox.preferredWidth,
+                    bodyBuilder: (floatOverview) => Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              _articleTitle(record),
-                              if (hasMembers) ...[
-                                const SizedBox(height: 20),
-                                _members(record),
-                              ],
-                              if (hasDescription) ...[
-                                const SizedBox(height: 24),
-                                _description(record),
-                              ],
-                              const SizedBox(height: 28),
-                              _subOrganisations(),
-                            ],
+                        if (hasMembers) _members(record),
+                        if (hasMembers &&
+                            (hasDescription || floatOverview != null))
+                          const SizedBox(height: 24),
+                        if (hasDescription || floatOverview != null)
+                          _description(
+                            record,
+                            floatEnd: floatOverview,
                           ),
-                        ),
-                        const SizedBox(width: 24),
-                        SizedBox(
-                          width: OrganisationOverviewBox.preferredWidth,
-                          child: _overviewBox(),
-                        ),
                       ],
-                    )
-                  else ...[
-                    _articleTitle(record),
-                    const SizedBox(height: 16),
-                    _overviewBox(),
-                    if (hasMembers) ...[
-                      const SizedBox(height: 20),
-                      _members(record),
+                    ),
+                    trailing: [
+                      if (_hasSubOrganisations) ...[
+                        const SizedBox(height: 28),
+                        _subOrganisations(),
+                      ],
                     ],
-                    if (hasDescription) ...[
-                      const SizedBox(height: 24),
-                      _description(record),
-                    ],
-                    const SizedBox(height: 28),
-                    _subOrganisations(),
-                  ],
+                  ),
                 ],
               );
             },

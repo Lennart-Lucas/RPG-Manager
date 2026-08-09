@@ -4,6 +4,8 @@ import '../../../../core/ui/catalog_image_slot.dart';
 import '../../../../core/ui/markdown_form_field.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../../dm_tools/resources/ui/resource_form_helpers.dart';
+import '../../characters/data/character_model.dart';
+import '../../characters/ui/mtg_mana_symbol.dart';
 import '../../ui/world_form_helpers.dart';
 import '../data/organisation_model.dart';
 
@@ -74,6 +76,7 @@ class _OrganisationFormState extends State<_OrganisationForm> {
   late List<int> _memberIds = [...?widget.initial?.memberIds];
   late int? _parentId = widget.initial?.parentId;
   late int? _seatId = widget.initial?.seatId;
+  late Set<MtgColor> _alignment = {...?widget.initial?.mtgAlignment};
 
   @override
   void dispose() {
@@ -133,6 +136,7 @@ class _OrganisationFormState extends State<_OrganisationForm> {
         memberIds: _memberIds,
         parentId: _parentId,
         imageUrl: normalizeCatalogImageUrl(_imageUrlController.text),
+        mtgAlignment: MtgColor.values.where(_alignment.contains).toList(),
       ),
     );
   }
@@ -213,6 +217,48 @@ class _OrganisationFormState extends State<_OrganisationForm> {
                 ),
             ],
             onChanged: (value) => setState(() => _seatId = value),
+          ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          Text(
+            'Alignment',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Pick one or more mana colors',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              for (final color in MtgColor.values)
+                Tooltip(
+                  message: color.displayName,
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: () {
+                      setState(() {
+                        if (_alignment.contains(color)) {
+                          _alignment = {..._alignment}..remove(color);
+                        } else {
+                          _alignment = {..._alignment, color};
+                        }
+                      });
+                    },
+                    child: MtgManaSymbol(
+                      color: color,
+                      size: 40,
+                      selected: _alignment.contains(color),
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
           MarkdownFormField(

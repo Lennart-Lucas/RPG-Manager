@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "RPG Manager/Organisations/The Cult of Nor.md",
+                "file": "RPG Manager/Locations/Valmoria/Shall.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "The Cult of Nor"
+              "title": "Shall"
             }
           }
         ]
@@ -183,11 +183,17 @@
       "bases:Create new base": false
     }
   },
-  "active": "f53c72818ce21c13",
+  "active": "4880d2d1842efa3c",
   "lastOpenFiles": [
+    "RPG Manager/Organisations/The Cult of Nor.md",
+    "mtg-color-personality-guide.md",
+    "RPG Manager/Organisations/The Houses of Shall.md.tmp.17656.0eb9f5395d86",
+    "RPG Manager/Organisations/The Houses of Shall.md.tmp.17656.0ef715e6498d",
+    "RPG Manager/Organisations/The Houses of Shall.md.tmp.17656.1b86b37e6acd",
+    "RPG Manager/Locations/Valmoria/Shall.md.tmp.17656.b563164021ba",
+    "RPG Manager/Lore/The Canon of Saints.md",
     "RPG Manager/Races/Dark Elves.md",
     "RPG Manager/Races",
-    "RPG Manager/Lore/The Canon of Saints.md",
     "RPG Manager/Lore/The Dark Elves.md",
     "RPG Manager/Lore/Chronicle of the Rising.md.tmp.29404.2a4470ddd270",
     "RPG Manager/Organisations/The Houses of Shall.md.tmp.29404.727417881e86",
@@ -195,10 +201,6 @@
     "RPG Manager/Locations/Valmoria/Shall.md.tmp.29404.d17bc521e590",
     "RPG Manager/Lore/The Dark Elves.md.tmp.29404.129658cd0d4f",
     "RPG Manager/Lore/Chronicle of the Rising.md",
-    "RPG Manager/Locations/Valmoria/Althania/Salvamont.md.tmp.31580.be76e4b4384a",
-    "RPG Manager/Locations/Valmoria/Althania/Salvamont.md.tmp.31580.686daca25506",
-    "RPG Manager/Locations/Valmoria/Althania/Salvamont.md.tmp.32404.c8650e573164",
-    "RPG Manager/Locations/Valmoria/Althania/Salvamont.md.tmp.32404.8b660cd03cab",
     "RPG Manager/Organisations/Althania's Holy Inquisition.md",
     "RPG Manager/Organisations/Church of Orzhova/Althania's Holy Inquisition/The 6th Sacrament - The Keepers of the Last Flame.md",
     "RPG Manager/Organisations/Church of Orzhova/Althania's Holy Inquisition/The 5th Sacrament - The Wardens of the Argent Hunt.md",
@@ -218,8 +220,6 @@
     "RPG Manager/Locations/Valmoria/Althania/Eichenwacht.md",
     "RPG Manager/Locations/Valmoria/Althania/Dunvicum.md",
     "RPG Manager/Locations/Valmoria/Althania/Dornwald.md",
-    "RPG Manager/Locations/Valmoria/Althania.md",
-    "RPG Manager/Locations/Valmoria.md",
-    "RPG Manager/Items/Cannon.md"
+    "RPG Manager/Locations/Valmoria/Althania.md"
   ]
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/offline/offline_marker.dart';
+import '../../../../core/ui/wiki_article_layout.dart';
 import '../../../auth/data/auth_api.dart';
 import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
@@ -154,26 +155,33 @@ class _LoreDetailPageState extends State<LoreDetailPage> {
               ),
             ),
           ),
-          ListView(
-            padding: const EdgeInsets.all(24),
-            children: [
-              Text(_item.name, style: textTheme.headlineSmall),
-              if (record.description.trim().isNotEmpty) ...[
-                const SizedBox(height: 20),
-                CatalogRichText(
-                  auth: widget.auth,
-                  content: record.description,
-                ),
-              ] else ...[
-                const SizedBox(height: 20),
-                Text(
-                  'No description yet.',
-                  style: textTheme.bodyLarge?.copyWith(
-                    color: scheme.onSurfaceVariant,
+          AnimatedBuilder(
+            animation: widget.auth,
+            builder: (context, _) {
+              return ListView(
+                padding: const EdgeInsets.all(24),
+                children: [
+                  WikiArticleLayout(
+                    readableLineLength: widget.auth.readableLineLength,
+                    title: Text(_item.name, style: textTheme.headlineSmall),
+                    bodyBuilder: (_) {
+                      if (record.description.trim().isNotEmpty) {
+                        return CatalogRichText(
+                          auth: widget.auth,
+                          content: record.description,
+                        );
+                      }
+                      return Text(
+                        'No description yet.',
+                        style: textTheme.bodyLarge?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      );
+                    },
                   ),
-                ),
-              ],
-            ],
+                ],
+              );
+            },
           ),
         ],
       ),

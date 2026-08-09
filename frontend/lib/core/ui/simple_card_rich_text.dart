@@ -1,3 +1,4 @@
+import 'package:float_column/float_column.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
@@ -18,6 +19,8 @@ class SimpleCardRichText extends StatefulWidget {
     this.resolveWikiEmbed,
     this.embedDepth = 0,
     this.maxEmbedDepth = 2,
+    this.floatEnd,
+    this.floatEndWidth = 300,
   });
 
   final String content;
@@ -41,6 +44,10 @@ class SimpleCardRichText extends StatefulWidget {
 
   final int embedDepth;
   final int maxEmbedDepth;
+
+  /// When set, floated to the end so paragraph text wraps around it.
+  final Widget? floatEnd;
+  final double floatEndWidth;
 
   @override
   State<SimpleCardRichText> createState() => _SimpleCardRichTextState();
@@ -104,24 +111,162 @@ class _SimpleCardRichTextState extends State<SimpleCardRichText> {
 
     final normalized = stripCardBreakMarkers(widget.content);
     if (normalized.isEmpty) {
+      if (widget.floatEnd != null) return widget.floatEnd!;
       return const SizedBox.shrink();
     }
 
     final lines = normalized.split('\n');
     final blocks = _parseBlocks(lines);
-    final body = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (var i = 0; i < blocks.length; i++) ...[
-          _blockWidget(context, blocks[i], bodyStyle, linkStyle),
-          if (i != blocks.length - 1) SizedBox(height: 6 * widget.styleScale),
+    final Widget body;
+    if (widget.floatEnd != null) {
+      body = FloatColumn(
+        children: [
+          Floatable(
+            float: FCFloat.end,
+            padding: EdgeInsets.only(
+              left: 16 * widget.styleScale,
+              bottom: 12 * widget.styleScale,
+            ),
+            child: SizedBox(
+              width: widget.floatEndWidth,
+              child: widget.floatEnd,
+            ),
+          ),
+          for (var i = 0; i < blocks.length; i++)
+            ..._floatChildrenForBlock(
+              context,
+              blocks[i],
+              bodyStyle,
+              linkStyle,
+              isLast: i == blocks.length - 1,
+            ),
         ],
-      ],
-    );
+      );
+    } else {
+      body = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < blocks.length; i++) ...[
+            _blockWidget(context, blocks[i], bodyStyle, linkStyle),
+            if (i != blocks.length - 1) SizedBox(height: 6 * widget.styleScale),
+          ],
+        ],
+      );
+    }
     if (widget.enableSelection && widget.onWikiLinkTap == null) {
       return SelectionArea(child: body);
     }
     return body;
+  }
+
+  List<Object> _floatChildrenForBlock(
+    BuildContext context,
+    _RichBlock block,
+    TextStyle bodyStyle,
+    TextStyle linkStyle, {
+    required bool isLast,
+  }) {
+    final gap = SizedBox(height: isLast ? 0 : 6 * widget.styleScale);
+    // Tables stay full-width (clear below the float). Quotes, embeds, and
+    // lists must shrink to the side column or findSpaceFor drops them under
+    // the overview and nothing wraps beside it.
+    if (block.isTable) {
+      return [
+        _blockWidget(context, block, bodyStyle, linkStyle),
+        if (!isLast) gap,
+      ];
+    }
+    if (block.isQuote || block.isEmbed) {
+      return [
+        _floatBesideConstrained(
+          _blockWidget(context, block, bodyStyle, linkStyle),
+        ),
+        if (!isLast) gap,
+      ];
+    }
+    final line = block.line ?? '';
+    if (line.trim().isEmpty) {
+      return [if (!isLast) gap];
+    }
+    final wrappable = _wrappableLine(context, line, bodyStyle, linkStyle);
+    if (wrappable != null) {
+      return [
+        WrappableText(
+          text: wrappable,
+          padding: EdgeInsets.only(bottom: isLast ? 0 : 6 * widget.styleScale),
+        ),
+      ];
+    }
+    return [
+      _floatBesideConstrained(
+        _blockWidget(context, block, bodyStyle, linkStyle),
+      ),
+      if (!isLast) gap,
+    ];
+  }
+
+  /// Caps a non-text FloatColumn child so it can sit beside [floatEnd].
+  Widget _floatBesideConstrained(Widget child) {
+    final reserve = widget.floatEndWidth + 16 * widget.styleScale;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxBeside =
+            (constraints.maxWidth - reserve).clamp(120.0, constraints.maxWidth);
+        return ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxBeside),
+          child: child,
+        );
+      },
+    );
+  }
+
+  /// Returns a [TextSpan] for float wrapping, or null when the line needs a
+  /// full-width widget (lists).
+  TextSpan? _wrappableLine(
+    BuildContext context,
+    String rawLine,
+    TextStyle bodyStyle,
+    TextStyle linkStyle,
+  ) {
+    final line = rawLine.replaceAll('\r', '');
+    final isH3 = line.startsWith('### ');
+    final isH2 = !isH3 && line.startsWith('## ');
+    final isH1 = !isH3 && !isH2 && line.startsWith('# ');
+    final workingHeading = isH3
+        ? line.substring(4)
+        : isH2
+            ? line.substring(3)
+            : isH1
+                ? line.substring(2)
+                : null;
+
+    if (workingHeading != null) {
+      final textTheme = Theme.of(context).textTheme;
+      final rawHeading = (isH1
+              ? textTheme.headlineMedium
+              : isH2
+                  ? textTheme.headlineSmall
+                  : textTheme.titleLarge) ??
+          bodyStyle;
+      final headingStyle = rawHeading.fontSize != null
+          ? rawHeading.copyWith(
+              fontSize: rawHeading.fontSize! * widget.styleScale,
+            )
+          : rawHeading;
+      return TextSpan(
+        style: headingStyle,
+        children: _inlineSpans(workingHeading, headingStyle, linkStyle),
+      );
+    }
+
+    if (_bullet.hasMatch(line) || _ordered.hasMatch(line)) {
+      return null;
+    }
+
+    return TextSpan(
+      style: bodyStyle,
+      children: _inlineSpans(line, bodyStyle, linkStyle),
+    );
   }
 
   List<_RichBlock> _parseBlocks(List<String> lines) {

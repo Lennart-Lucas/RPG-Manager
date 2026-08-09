@@ -1,20 +1,22 @@
+import '../../../world/characters/data/character_model.dart';
+
 class RaceRecord {
   const RaceRecord({
     required this.name,
     required this.description,
     this.aliases = const [],
+    this.mtgAlignment = const [],
+    this.imageUrl = '',
   });
 
   final String name;
   final String description;
   final List<String> aliases;
+  final List<MtgColor> mtgAlignment;
+  final String imageUrl;
 
   factory RaceRecord.fromJson(Map<String, dynamic> json) {
-    return RaceRecord(
-      name: json['name'] as String? ?? '',
-      description: json['description'] as String? ?? '',
-      aliases: _parseAliases(json['aliases']),
-    );
+    return RaceRecord.fromCatalogPayload(name: '', payload: json);
   }
 
   factory RaceRecord.fromCatalogPayload({
@@ -24,10 +26,20 @@ class RaceRecord {
     if (payload == null) {
       return RaceRecord(name: name, description: '');
     }
+    final rawAlign = payload['mtgAlignment'];
+    final colors = <MtgColor>[];
+    if (rawAlign is List) {
+      for (final entry in rawAlign) {
+        final parsed = MtgColor.tryParse(entry?.toString());
+        if (parsed != null && !colors.contains(parsed)) colors.add(parsed);
+      }
+    }
     return RaceRecord(
       name: payload['name'] as String? ?? name,
       description: payload['description'] as String? ?? '',
       aliases: _parseAliases(payload['aliases']),
+      mtgAlignment: colors,
+      imageUrl: payload['imageUrl'] as String? ?? '',
     );
   }
 
@@ -35,6 +47,8 @@ class RaceRecord {
         'name': name,
         'description': description,
         'aliases': aliases,
+        'mtgAlignment': [for (final c in mtgAlignment) c.apiValue],
+        'imageUrl': imageUrl,
       };
 
   String get descriptionPreview {

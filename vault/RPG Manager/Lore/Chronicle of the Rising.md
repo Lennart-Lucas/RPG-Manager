@@ -12,15 +12,13 @@ Althania reckons its years as **AR**, *Anno Resurgentis*, the Year of the Rising
 
 [[RPG Manager/Locations/Valmoria/Althania]] was ruled by the **Crowned Houses**, whose sons held the land and whose daughters held the temples, so that a man's lord and a man's god were cousins. Nine gods were served, the **Nine Names**, with Aonir of the star-field first among them. Their priesthoods took a fifth of everything, which is twice the tithe, and the Church mentions it often.
 
-**c. 412 years before the Rising — the War of Six Crowns ends.** Six peoples fought it across the world: humans, dwarves, dark elves, high elves, orcs and trolls. The Keepers hold the period thinly, as they hold all of the Diademed Age. The [[The Dark Elves|Norcaine]] call the war the **Winnowing**, withdrew from it into fortified city-states rather than lose it, and have counted their years from that withdrawal ever since. [[Shall]] was raised in its closing years.
-
 ## The Rising (1–9 AR)
 
 **1 AR — The Tally Riot.** In a famine winter the mine-tithe was raised at **Endhoff**, beneath the Aschen range, and the pit-yard filled with angry diggers. A water-carrier named **Ilse**, later canonised as Saint Ilsandra, spoke to them there. The Book of the Voice records what she said: *"There is not one god for the lord and another for the ox. There is One, and it is not theirs."* The riot did not stop. It converted.
 
 **1–9 AR — The Nine Years' Rising.** The pit-companies took the mines, then the valleys, then the temples, under the war-leadership of a pit-captain named **Bertald Grauhand**. The Crowned Houses took nine years to fall. Their priesthoods were killed to the last man in three.
 
-**8 AR — The Burning at the Thornwood.** The last priests of the Nine Names were taken east and burned on the ground that is now the [[Dornwald]]. The Church records the Nine as ended in that fire. Across the World Spine, in [[Shall]], the temples of Nor did not close for a day, and have not closed since.
+**8 AR — The Burning at the Thornwood.** The last priests of the Nine Names were taken east and burned on the ground that is now the [[RPG Manager/Locations/Valmoria/Althania/Dornwald]].
 
 **9 AR — The Felling of the Whiteroot.** The white-barked oak of Aonir, oldest holy thing in Althania, was cut down and burned, its stump capped in stone, and a **White Tower** raised over the cap. The place is [[RPG Manager/Locations/Valmoria/Althania/Weissturm]], and the Hierarch is styled *Keeper of the Whiteroot Stone* to this day.
 

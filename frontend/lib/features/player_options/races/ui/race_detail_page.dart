@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/offline/offline_marker.dart';
+import '../../../../core/ui/wiki_article_layout.dart';
 import '../../../auth/data/auth_api.dart';
 import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
@@ -11,6 +12,7 @@ import '../../../catalog/ui/catalog_rich_text.dart';
 import '../../player_options_icons.dart';
 import '../data/race_model.dart';
 import 'race_form_sheet.dart';
+import 'race_overview_box.dart';
 
 class RaceDetailPage extends StatefulWidget {
   const RaceDetailPage({
@@ -109,10 +111,51 @@ class _RaceDetailPageState extends State<RaceDetailPage> {
     }
   }
 
+  Widget _articleTitle(RaceRecord record) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(_item.name, style: textTheme.headlineSmall),
+        if (record.aliases.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(
+            record.aliases.join(', '),
+            style: textTheme.bodyMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _description(RaceRecord record, {Widget? floatEnd}) {
+    final textTheme = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    if (record.description.trim().isEmpty) {
+      if (floatEnd != null) {
+        return Align(alignment: Alignment.topRight, child: floatEnd);
+      }
+      return Text(
+        'No description yet.',
+        style: textTheme.bodyLarge?.copyWith(
+          color: scheme.onSurfaceVariant,
+        ),
+      );
+    }
+    return CatalogRichText(
+      auth: widget.auth,
+      content: record.description,
+      floatEnd: floatEnd,
+      floatEndWidth: RaceOverviewBox.preferredWidth,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
     final race = _race;
 
     return Scaffold(
@@ -150,70 +193,26 @@ class _RaceDetailPageState extends State<RaceDetailPage> {
               ),
             ),
           ),
-          ListView(
-            padding: const EdgeInsets.all(24),
-            children: [
-              Row(
+          AnimatedBuilder(
+            animation: widget.auth,
+            builder: (context, _) {
+              final overview = RaceOverviewBox(record: race);
+              return ListView(
+                padding: const EdgeInsets.all(24),
                 children: [
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: scheme.primaryContainer.withValues(alpha: 0.88),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Icon(
-                      racesPageIcon,
-                      color: scheme.onPrimaryContainer,
-                      size: 28,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(_item.name, style: textTheme.headlineSmall),
-                        if (race.aliases.isNotEmpty) ...[
-                          const SizedBox(height: 6),
-                          Text(
-                            race.aliases.join(', '),
-                            style: textTheme.bodyMedium?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 4),
-                        Text(
-                          'Race',
-                          style: textTheme.titleMedium?.copyWith(
-                            color: scheme.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
+                  WikiArticleLayout(
+                    readableLineLength: widget.auth.readableLineLength,
+                    title: _articleTitle(race),
+                    overview: overview,
+                    overviewWidth: RaceOverviewBox.preferredWidth,
+                    bodyBuilder: (floatOverview) => _description(
+                      race,
+                      floatEnd: floatOverview,
                     ),
                   ),
                 ],
-              ),
-              if (race.description.trim().isNotEmpty) ...[
-                const SizedBox(height: 24),
-                Text('Description', style: textTheme.titleSmall),
-                const SizedBox(height: 8),
-                CatalogRichText(
-                  auth: widget.auth,
-                  content: race.description,
-                ),
-              ] else ...[
-                const SizedBox(height: 24),
-                Text(
-                  'No description yet.',
-                  style: textTheme.bodyLarge?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ],
+              );
+            },
           ),
         ],
       ),

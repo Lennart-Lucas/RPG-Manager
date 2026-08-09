@@ -14,6 +14,8 @@ class CatalogRichText extends StatelessWidget {
     this.baseStyle,
     this.styleScale = 1.0,
     this.enableSelection = true,
+    this.floatEnd,
+    this.floatEndWidth = 300,
   });
 
   final AuthController auth;
@@ -21,6 +23,8 @@ class CatalogRichText extends StatelessWidget {
   final TextStyle? baseStyle;
   final double styleScale;
   final bool enableSelection;
+  final Widget? floatEnd;
+  final double floatEndWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +33,8 @@ class CatalogRichText extends StatelessWidget {
       baseStyle: baseStyle,
       styleScale: styleScale,
       enableSelection: enableSelection,
+      floatEnd: floatEnd,
+      floatEndWidth: floatEndWidth,
       onWikiLinkTap: (kind, id) => openCatalogWikiLink(
         context: context,
         auth: auth,

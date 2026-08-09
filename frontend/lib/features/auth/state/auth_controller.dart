@@ -20,6 +20,7 @@ class AuthController extends ChangeNotifier {
         _tokenStore = tokenStore ?? TokenStore();
 
   static const _viewAsPlayerKey = 'view_as_player';
+  static const _readableLineLengthKey = 'readable_line_length';
 
   final AuthApi _api;
   final TokenStore _tokenStore;
@@ -29,6 +30,9 @@ class AuthController extends ChangeNotifier {
   String? errorMessage;
   bool busy = false;
   bool viewAsPlayer = false;
+
+  /// Obsidian-style capped article width on Wikipedia-like detail pages.
+  bool readableLineLength = true;
 
   String? _accessToken;
   String? _refreshToken;
@@ -130,6 +134,7 @@ class AuthController extends ChangeNotifier {
 
     final prefs = await SharedPreferences.getInstance();
     viewAsPlayer = prefs.getBool(_viewAsPlayerKey) ?? false;
+    readableLineLength = prefs.getBool(_readableLineLengthKey) ?? true;
 
     final sync = OfflineSyncController.instance;
     final refresh = await _tokenStore.readRefreshToken();
@@ -281,6 +286,14 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_viewAsPlayerKey, enabled);
+  }
+
+  Future<void> setReadableLineLength(bool enabled) async {
+    if (readableLineLength == enabled) return;
+    readableLineLength = enabled;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_readableLineLengthKey, enabled);
   }
 
   Future<bool> setAiIntegration(bool enabled) async {
