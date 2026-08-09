@@ -332,20 +332,7 @@ class _CampaignDetailPageState extends State<CampaignDetailPage> {
                 children: [
                   WikiArticleLayout(
                     readableLineLength: widget.auth.readableLineLength,
-                    title: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(_item.name, style: textTheme.headlineSmall),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Campaign',
-                          style: textTheme.titleMedium?.copyWith(
-                            color: scheme.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
+                    title: WikiArticleTitle(name: _item.name),
                     overview: overview,
                     overviewWidth: CatalogOverviewBox.preferredWidth,
                     bodyBuilder: (floatOverview) {
@@ -363,7 +350,12 @@ class _CampaignDetailPageState extends State<CampaignDetailPage> {
                           child: floatOverview,
                         );
                       }
-                      return const SizedBox.shrink();
+                      return Text(
+                        'No description yet.',
+                        style: textTheme.bodyLarge?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      );
                     },
                     trailing: [
                       if (record.playerCharacterIds.isNotEmpty) ...[

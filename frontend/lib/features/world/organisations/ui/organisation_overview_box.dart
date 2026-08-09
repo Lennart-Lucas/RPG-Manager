@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/ui/catalog_image_slot.dart';
 import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../../catalog/ui/catalog_rich_text.dart';
 import '../../characters/data/character_model.dart';
 import '../../characters/ui/mtg_alignment_chips.dart';
+import '../../ui/catalog_overview_box.dart';
 import '../../ui/overview_sections.dart';
 import '../../ui/overview_sections_view.dart';
 import '../../world_icons.dart';
@@ -30,17 +30,15 @@ class OrganisationOverviewBox extends StatelessWidget {
   final ValueChanged<CatalogItem> onSeatTap;
   final ValueChanged<CatalogItem> onParentTap;
 
-  static const double preferredWidth = 300;
+  static const double preferredWidth = CatalogOverviewBox.preferredWidth;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
 
     Color lift(Color toward, double amount) =>
         Color.lerp(scheme.surface, toward, amount)!;
 
-    final panelBg = lift(scheme.onSurface, 0.07);
     final sectionHeaderBg = scheme.primaryContainer;
     final labelBg = scheme.surfaceContainer;
     final valueBg = lift(scheme.onSurface, 0.16);
@@ -74,151 +72,57 @@ class OrganisationOverviewBox extends StatelessWidget {
     final hasDetailsBlock =
         detailRows.isNotEmpty || mergedDetails.isNotEmpty;
 
-    return Material(
-      color: panelBg,
-      elevation: 1,
-      shadowColor: scheme.shadow.withValues(alpha: 0.35),
-      borderRadius: BorderRadius.circular(12),
-      clipBehavior: Clip.antiAlias,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          border: Border.all(color: borderColor),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: scheme.surfaceContainer,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: borderColor),
-                    ),
-                    child: Icon(
-                      organisationsPageIcon,
-                      color: scheme.onSurfaceVariant,
-                      size: 22,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          record.name,
-                          style: textTheme.titleMedium?.copyWith(
-                            color: scheme.onSurface,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        if (record.aliases.isNotEmpty) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            record.aliases.join(', '),
-                            style: textTheme.bodySmall?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
+    return CatalogOverviewBox(
+      auth: auth,
+      title: record.name,
+      icon: organisationsPageIcon,
+      aliases: record.aliases,
+      imageUrl: record.imageUrl,
+      leading: [
+        if (hasDetailsBlock)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: borderColor),
               ),
-            ),
-            Divider(height: 1, thickness: 1, color: borderColor),
-            Padding(
-              padding: const EdgeInsets.all(14),
-              child: CatalogImageSlot(
-                imageUrl: record.imageUrl,
-                borderColor: borderColor,
-                placeholder: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Icon(
-                      organisationsPageIcon,
-                      size: 40,
-                      color: scheme.onSurfaceVariant,
+                    _SectionHeader(
+                      title: 'Details',
+                      background: sectionHeaderBg,
+                      foreground: scheme.onPrimaryContainer,
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Image placeholder',
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
+                    for (var i = 0; i < detailRows.length; i++)
+                      _InfoRow(
+                        auth: auth,
+                        row: detailRows[i],
+                        labelBg: labelBg,
+                        valueBg: valueBg,
+                        borderColor: borderColor,
+                        showDivider: i < detailRows.length - 1 ||
+                            mergedDetails.isNotEmpty,
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      record.name,
-                      style: textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
+                    for (var i = 0; i < mergedDetails.length; i++)
+                      OverviewItemRow(
+                        auth: auth,
+                        item: mergedDetails[i],
+                        labelBg: labelBg,
+                        valueBg: valueBg,
+                        borderColor: borderColor,
+                        showDivider: i < mergedDetails.length - 1,
                       ),
-                      textAlign: TextAlign.center,
-                    ),
                   ],
                 ),
               ),
             ),
-            if (hasDetailsBlock)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: borderColor),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _SectionHeader(
-                          title: 'Details',
-                          background: sectionHeaderBg,
-                          foreground: scheme.onPrimaryContainer,
-                        ),
-                        for (var i = 0; i < detailRows.length; i++)
-                          _InfoRow(
-                            auth: auth,
-                            row: detailRows[i],
-                            labelBg: labelBg,
-                            valueBg: valueBg,
-                            borderColor: borderColor,
-                            showDivider: i < detailRows.length - 1 ||
-                                mergedDetails.isNotEmpty,
-                          ),
-                        for (var i = 0; i < mergedDetails.length; i++)
-                          OverviewItemRow(
-                            auth: auth,
-                            item: mergedDetails[i],
-                            labelBg: labelBg,
-                            valueBg: valueBg,
-                            borderColor: borderColor,
-                            showDivider: i < mergedDetails.length - 1,
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            if (otherOverviewSections.isNotEmpty)
-              OverviewSectionsView(
-                auth: auth,
-                sections: otherOverviewSections,
-              ),
-          ],
-        ),
-      ),
+          ),
+      ],
+      overviewSections: otherOverviewSections,
     );
   }
 }

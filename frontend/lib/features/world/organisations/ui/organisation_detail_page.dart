@@ -176,26 +176,6 @@ class _OrganisationDetailPageState extends State<OrganisationDetailPage> {
     if (mounted) await _loadRelated();
   }
 
-  Widget _articleTitle(OrganisationRecord record) {
-    final scheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(_item.name, style: textTheme.headlineSmall),
-        if (record.aliases.isNotEmpty) ...[
-          const SizedBox(height: 6),
-          Text(
-            record.aliases.join(', '),
-            style: textTheme.bodyMedium?.copyWith(
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
   Widget _overviewBox() {
     final record = _record;
     final orgsById = {for (final o in _all) o.id: o};
@@ -239,11 +219,18 @@ class _OrganisationDetailPageState extends State<OrganisationDetailPage> {
   }
 
   Widget _description(OrganisationRecord record, {Widget? floatEnd}) {
+    final textTheme = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
     if (record.description.trim().isEmpty) {
       if (floatEnd != null) {
         return Align(alignment: Alignment.topRight, child: floatEnd);
       }
-      return const SizedBox.shrink();
+      return Text(
+        'No description yet.',
+        style: textTheme.bodyLarge?.copyWith(
+          color: scheme.onSurfaceVariant,
+        ),
+      );
     }
     return CatalogRichText(
       auth: widget.auth,
@@ -330,7 +317,10 @@ class _OrganisationDetailPageState extends State<OrganisationDetailPage> {
                 children: [
                   WikiArticleLayout(
                     readableLineLength: widget.auth.readableLineLength,
-                    title: _articleTitle(record),
+                    title: WikiArticleTitle(
+                      name: _item.name,
+                      aliases: record.aliases,
+                    ),
                     overview: overview,
                     overviewWidth: OrganisationOverviewBox.preferredWidth,
                     bodyBuilder: (floatOverview) => Column(

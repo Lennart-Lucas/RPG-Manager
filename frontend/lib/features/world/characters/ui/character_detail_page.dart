@@ -149,25 +149,6 @@ class _CharacterDetailPageState extends State<CharacterDetailPage> {
     }
   }
 
-  Widget _articleTitle(CharacterRecord record) {
-    final textTheme = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(_item.name, style: textTheme.headlineSmall),
-        const SizedBox(height: 4),
-        Text(
-          'Character',
-          style: textTheme.titleMedium?.copyWith(
-            color: scheme.primary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _overviewBox(CharacterRecord record) {
     return CharacterOverviewBox(
       auth: widget.auth,
@@ -255,7 +236,10 @@ class _CharacterDetailPageState extends State<CharacterDetailPage> {
                 children: [
                   WikiArticleLayout(
                     readableLineLength: widget.auth.readableLineLength,
-                    title: _articleTitle(record),
+                    title: WikiArticleTitle(
+                      name: _item.name,
+                      aliases: record.aliases,
+                    ),
                     overview: overview,
                     overviewWidth: CharacterOverviewBox.preferredWidth,
                     bodyBuilder: (floatOverview) => _description(

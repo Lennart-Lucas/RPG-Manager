@@ -170,7 +170,7 @@ class _LoreDetailPageState extends State<LoreDetailPage> {
                 children: [
                   WikiArticleLayout(
                     readableLineLength: widget.auth.readableLineLength,
-                    title: Text(_item.name, style: textTheme.headlineSmall),
+                    title: WikiArticleTitle(name: _item.name),
                     overview: overview,
                     overviewWidth: CatalogOverviewBox.preferredWidth,
                     bodyBuilder: (floatOverview) {

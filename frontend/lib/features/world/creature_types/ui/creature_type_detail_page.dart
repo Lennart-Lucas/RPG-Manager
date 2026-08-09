@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:rpg_manager/core/offline/offline_marker.dart';
+import 'package:rpg_manager/core/ui/wiki_article_layout.dart';
 import 'package:rpg_manager/features/auth/data/auth_api.dart';
 import 'package:rpg_manager/features/auth/state/auth_controller.dart';
 import 'package:rpg_manager/features/catalog/data/catalog_api.dart';
@@ -9,7 +11,6 @@ import 'package:rpg_manager/features/world/creature_types/data/creature_type_mod
 import 'package:rpg_manager/features/world/creature_types/ui/creature_type_form_sheet.dart';
 import 'package:rpg_manager/features/world/data/labeled_amount.dart';
 import 'package:rpg_manager/features/world/ui/catalog_overview_box.dart';
-import 'package:rpg_manager/features/world/ui/overview_sections.dart';
 import 'package:rpg_manager/features/world/world_icons.dart';
 
 class CreatureTypeDetailPage extends StatefulWidget {
@@ -164,10 +165,155 @@ class _CreatureTypeDetailPageState extends State<CreatureTypeDetailPage> {
         ? ancestry.skip(1).map((t) => t.name).join(' → ')
         : null;
 
+    final overview = CatalogOverviewBox(
+      auth: widget.auth,
+      title: _type.name,
+      icon: creatureTypesPageIcon,
+      overviewSections: _type.overviewSections,
+      leading: [
+        if (_type.quote.isNotEmpty || _type.author.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (_type.quote.isNotEmpty)
+                  Text(
+                    _type.quote,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontStyle: FontStyle.italic,
+                        ),
+                  ),
+                if (_type.author.isNotEmpty)
+                  Padding(
+                    padding: EdgeInsets.only(
+                      top: _type.quote.isNotEmpty ? 4 : 0,
+                    ),
+                    child: Text(
+                      '— ${_type.author}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+      ],
+    );
+
+    Widget bodySections() {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final section in _type.sections)
+            if (section.title.trim().isNotEmpty ||
+                section.contents.trim().isNotEmpty)
+              _DetailSection(
+                title: section.title.trim().isEmpty
+                    ? 'Section'
+                    : section.title.trim(),
+                lines: [
+                  if (section.contents.trim().isNotEmpty)
+                    section.contents.trim(),
+                ],
+              ),
+          _DetailSection(
+            title: 'Summary',
+            lines: [
+              if (_type.size != null) 'Size: ${_type.size}',
+              if (parent != null) 'Parent: ${parent.name}',
+              if (inheritedFrom != null) 'Inherits from: $inheritedFrom',
+            ],
+          ),
+          if (_type.movement.isNotEmpty)
+            _DetailSection(
+              title: 'Movement',
+              lines: [labeledAmountsDisplay(_type.movement)],
+            ),
+          if (_type.senses.isNotEmpty)
+            _DetailSection(
+              title: 'Senses',
+              lines: [labeledAmountsDisplay(_type.senses)],
+            ),
+          if (_type.skillIds.isNotEmpty)
+            _DetailSection(
+              title: 'Skills',
+              lines: [_labels(_type.skillIds, _skillNames).join(', ')],
+            ),
+          if (_type.languageIds.isNotEmpty ||
+              _type.customLanguages.isNotEmpty)
+            _DetailSection(
+              title: 'Languages',
+              lines: [
+                [
+                  ..._labels(_type.languageIds, _languageNames),
+                  ..._type.customLanguages,
+                ].join(', '),
+              ],
+            ),
+          if (_type.damageVulnerabilityIds.isNotEmpty ||
+              _type.customDamageVulnerabilities.isNotEmpty)
+            _DetailSection(
+              title: 'Vulnerabilities',
+              lines: [
+                [
+                  ..._labels(
+                    _type.damageVulnerabilityIds,
+                    _damageTypeNames,
+                  ),
+                  ..._type.customDamageVulnerabilities,
+                ].join(', '),
+              ],
+            ),
+          if (_type.damageResistanceIds.isNotEmpty ||
+              _type.customDamageResistances.isNotEmpty)
+            _DetailSection(
+              title: 'Resistances',
+              lines: [
+                [
+                  ..._labels(_type.damageResistanceIds, _damageTypeNames),
+                  ..._type.customDamageResistances,
+                ].join(', '),
+              ],
+            ),
+          if (_type.damageImmunityIds.isNotEmpty ||
+              _type.customDamageImmunities.isNotEmpty)
+            _DetailSection(
+              title: 'Immunities',
+              lines: [
+                [
+                  ..._labels(_type.damageImmunityIds, _damageTypeNames),
+                  ..._type.customDamageImmunities,
+                ].join(', '),
+              ],
+            ),
+          if (_type.conditionImmunityIds.isNotEmpty)
+            _DetailSection(
+              title: 'Condition immunities',
+              lines: [
+                _labels(_type.conditionImmunityIds, _conditionNames)
+                    .join(', '),
+              ],
+            ),
+          if (_type.traits.isNotEmpty)
+            _DetailSection(
+              title: 'Traits',
+              lines: [
+                for (final trait in _type.traits)
+                  if (trait.name.isNotEmpty)
+                    '${trait.name}: ${trait.description}',
+              ],
+            ),
+        ],
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(_type.name),
         actions: [
+          const OfflineAppBarMarker(),
           if (widget.auth.canMutateCatalog) ...[
             IconButton(
               tooltip: 'Edit',
@@ -182,163 +328,54 @@ class _CreatureTypeDetailPageState extends State<CreatureTypeDetailPage> {
           ],
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 760),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (overviewSectionsNonEmpty(_type.overviewSections) ||
-                    _type.quote.isNotEmpty ||
-                    _type.author.isNotEmpty) ...[
-                  CatalogOverviewBox(
-                    auth: widget.auth,
-                    title: _type.name,
-                    icon: creatureTypesPageIcon,
-                    overviewSections: _type.overviewSections,
-                    leading: [
-                      if (_type.quote.isNotEmpty || _type.author.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (_type.quote.isNotEmpty)
-                                Text(
-                                  _type.quote,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleMedium
-                                      ?.copyWith(fontStyle: FontStyle.italic),
-                                ),
-                              if (_type.author.isNotEmpty)
-                                Padding(
-                                  padding: EdgeInsets.only(
-                                    top: _type.quote.isNotEmpty ? 4 : 0,
-                                  ),
-                                  child: Text(
-                                    '— ${_type.author}',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
-                                        ?.copyWith(
-                                          color: scheme.onSurfaceVariant,
-                                        ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                    ],
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Center(
+                child: Opacity(
+                  opacity: 0.08,
+                  child: Icon(
+                    creatureTypesPageIcon,
+                    size: 440,
+                    color: scheme.onSurface,
                   ),
-                  const SizedBox(height: 16),
-                ],
-                for (final section in _type.sections)
-                  if (section.title.trim().isNotEmpty ||
-                      section.contents.trim().isNotEmpty)
-                    _DetailSection(
-                      title: section.title.trim().isEmpty
-                          ? 'Section'
-                          : section.title.trim(),
-                      lines: [
-                        if (section.contents.trim().isNotEmpty)
-                          section.contents.trim(),
-                      ],
-                    ),
-                _DetailSection(
-                  title: 'Summary',
-                  lines: [
-                    if (_type.size != null) 'Size: ${_type.size}',
-                    if (parent != null) 'Parent: ${parent.name}',
-                    if (inheritedFrom != null) 'Inherits from: $inheritedFrom',
-                  ],
                 ),
-                if (_type.movement.isNotEmpty)
-                  _DetailSection(
-                    title: 'Movement',
-                    lines: [labeledAmountsDisplay(_type.movement)],
-                  ),
-                if (_type.senses.isNotEmpty)
-                  _DetailSection(
-                    title: 'Senses',
-                    lines: [labeledAmountsDisplay(_type.senses)],
-                  ),
-                if (_type.skillIds.isNotEmpty)
-                  _DetailSection(
-                    title: 'Skills',
-                    lines: [_labels(_type.skillIds, _skillNames).join(', ')],
-                  ),
-                if (_type.languageIds.isNotEmpty ||
-                    _type.customLanguages.isNotEmpty)
-                  _DetailSection(
-                    title: 'Languages',
-                    lines: [
-                      [
-                        ..._labels(_type.languageIds, _languageNames),
-                        ..._type.customLanguages,
-                      ].join(', '),
-                    ],
-                  ),
-                if (_type.damageVulnerabilityIds.isNotEmpty ||
-                    _type.customDamageVulnerabilities.isNotEmpty)
-                  _DetailSection(
-                    title: 'Vulnerabilities',
-                    lines: [
-                      [
-                        ..._labels(
-                          _type.damageVulnerabilityIds,
-                          _damageTypeNames,
-                        ),
-                        ..._type.customDamageVulnerabilities,
-                      ].join(', '),
-                    ],
-                  ),
-                if (_type.damageResistanceIds.isNotEmpty ||
-                    _type.customDamageResistances.isNotEmpty)
-                  _DetailSection(
-                    title: 'Resistances',
-                    lines: [
-                      [
-                        ..._labels(_type.damageResistanceIds, _damageTypeNames),
-                        ..._type.customDamageResistances,
-                      ].join(', '),
-                    ],
-                  ),
-                if (_type.damageImmunityIds.isNotEmpty ||
-                    _type.customDamageImmunities.isNotEmpty)
-                  _DetailSection(
-                    title: 'Immunities',
-                    lines: [
-                      [
-                        ..._labels(_type.damageImmunityIds, _damageTypeNames),
-                        ..._type.customDamageImmunities,
-                      ].join(', '),
-                    ],
-                  ),
-                if (_type.conditionImmunityIds.isNotEmpty)
-                  _DetailSection(
-                    title: 'Condition immunities',
-                    lines: [
-                      _labels(_type.conditionImmunityIds, _conditionNames)
-                          .join(', '),
-                    ],
-                  ),
-                if (_type.traits.isNotEmpty)
-                  _DetailSection(
-                    title: 'Traits',
-                    lines: [
-                      for (final trait in _type.traits)
-                        if (trait.name.isNotEmpty)
-                          '${trait.name}: ${trait.description}',
-                    ],
-                  ),
-              ],
+              ),
             ),
           ),
-        ),
+          AnimatedBuilder(
+            animation: widget.auth,
+            builder: (context, _) {
+              return ListView(
+                padding: const EdgeInsets.all(24),
+                children: [
+                  WikiArticleLayout(
+                    readableLineLength: widget.auth.readableLineLength,
+                    title: WikiArticleTitle(name: _type.name),
+                    overview: overview,
+                    overviewWidth: CatalogOverviewBox.preferredWidth,
+                    bodyBuilder: (floatOverview) {
+                      final body = bodySections();
+                      if (floatOverview == null) return body;
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: body),
+                          const SizedBox(width: 16),
+                          SizedBox(
+                            width: CatalogOverviewBox.preferredWidth,
+                            child: floatOverview,
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
       ),
     );
   }

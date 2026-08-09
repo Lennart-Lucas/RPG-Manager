@@ -28,6 +28,57 @@ class WikiReadingWidth extends StatelessWidget {
   }
 }
 
+/// Shared Wikipedia-style page title: name + optional aliases (+ optional below).
+class WikiArticleTitle extends StatelessWidget {
+  const WikiArticleTitle({
+    super.key,
+    required this.name,
+    this.aliases = const [],
+    this.below = const [],
+  });
+
+  final String name;
+  final List<String> aliases;
+
+  /// Extra lines under aliases (e.g. session campaign link / date).
+  final List<Widget> below;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    final aliasLine = aliases
+        .map((a) => a.trim())
+        .where((a) => a.isNotEmpty)
+        .join(', ');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          name,
+          style: textTheme.headlineMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        if (aliasLine.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(
+            aliasLine,
+            style: textTheme.bodyMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+        for (final child in below) ...[
+          const SizedBox(height: 6),
+          child,
+        ],
+      ],
+    );
+  }
+}
+
 /// Shared article shell: optional reading width, title, floated overview, body.
 class WikiArticleLayout extends StatelessWidget {
   const WikiArticleLayout({

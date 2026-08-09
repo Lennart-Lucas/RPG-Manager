@@ -111,26 +111,6 @@ class _RaceDetailPageState extends State<RaceDetailPage> {
     }
   }
 
-  Widget _articleTitle(RaceRecord record) {
-    final scheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(_item.name, style: textTheme.headlineSmall),
-        if (record.aliases.isNotEmpty) ...[
-          const SizedBox(height: 6),
-          Text(
-            record.aliases.join(', '),
-            style: textTheme.bodyMedium?.copyWith(
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
   Widget _description(RaceRecord record, {Widget? floatEnd}) {
     final textTheme = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
@@ -205,7 +185,10 @@ class _RaceDetailPageState extends State<RaceDetailPage> {
                 children: [
                   WikiArticleLayout(
                     readableLineLength: widget.auth.readableLineLength,
-                    title: _articleTitle(race),
+                    title: WikiArticleTitle(
+                      name: _item.name,
+                      aliases: race.aliases,
+                    ),
                     overview: overview,
                     overviewWidth: RaceOverviewBox.preferredWidth,
                     bodyBuilder: (floatOverview) => _description(

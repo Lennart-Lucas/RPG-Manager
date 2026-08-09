@@ -148,59 +148,19 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
     }
   }
 
-  Widget _articleTitle({
-    required CatalogItem? campaign,
-    required String dateLabel,
-  }) {
-    final textTheme = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(_item.name, style: textTheme.headlineSmall),
-        const SizedBox(height: 4),
-        if (campaign == null)
-          Text(
-            'Campaign unknown',
-            style: textTheme.titleMedium?.copyWith(
-              color: scheme.primary,
-              fontWeight: FontWeight.w600,
-            ),
-          )
-        else
-          InkWell(
-            onTap: () => openCatalogRecordDetail(
-              context: context,
-              auth: widget.auth,
-              kindApiValue: CatalogKind.campaigns.apiValue,
-              itemId: campaign.id,
-            ),
-            child: Text(
-              campaign.name,
-              style: textTheme.titleMedium?.copyWith(
-                color: scheme.primary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        const SizedBox(height: 8),
-        Text(
-          dateLabel,
-          style: textTheme.bodyMedium?.copyWith(
-            color: scheme.onSurfaceVariant,
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _notes(SessionRecord record, {Widget? floatEnd}) {
     final textTheme = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
     if (record.description.trim().isEmpty) {
       if (floatEnd != null) {
         return Align(alignment: Alignment.topRight, child: floatEnd);
       }
-      return const SizedBox.shrink();
+      return Text(
+        'No description yet.',
+        style: textTheme.bodyLarge?.copyWith(
+          color: scheme.onSurfaceVariant,
+        ),
+      );
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -287,9 +247,49 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
                 children: [
                   WikiArticleLayout(
                     readableLineLength: widget.auth.readableLineLength,
-                    title: _articleTitle(
-                      campaign: campaign,
-                      dateLabel: dateLabel,
+                    title: WikiArticleTitle(
+                      name: _item.name,
+                      below: [
+                        if (campaign == null)
+                          Text(
+                            'Campaign unknown',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  color: scheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          )
+                        else
+                          InkWell(
+                            onTap: () => openCatalogRecordDetail(
+                              context: context,
+                              auth: widget.auth,
+                              kindApiValue: CatalogKind.campaigns.apiValue,
+                              itemId: campaign.id,
+                            ),
+                            child: Text(
+                              campaign.name,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(
+                                    color: scheme.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
+                          ),
+                        Text(
+                          dateLabel,
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ],
                     ),
                     overview: overview,
                     overviewWidth: CatalogOverviewBox.preferredWidth,

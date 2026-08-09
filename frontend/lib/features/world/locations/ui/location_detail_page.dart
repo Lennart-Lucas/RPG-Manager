@@ -182,32 +182,6 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
     if (mounted) await _loadLocations();
   }
 
-  Widget _articleTitle(LocationRecord record) {
-    final textTheme = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          _item.name,
-          style: textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        if (record.aliases.isNotEmpty) ...[
-          const SizedBox(height: 6),
-          Text(
-            record.aliases.join(', '),
-            style: textTheme.titleMedium?.copyWith(
-              color: scheme.onSurfaceVariant,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
   Widget _description(LocationRecord record, {Widget? floatEnd}) {
     final textTheme = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
@@ -311,7 +285,10 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
                 children: [
                   WikiArticleLayout(
                     readableLineLength: widget.auth.readableLineLength,
-                    title: _articleTitle(record),
+                    title: WikiArticleTitle(
+                      name: _item.name,
+                      aliases: record.aliases,
+                    ),
                     overview: overview,
                     overviewWidth: LocationOverviewBox.preferredWidth,
                     bodyBuilder: (floatOverview) => _description(

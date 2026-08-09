@@ -115,25 +115,6 @@ class _EventDetailPageState extends State<EventDetailPage> {
     }
   }
 
-  Widget _articleTitle() {
-    final textTheme = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(_item.name, style: textTheme.headlineSmall),
-        const SizedBox(height: 4),
-        Text(
-          'Event',
-          style: textTheme.titleMedium?.copyWith(
-            color: scheme.primary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _overviewBox(EventRecord record) {
     return CatalogOverviewBox(
       auth: widget.auth,
@@ -227,7 +208,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                 children: [
                   WikiArticleLayout(
                     readableLineLength: widget.auth.readableLineLength,
-                    title: _articleTitle(),
+                    title: WikiArticleTitle(name: _item.name),
                     overview: overview,
                     overviewWidth: CatalogOverviewBox.preferredWidth,
                     bodyBuilder: (floatOverview) => _description(
