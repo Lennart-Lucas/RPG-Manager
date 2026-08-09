@@ -15,6 +15,8 @@ languages: "Althan"
 exports: "Thornwood billets and charcoal, acorn-fed pork, wool"
 imports: "Grain, salt, iron"
 defenses: "The old watch-tower on the ridge; twelve men-at-arms; the levy, on paper"
+history: ""
+mapNotes: ""
 imageUrl: ""
 ---
 

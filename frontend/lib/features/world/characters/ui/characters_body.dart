@@ -246,6 +246,7 @@ class _CharactersBodyState extends State<CharactersBody> {
                 final raceName =
                     record.raceId == null ? null : _raceNames[record.raceId];
                 final parts = <String>[
+                  if (record.aliases.isNotEmpty) record.aliases.join(', '),
                   if (raceName != null) raceName,
                   if (record.playerName.isNotEmpty) record.playerName,
                 ];

@@ -167,9 +167,9 @@ class _SimpleCardRichTextState extends State<SimpleCardRichText> {
     required bool isLast,
   }) {
     final gap = SizedBox(height: isLast ? 0 : 6 * widget.styleScale);
-    // Tables stay full-width (clear below the float). Quotes, embeds, and
-    // lists must shrink to the side column or findSpaceFor drops them under
-    // the overview and nothing wraps beside it.
+    // Tables stay full-width (clear below the float). Quotes/embeds shrink to
+    // the side column so they can sit beside the overview. Lists are
+    // WrappableText so they wrap beside the float and go full-width below it.
     if (block.isTable) {
       return [
         _blockWidget(context, block, bodyStyle, linkStyle),
@@ -259,8 +259,33 @@ class _SimpleCardRichTextState extends State<SimpleCardRichText> {
       );
     }
 
-    if (_bullet.hasMatch(line) || _ordered.hasMatch(line)) {
-      return null;
+    final bullet = _bullet.firstMatch(line);
+    if (bullet != null) {
+      final indent = bullet.group(1) ?? '';
+      final item = bullet.group(2) ?? '';
+      final pad = '  ' * (indent.replaceAll('\t', '  ').length ~/ 2);
+      return TextSpan(
+        style: bodyStyle,
+        children: [
+          TextSpan(text: '$pad• '),
+          ..._inlineSpans(item, bodyStyle, linkStyle),
+        ],
+      );
+    }
+
+    final ordered = _ordered.firstMatch(line);
+    if (ordered != null) {
+      final indent = ordered.group(1) ?? '';
+      final index = ordered.group(2) ?? '1';
+      final item = ordered.group(3) ?? '';
+      final pad = '  ' * (indent.replaceAll('\t', '  ').length ~/ 2);
+      return TextSpan(
+        style: bodyStyle,
+        children: [
+          TextSpan(text: '$pad$index. '),
+          ..._inlineSpans(item, bodyStyle, linkStyle),
+        ],
+      );
     }
 
     return TextSpan(

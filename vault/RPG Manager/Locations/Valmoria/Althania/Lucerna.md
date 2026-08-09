@@ -17,6 +17,8 @@ languages: "Ecclesiast in every office; Althan in every street"
 exports: "Decrees, warrants, printed scripture, relics, remissions, debt"
 imports: "Everything else"
 defenses: "The Cathedral Guard (3,000); double walls and a wet ditch; the fact that sacking it would damn you"
+history: ""
+mapNotes: ""
 imageUrl: ""
 ---
 

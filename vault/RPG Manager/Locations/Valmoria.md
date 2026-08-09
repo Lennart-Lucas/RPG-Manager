@@ -13,5 +13,7 @@ languages: ""
 exports: ""
 imports: ""
 defenses: ""
+history: ""
+mapNotes: ""
 ---
 

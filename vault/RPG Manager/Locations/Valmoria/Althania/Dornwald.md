@@ -16,6 +16,8 @@ languages: "None"
 exports: "Thorn charcoal and fringe timber, cut within sight of the stakes"
 imports: "None"
 defenses: "Nine march-posts, garrisoned; a boundary of iron stakes maintained since 572 AR"
+history: ""
+mapNotes: ""
 imageUrl: ""
 ---
 

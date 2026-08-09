@@ -14,6 +14,8 @@ languages: "Althan (vernacular). Ecclesiast, the High Tongue (liturgy, law, reco
 exports: "Silver, iron, black powder, printed scripture, wool, timber, sworn bands, relics and remissions"
 imports: "Grain, salt, saltpetre, wine, alum, dyes, southern spice"
 defenses: "No standing royal army. The levied Host of the sees, the Cathedral Guard of Lucerna, the sworn bands, the fortified abbeys of the marches — and, unmentioned, the Black Legion at Salvamont."
+history: ""
+mapNotes: ""
 imageUrl: ""
 ---
 

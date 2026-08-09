@@ -15,6 +15,8 @@ languages: "Althan; Ecclesiast in the abbey"
 exports: "Fen-physic, dried herbs, eel, reed, vellum, wool-fell"
 imports: "Grain, iron, salt"
 defenses: "None to speak of; the abbey's stone gatehouse; the water"
+history: ""
+mapNotes: ""
 imageUrl: ""
 ---
 

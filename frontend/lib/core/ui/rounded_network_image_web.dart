@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:web/web.dart' as web;
 
 Widget buildRoundedNetworkImage({
@@ -37,6 +40,35 @@ Widget buildRoundedFitWidthNetworkImage({
     loadingBuilder: loadingBuilder,
   );
 }
+
+// #region agent log
+void _agentLog({
+  required String hypothesisId,
+  required String location,
+  required String message,
+  required Map<String, Object?> data,
+}) {
+  http
+      .post(
+        Uri.parse(
+          'http://127.0.0.1:7277/ingest/6a76c2b7-0d0c-42f0-879f-b33f045ca01b',
+        ),
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Debug-Session-Id': '3f8c3c',
+        },
+        body: jsonEncode({
+          'sessionId': '3f8c3c',
+          'hypothesisId': hypothesisId,
+          'location': location,
+          'message': message,
+          'data': data,
+          'timestamp': DateTime.now().millisecondsSinceEpoch,
+        }),
+      )
+      .catchError((_) => http.Response('', 500));
+}
+// #endregion
 
 String _cssObjectFit(BoxFit fit) {
   return switch (fit) {
@@ -177,41 +209,82 @@ class _WebFitWidthRoundedImageState extends State<_WebFitWidthRoundedImage> {
     }
 
     final ratio = _aspectRatio ?? widget.placeholderAspectRatio;
-    return AspectRatio(
-      aspectRatio: ratio,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (_aspectRatio == null) widget.loadingBuilder(context),
-          HtmlElementView.fromTagName(
-            tagName: 'img',
-            onElementCreated: (element) {
-              final img = element as web.HTMLImageElement;
-              _styleImg(
-                img,
-                url: widget.url,
-                borderRadius: widget.borderRadius,
-                fit: BoxFit.cover,
-                alignment: Alignment.center,
-                heightAuto: false,
-              );
-              img.onLoad.listen((_) {
-                final w = img.naturalWidth;
-                final h = img.naturalHeight;
-                if (!mounted || w == 0 || h == 0) return;
-                final next = w / h;
-                if (_aspectRatio != next) {
-                  setState(() => _aspectRatio = next);
-                }
-              });
-              img.onError.listen((_) {
-                if (!mounted) return;
-                setState(() => _error = Exception('Failed to load image'));
-              });
-            },
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // #region agent log
+        _agentLog(
+          hypothesisId: 'B',
+          location: 'rounded_network_image_web.dart:fitWidth.build',
+          message: 'web fitWidth layout constraints',
+          data: {
+            'maxWidth': constraints.maxWidth,
+            'maxHeight': constraints.maxHeight,
+            'minWidth': constraints.minWidth,
+            'minHeight': constraints.minHeight,
+            'maxWidthFinite': constraints.maxWidth.isFinite,
+            'maxHeightFinite': constraints.maxHeight.isFinite,
+            'ratio': ratio,
+            'hasNaturalRatio': _aspectRatio != null,
+            'placeholderAspectRatio': widget.placeholderAspectRatio,
+            'computedHeightIfWidthKnown': constraints.maxWidth.isFinite
+                ? constraints.maxWidth / ratio
+                : null,
+            'urlHost': Uri.tryParse(widget.url)?.host,
+          },
+        );
+        // #endregion
+        return AspectRatio(
+          aspectRatio: ratio,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (_aspectRatio == null) widget.loadingBuilder(context),
+              HtmlElementView.fromTagName(
+                tagName: 'img',
+                onElementCreated: (element) {
+                  final img = element as web.HTMLImageElement;
+                  _styleImg(
+                    img,
+                    url: widget.url,
+                    borderRadius: widget.borderRadius,
+                    fit: BoxFit.cover,
+                    alignment: Alignment.center,
+                    heightAuto: false,
+                  );
+                  img.onLoad.listen((_) {
+                    final w = img.naturalWidth;
+                    final h = img.naturalHeight;
+                    // #region agent log
+                    _agentLog(
+                      hypothesisId: 'A',
+                      location: 'rounded_network_image_web.dart:onLoad',
+                      message: 'web image natural size',
+                      data: {
+                        'naturalWidth': w,
+                        'naturalHeight': h,
+                        'ratioWh': h == 0 ? null : w / h,
+                        'clientWidth': img.clientWidth,
+                        'clientHeight': img.clientHeight,
+                        'urlHost': Uri.tryParse(widget.url)?.host,
+                      },
+                    );
+                    // #endregion
+                    if (!mounted || w == 0 || h == 0) return;
+                    final next = w / h;
+                    if (_aspectRatio != next) {
+                      setState(() => _aspectRatio = next);
+                    }
+                  });
+                  img.onError.listen((_) {
+                    if (!mounted) return;
+                    setState(() => _error = Exception('Failed to load image'));
+                  });
+                },
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

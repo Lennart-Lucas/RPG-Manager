@@ -15,6 +15,8 @@ languages: "Althan"
 exports: "Charcoal, timber, pitch, ash-lye, silver-fir for gunstocks"
 imports: "Grain, salt, iron, silver wire"
 defenses: "Palisade and ditch; the chapter-house; forty billmen of the town levy; the argent hounds"
+history: ""
+mapNotes: ""
 imageUrl: ""
 ---
 

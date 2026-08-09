@@ -54,6 +54,7 @@ enum MtgColor {
 class CharacterRecord {
   const CharacterRecord({
     required this.name,
+    this.aliases = const [],
     this.raceId,
     this.mtgAlignment = const [],
     this.playerName = '',
@@ -63,6 +64,7 @@ class CharacterRecord {
   });
 
   final String name;
+  final List<String> aliases;
   final int? raceId;
   final List<MtgColor> mtgAlignment;
   final String playerName;
@@ -85,6 +87,7 @@ class CharacterRecord {
     }
     return CharacterRecord(
       name: payload['name'] as String? ?? name,
+      aliases: _parseAliases(payload['aliases']),
       raceId: (payload['raceId'] as num?)?.toInt(),
       mtgAlignment: colors,
       playerName: payload['playerName'] as String? ?? '',
@@ -96,6 +99,7 @@ class CharacterRecord {
 
   Map<String, dynamic> toJson() => {
         'name': name,
+        'aliases': aliases,
         'raceId': raceId,
         'mtgAlignment': [for (final c in mtgAlignment) c.apiValue],
         'playerName': playerName,
@@ -106,4 +110,28 @@ class CharacterRecord {
 
   String get descriptionPreview =>
       description.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+  bool matchesNameOrAlias(String query) {
+    final needle = query.trim().toLowerCase();
+    if (needle.isEmpty) return false;
+    if (name.trim().toLowerCase() == needle) return true;
+    for (final alias in aliases) {
+      if (alias.trim().toLowerCase() == needle) return true;
+    }
+    return false;
+  }
+
+  static List<String> _parseAliases(Object? raw) {
+    if (raw is! List) return const [];
+    final out = <String>[];
+    final seen = <String>{};
+    for (final entry in raw) {
+      final text = '$entry'.trim();
+      if (text.isEmpty) continue;
+      final key = text.toLowerCase();
+      if (!seen.add(key)) continue;
+      out.add(text);
+    }
+    return out;
+  }
 }

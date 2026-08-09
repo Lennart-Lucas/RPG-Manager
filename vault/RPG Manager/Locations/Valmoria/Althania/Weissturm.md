@@ -18,6 +18,8 @@ languages: "Althan; Ecclesiast; Deep-tongue at the gate-markets"
 exports: "Worked iron, dwarven steel, glass, licensed spellwork, warded goods"
 imports: "Grain, wool, timber, saltpetre, everything that grows"
 defenses: "The Tower; the Gate of Stone and its dwarven garrison; the Tower's own sanctioned casters; the mountain"
+history: ""
+mapNotes: ""
 imageUrl: ""
 ---
 

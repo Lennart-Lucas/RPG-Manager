@@ -16,6 +16,8 @@ languages: "Norcaine; trade-Althan in the Low Markets"
 exports: "Worked steel, glass, physic, cut gems, magecraft, mercenary companies"
 imports: "Grain, timber, human and orc bondsmen, Althanian paper and printed books"
 defenses: "Three curtain walls, the Dra'chon field army, house guards, and the whole population having trained since childhood"
+history: ""
+mapNotes: ""
 imageUrl: ""
 ---
 

@@ -10,10 +10,13 @@ seatId: 172
 memberIds: []
 parentId: null
 imageUrl: "https://drive.google.com/thumbnail?id=1-8vlpc1XPbgpwu4bIv2PcXmV_lpzYcGL&sz=w2000"
+mtgAlignment:
+  - "W"
+  - "U"
+  - "B"
 ---
 
-> *In the beginning there was One, and the One was whole.*
-> *Then came the knives, and the knives were called gods.*
+> *In the beginning there was One, and the One was whole. Then came the knives, and the knives were called gods.*
 > — The Concordance, Book of the Voice, i.1
 
 The Church of Orzhova is the sole lawful faith of [[RPG Manager/Locations/Valmoria/Althania]] and, in every sense that matters, its government. It has stood since the Rising and has never once admitted to changing. Its seat is [[RPG Manager/Locations/Valmoria/Althania/Lucerna]], and its writ reaches every parish register, every oath sworn, and every hearth in the realm.

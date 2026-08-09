@@ -17,6 +17,8 @@ languages: "Althan; Ecclesiast"
 exports: "Silver, relics, remissions, pilgrim wares, indulgenced bread"
 imports: "Grain, timber, iron, everything the hill does not grow"
 defenses: "Three walls up the hill; the see's levy (2,400); the Basilica precinct guard; and the thing in the Deep Workings"
+history: ""
+mapNotes: ""
 imageUrl: ""
 ---
 
