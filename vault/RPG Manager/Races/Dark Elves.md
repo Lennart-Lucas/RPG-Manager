@@ -2,6 +2,12 @@
 rpg_manager_id: 194
 rpg_manager_kind: "races"
 name: "Dark Elves"
+aliases: []
+mtgAlignment:
+  - "W"
+  - "U"
+  - "B"
+imageUrl: ""
 ---
 
 > *The weak are not despised. The weak are fed, housed, defended and buried. That is what they are for.*

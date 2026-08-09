@@ -17,7 +17,7 @@ imageUrl: ""
 > *A house is not your family. A house is what your family agreed to become.*
 > — opening line of the Ledger of Alignment, House Archon
 
-A dark elf is his house before he is anything else, and the house is older than he is and will outlast him. It is a bloodline, an estate, a body of tutors, an academy, a set of trade privileges and a private army, all held together by a speciality it has been refining for centuries. [[Shall]] holds three great houses and something over forty lesser ones, and the arrangement between them is the whole of dark elf politics.
+A dark elf is his house before he is anything else, and the house is older than he is and will outlast him. It is a bloodline, an estate, a body of tutors, an academy, a set of trade privileges and a private army, all held together by a speciality it has been refining for centuries. [[RPG Manager/Locations/Valmoria/Shall]] holds three great houses and something over forty lesser ones, and the arrangement between them is the whole of dark elf politics.
 
 ## The Three Great Houses
 
@@ -29,7 +29,7 @@ Its Dreadlord is **Vashen Dra'chon**, who fought the Second Dark War as a young 
 
 **House Archon** holds the arts of the mind: magecraft first, and beneath it law, medicine, astronomy, and the keeping of records. Its academy is the finest in the known world by the admission of everyone except the high elves, and its physicians understand the living body in ways that no Althanian surgeon would survive being shown. Archon endows the temples most heavily and interferes with them least.
 
-Its Dreadlord is **Ilvren Archon**, who is nine hundred and forty years old and has outlived four rivals without ever being accused of anything. He is also, and this is the fact that unsettles the other two houses, the war party. A house of scholars has spent three years declining to disown the raiding in the Low Pass foothills and pressing openly for the pass to be reopened to the sword, and it has never given a reason that anybody finds sufficient. Archon's own records of the campaigns of 494 and 773 are complete, meticulous, and silent on precisely one subject, which is what lies beneath the hill at [[Salvamont]]. Ilvren does not appear to want Althania. He appears to want the hill.
+Its Dreadlord is **Ilvren Archon**, who is nine hundred and forty years old and has outlived four rivals without ever being accused of anything. He is also, and this is the fact that unsettles the other two houses, the war party. A house of scholars has spent three years declining to disown the raiding in the Low Pass foothills and pressing openly for the pass to be reopened to the sword, and it has never given a reason that anybody finds sufficient. Archon's own records of the campaigns of 494 and 773 are complete, meticulous, and silent on precisely one subject, which is what lies beneath the hill at [[RPG Manager/Locations/Valmoria/Althania/Salvamont]]. Ilvren does not appear to want Althania. He appears to want the hill.
 
 **House Sinistra** holds what is done quietly: intelligence, poison, negotiation, the placing of agents, and the long patient work of knowing things. Officially its agents are men. In practice its network is very largely the women of the city's courts, who cannot be listed on any roll and are therefore the only assets in Shall that no rival house can audit. Its Dreadlord is **Corvath Sinistra**, and very little else about him is reliably known, including whether he is currently in the city.
 
