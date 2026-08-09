@@ -26,7 +26,7 @@ Castavarans call them **los Perdurantes**, those who endure. Althanian doctrine,
 
 A Perdurante does not age and does not sicken. Time takes nothing from him, and neither does hunger in any sense a mortal would recognise, though what he does need he needs reliably and cannot postpone indefinitely.
 
-The sun diminishes rather than destroys. A Perdurante in full daylight is slow, weak and in evident pain, and can function through it for perhaps an hour if the matter is urgent enough. This is why the court of [[RPG Manager/Locations/Valmoria/Castavar/Torrazon]] runs from vespers to dawn, why Castavaran fleets rig deck awnings that no other navy bothers with, and why Castavaran armies have their settled and unnerving reputation for arriving at night.
+Sunlight burns them. Direct sun raises blisters on exposed skin inside a minute and chars it within several, and a Perdurante caught in the open at noon will die of it, slowly enough to understand what is happening and to run if there is anywhere to run to. Deep shade and heavy overcast are survivable and painful. Nothing about it can be trained away or endured out of, and no grandee has ever found a working that prevents it, though four centuries of money have gone looking. This is why the court of [[RPG Manager/Locations/Valmoria/Castavar/Torrazon]] runs from vespers to dawn, why Castavaran fleets rig deck awnings that no other navy bothers with, and why Castavaran armies have their settled and unnerving reputation for arriving at night.
 
 Everything else about them can be killed. Steel does it, drowning does it, and a determined company of ordinary soldiers has managed it more than once. They are not invulnerable and have never claimed to be. They are simply never in a hurry, and they have had a very long time to become good at things.
 
@@ -68,6 +68,14 @@ Precedence between houses is settled by age of blood rather than age of title, s
 ## In the Field
 
 Castavaran armies fight at night, and the whole doctrine of the tercios is built around it. Columns march from dusk, engage before dawn, and dig in through the day under awnings while the mortal ranks stand the watches. A grandee commands from the front because he can afford to and because it is expected of him, and Castavaran officers have a casualty rate that no other realm would tolerate and that Castavar considers the point.
+
+When a column must move by day, it brings its own darkness. Every tercio carries a company of **nubleros**, mortal weather-workers who draw cloud down over the line of march and hold it there. The cloud goes where the column goes. It stops when the column stops. It has an edge, and the edge is ragged, and it moves at the pace of marching men across country that is otherwise in full sun.
+
+The nubleros are drawn from the same passed-over noble children as everything else in Castavar, they work in rotating shifts of four, and the work destroys them on a timetable the crown has costed precisely. A first-rank company gets ten years out of a nublero and pensions what is left of him generously.
+
+What this buys is the ability to march in daylight. What it costs, beyond the men, is surprise. A Castavaran column under cloud can be seen from twenty miles off by anybody who thinks to look at the sky, and what they see is a black smear crawling across a bright country with nothing beneath it that they can make out. The peoples of southern [[Wessarin]] learned to read it within a season of the first landings and have their own word for it, which the Adelantados' despatches record and do not translate.
+
+The obvious weakness is the one every enemy eventually finds. Kill the nubleros and the cloud thins from the edges inward, and the men holding the flanks of a Castavaran line are the first to learn what their officers actually are.
 
 Against Althanian troops this is a curiosity. Against the peoples of southern Wessarin it has been something else, and the Adelantados' despatches are careful about the difference.
 

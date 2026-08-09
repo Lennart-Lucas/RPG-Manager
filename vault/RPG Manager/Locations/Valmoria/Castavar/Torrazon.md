@@ -26,6 +26,8 @@ Nothing about the arrangement is written down and nobody in Torrazon finds it re
 
 The consequence is a city with two entirely separate populations that overlap for about an hour at each end of the day. Mortals who serve the court sleep through the afternoon and are marked out by it. There is a word in Castavaro for somebody who keeps evening hours without being noble, and it is not a compliment, and the people it describes use it about themselves.
 
+The upper town is roofed. Every street a grandee might need to use between the Alcázar and the cathedral runs under tile or awning, the covered ways are maintained at crown expense, and a gap in them is a municipal emergency that the Corregidor is expected to close within the day. Sunlight does not inconvenience a Perdurante. It burns him, and the architecture of the upper town is an entire city built around that one fact.
+
 Lamps are the city's second industry after shipping. Torrazon burns oil on a scale that visitors from [[RPG Manager/Locations/Valmoria/Althania/Lucerna]] find frankly wasteful, and the lamplighters' confraternity is old, rich, and entitled to a seat at the Corregidor's table.
 
 ## The Shape of It
@@ -56,4 +58,4 @@ The Wessarin fleet came in three weeks late this season and two hulls short, and
 
 The Cortes has begun sitting more often than its custom requires. The stated business is the southern settlements. Nobody who has attended has repeated what was actually discussed, which in a chamber of forty houses is itself unusual enough to be worth noting.
 
-And in the cathedral, the Primate has commissioned a new set of glass for the seaward transept, at enormous expense, to a design nobody has been shown.
+And in the cathedral, the Primate has commissioned a new set of glass for the seaward transept, at enormous expense, to a design nobody has been shown. The transept it will light is the one the covered ways do not reach.

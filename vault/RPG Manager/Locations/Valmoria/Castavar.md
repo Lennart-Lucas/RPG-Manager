@@ -60,7 +60,7 @@ The peninsula has never been conquered whole. It has been conquered in pieces, r
 
 The Queen is a vampire. So is every grandee who holds a seat in the Cortes, and so are the heads of all but four of the forty houses that matter.
 
-The Castavarans call them **los Perdurantes**, those who endure. They do not die of age, they take no harm from time, and they can be killed by anything that would kill a determined and very old soldier. They are diminished by the sun rather than destroyed by it, which is why the court keeps its hours from vespers to dawn and why Castavaran armies have a settled reputation for marching in the dark.
+The Castavarans call them **los Perdurantes**, those who endure. They do not die of age, they take no harm from time, and they can be killed by anything that would kill a determined and very old soldier. Sunlight is the exception that shapes everything else about them. Direct sun burns a Perdurante, blistering exposed skin within a minute and killing outright over an afternoon, and no amount of money or working has ever been found to prevent it. This is why the court keeps its hours from vespers to dawn, why the upper streets of [[Torrazon]] are roofed, and why a Castavaran army that must move in daylight brings its own weather with it.
 
 What no Castavaran will discuss with a foreigner is where any of it came from. The blood is older than the Church, older than the Rising, and by the crown's own account older than the peninsula's first written record. Three separate origin accounts circulate among the houses, they do not agree with one another, and the Queen has outlived every scholar who tried to reconcile them. Whether she knows the answer is a question that has never been put to her twice by the same person.
 
@@ -111,6 +111,8 @@ The practical consequences run downward from there. Althanian clergy and nobilit
 Castavaran hulls found [[RPG Manager/Locations/Wessarin]], and Castavaran adelantados have been settling its southern reach ever since, while Althania works the north. The arrangement has held. Both crowns wanted it to, and the distance between the two frontiers was for a long time greater than either could cross.
 
 The southern settlements are held by conquistador companies under grandee commission, and they campaign the way Castavar has always campaigned, which is to say at night. **Adelantado Beltrán Ordoño Cifuentes de Almazar** holds the largest of them and has not returned to the peninsula in eleven years.
+
+When they must move by day they bring their own darkness with them. Every company carries its **nubleros**, mortal weather-workers who pull cloud down over the column and hold it there for as long as they last, and the cloud goes where the column goes and stops when it stops. From a distance a Castavaran advance in daylight is a black smear crawling across a bright country, with a hard ragged edge and nothing visible underneath it, and it can be seen from twenty miles by anyone who thinks to look up. The peoples of the southern reach learned to read that sky within a season of the first landings.
 
 The distance is closing now. Survey parties from the two frontiers met for the first time three seasons ago, and both sent home reports that their governments have declined to publish. Althanian settlers in the north have begun repeating a particular observation about the southern companies, which is that no Copero's estate is within three thousand miles of them and that the companies do not appear to be suffering for it.
 
