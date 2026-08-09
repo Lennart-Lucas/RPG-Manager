@@ -15,6 +15,10 @@ class ExtractApi {
         '${AppConfig.apiBaseUrl}${AppConfig.apiPrefix}/extract/jobs',
       );
 
+  Uri get _processClassUri => Uri.parse(
+        '${AppConfig.apiBaseUrl}${AppConfig.apiPrefix}/extract/process-class',
+      );
+
   Future<ExtractJobResult> createJob({
     required String accessToken,
     required String anthropicApiKey,
@@ -50,6 +54,46 @@ class ExtractApi {
       throw AuthApiException('Unexpected extract response');
     }
     return ExtractJobResult.fromJson(body);
+  }
+
+  /// Process class/subclass form JSON with Claude. Returns updated payload map.
+  Future<Map<String, dynamic>> processClass({
+    required String accessToken,
+    required String anthropicApiKey,
+    required String kind,
+    required String prompt,
+    required Map<String, dynamic> current,
+    Map<String, dynamic>? definition,
+  }) async {
+    final response = await _client.post(
+      _processClassUri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $accessToken',
+        'X-Anthropic-Api-Key': anthropicApiKey,
+      },
+      body: jsonEncode({
+        'kind': kind,
+        'prompt': prompt,
+        'current': current,
+        'definition': ?definition,
+      }),
+    );
+    if (response.statusCode != 200) {
+      throw AuthApiException(
+        _errorMessage(response),
+        statusCode: response.statusCode,
+      );
+    }
+    final body = jsonDecode(response.body);
+    if (body is! Map<String, dynamic>) {
+      throw AuthApiException('Unexpected process-class response');
+    }
+    final payload = body['payload'];
+    if (payload is! Map<String, dynamic>) {
+      throw AuthApiException('Unexpected process-class payload');
+    }
+    return payload;
   }
 
   String _errorMessage(http.Response response) {

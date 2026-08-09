@@ -85,6 +85,7 @@ class _SubclassDetailPageState extends State<SubclassDetailPage> {
       if (!mounted) return;
       final updatedRecord = await showSubclassFormSheet(
         context,
+        auth: widget.auth,
         initial: _record,
         parentClasses: _parentClasses,
         searchLinks: (q) => searchCatalogLinkTargets(_api, token, q),

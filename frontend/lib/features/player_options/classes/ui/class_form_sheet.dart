@@ -3,13 +3,19 @@ import 'package:flutter/services.dart';
 
 import '../../../../core/ui/markdown_form_field.dart';
 import '../../../../core/ui/multi_picklist_sheet.dart';
+import '../../../auth/data/auth_api.dart';
+import '../../../auth/state/auth_controller.dart';
+import '../../../dm_tools/pdf_extract/data/anthropic_key_store.dart';
+import '../../../dm_tools/pdf_extract/data/extract_api.dart';
 import '../../../dm_tools/resources/ui/resource_form_helpers.dart';
 import '../../../world/ui/world_form_helpers.dart';
 import '../data/class_model.dart';
+import 'class_ai_process_pane.dart';
 import 'class_features_editor.dart';
 
 Future<ClassRecord?> showClassFormSheet(
   BuildContext context, {
+  required AuthController auth,
   ClassRecord? initial,
   List<String> skillNames = const [],
   CatalogLinkSearch? searchLinks,
@@ -20,6 +26,7 @@ Future<ClassRecord?> showClassFormSheet(
     context,
     title: editing ? 'Edit class' : 'New class',
     child: _ClassForm(
+      auth: auth,
       initial: initial,
       skillNames: skillNames,
       searchLinks: searchLinks,
@@ -30,12 +37,14 @@ Future<ClassRecord?> showClassFormSheet(
 
 class _ClassForm extends StatefulWidget {
   const _ClassForm({
+    required this.auth,
     this.initial,
     required this.skillNames,
     this.searchLinks,
     this.loadAutoLinkTargets,
   });
 
+  final AuthController auth;
   final ClassRecord? initial;
   final List<String> skillNames;
   final CatalogLinkSearch? searchLinks;
@@ -45,8 +54,11 @@ class _ClassForm extends StatefulWidget {
   State<_ClassForm> createState() => _ClassFormState();
 }
 
-class _ClassFormState extends State<_ClassForm> {
+class _ClassFormState extends State<_ClassForm>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
+  final _extractApi = ExtractApi();
+  final _keyStore = AnthropicKeyStore();
   late final _nameController =
       TextEditingController(text: widget.initial?.name ?? '');
   late final _descriptionController =
@@ -56,6 +68,7 @@ class _ClassFormState extends State<_ClassForm> {
   late final _skillCountController = TextEditingController(
     text: '${widget.initial?.skillChoiceCount ?? 0}',
   );
+  final _processController = TextEditingController();
 
   late Set<String> _primaryAbilities = {
     ...?widget.initial?.primaryAbilities,
@@ -83,12 +96,28 @@ class _ClassFormState extends State<_ClassForm> {
     ...?widget.initial?.spellcasting?.slotsByLevel,
   };
 
+  TabController? _tabController;
+  bool _processing = false;
+  int _formEpoch = 0;
+
+  bool get _showProcessTab => widget.auth.user?.aiIntegration == true;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_showProcessTab) {
+      _tabController = TabController(length: 2, vsync: this);
+    }
+  }
+
   @override
   void dispose() {
+    _tabController?.dispose();
     _nameController.dispose();
     _descriptionController.dispose();
     _hitDieController.dispose();
     _skillCountController.dispose();
+    _processController.dispose();
     super.dispose();
   }
 
@@ -96,9 +125,7 @@ class _ClassFormState extends State<_ClassForm> {
     return groupClassFeaturesByLevel(features);
   }
 
-  void _submit() {
-    final form = _formKey.currentState;
-    if (form == null || !form.validate()) return;
+  ClassRecord _snapshot() {
     final skillCount = int.tryParse(_skillCountController.text.trim()) ?? 0;
     SpellcastingInfo? casting;
     if (_hasSpellcasting) {
@@ -111,30 +138,102 @@ class _ClassFormState extends State<_ClassForm> {
         preparesSpells: _preparesSpells,
       );
     }
-    Navigator.pop(
-      context,
-      ClassRecord(
-        name: _nameController.text.trim(),
-        description: _descriptionController.text.trim(),
-        hitDie: _hitDieController.text.trim().isEmpty
-            ? 'd8'
-            : _hitDieController.text.trim(),
-        primaryAbilities: kClassAbilityLabels
-            .where(_primaryAbilities.contains)
-            .toList(),
-        savingThrowProficiencies:
-            kClassAbilityLabels.where(_savingThrows.contains).toList(),
-        armorProficiencies: _armor,
-        weaponProficiencies: _weapons,
-        toolProficiencies: _tools,
-        skillChoiceCount: skillCount.clamp(0, 20),
-        skillChoices: _skillChoices,
-        featuresByLevel: _groupFeatures(_features),
-        subclassChosenAtLevel: _subclassChosenAtLevel,
-        spellcasting: casting,
-        isCaster: _hasSpellcasting,
-      ),
+    return ClassRecord(
+      name: _nameController.text.trim(),
+      description: _descriptionController.text.trim(),
+      hitDie: _hitDieController.text.trim().isEmpty
+          ? 'd8'
+          : _hitDieController.text.trim(),
+      primaryAbilities:
+          kClassAbilityLabels.where(_primaryAbilities.contains).toList(),
+      savingThrowProficiencies:
+          kClassAbilityLabels.where(_savingThrows.contains).toList(),
+      armorProficiencies: _armor,
+      weaponProficiencies: _weapons,
+      toolProficiencies: _tools,
+      skillChoiceCount: skillCount.clamp(0, 20),
+      skillChoices: _skillChoices,
+      featuresByLevel: _groupFeatures(_features),
+      subclassChosenAtLevel: _subclassChosenAtLevel,
+      spellcasting: casting,
+      isCaster: _hasSpellcasting,
     );
+  }
+
+  void _applyRecord(ClassRecord record) {
+    _nameController.text = record.name;
+    _descriptionController.text = record.description;
+    _hitDieController.text = record.hitDie;
+    _skillCountController.text = '${record.skillChoiceCount}';
+    setState(() {
+      _formEpoch++;
+      _primaryAbilities = {...record.primaryAbilities};
+      _savingThrows = {...record.savingThrowProficiencies};
+      _armor = [...record.armorProficiencies];
+      _weapons = [...record.weaponProficiencies];
+      _tools = [...record.toolProficiencies];
+      _skillChoices = [...record.skillChoices];
+      _features = flattenClassFeaturesByLevel(record.featuresByLevel);
+      _subclassChosenAtLevel = record.subclassChosenAtLevel.clamp(1, 20);
+      _hasSpellcasting = record.isCaster;
+      _castAbility = record.spellcasting?.ability ?? 'INT';
+      _castType = record.spellcasting?.type ?? SpellcastingType.full;
+      _preparesSpells = record.spellcasting?.preparesSpells ?? true;
+      _slotsByLevel = {...?record.spellcasting?.slotsByLevel};
+    });
+  }
+
+  Future<void> _process() async {
+    final prompt = _processController.text.trim();
+    if (prompt.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a prompt or paste source text')),
+      );
+      return;
+    }
+    final apiKey = (await _keyStore.read())?.trim() ?? '';
+    if (apiKey.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Add your Anthropic API key in Preferences.'),
+        ),
+      );
+      return;
+    }
+    setState(() => _processing = true);
+    try {
+      final token = await widget.auth.requireAccessToken();
+      if (token == null) return;
+      final payload = await _extractApi.processClass(
+        accessToken: token,
+        anthropicApiKey: apiKey,
+        kind: 'classes',
+        prompt: prompt,
+        current: _snapshot().toJson(),
+      );
+      if (!mounted) return;
+      _applyRecord(ClassRecord.fromJson(payload));
+      _tabController?.animateTo(0);
+    } on AuthApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not process class')),
+      );
+    } finally {
+      if (mounted) setState(() => _processing = false);
+    }
+  }
+
+  void _submit() {
+    final form = _formKey.currentState;
+    if (form == null || !form.validate()) return;
+    Navigator.pop(context, _snapshot());
   }
 
   Future<void> _pickSkills() async {
@@ -165,12 +264,12 @@ class _ClassFormState extends State<_ClassForm> {
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildEditFields(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return Form(
       key: _formKey,
       child: Column(
+        key: ValueKey('class-edit-$_formEpoch'),
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -356,6 +455,40 @@ class _ClassFormState extends State<_ClassForm> {
           ),
         ],
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_showProcessTab || _tabController == null) {
+      return _buildEditFields(context);
+    }
+    return AnimatedBuilder(
+      animation: _tabController!,
+      builder: (context, _) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TabBar(
+              controller: _tabController,
+              tabs: const [
+                Tab(text: 'Edit'),
+                Tab(text: 'Process'),
+              ],
+            ),
+            const SizedBox(height: ResourceFormStyles.fieldSpacing),
+            if (_tabController!.index == 0)
+              _buildEditFields(context)
+            else
+              ClassAiProcessPane(
+                controller: _processController,
+                processing: _processing,
+                onProcess: _process,
+              ),
+          ],
+        );
+      },
     );
   }
 }

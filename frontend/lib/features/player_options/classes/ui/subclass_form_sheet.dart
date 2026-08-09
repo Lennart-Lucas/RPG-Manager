@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/ui/markdown_form_field.dart';
+import '../../../auth/data/auth_api.dart';
+import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_models.dart';
+import '../../../dm_tools/pdf_extract/data/anthropic_key_store.dart';
+import '../../../dm_tools/pdf_extract/data/extract_api.dart';
 import '../../../dm_tools/resources/ui/resource_form_helpers.dart';
 import '../data/class_model.dart';
 import '../data/subclass_model.dart';
+import 'class_ai_process_pane.dart';
 import 'class_features_editor.dart';
 
 Future<SubclassRecord?> showSubclassFormSheet(
   BuildContext context, {
+  required AuthController auth,
   SubclassRecord? initial,
   required List<CatalogItem> parentClasses,
   int? preferredParentClassId,
@@ -20,6 +26,7 @@ Future<SubclassRecord?> showSubclassFormSheet(
     context,
     title: editing ? 'Edit subclass' : 'New subclass',
     child: _SubclassForm(
+      auth: auth,
       initial: initial,
       parentClasses: parentClasses,
       preferredParentClassId: preferredParentClassId,
@@ -31,6 +38,7 @@ Future<SubclassRecord?> showSubclassFormSheet(
 
 class _SubclassForm extends StatefulWidget {
   const _SubclassForm({
+    required this.auth,
     this.initial,
     required this.parentClasses,
     this.preferredParentClassId,
@@ -38,6 +46,7 @@ class _SubclassForm extends StatefulWidget {
     this.loadAutoLinkTargets,
   });
 
+  final AuthController auth;
   final SubclassRecord? initial;
   final List<CatalogItem> parentClasses;
   final int? preferredParentClassId;
@@ -48,12 +57,16 @@ class _SubclassForm extends StatefulWidget {
   State<_SubclassForm> createState() => _SubclassFormState();
 }
 
-class _SubclassFormState extends State<_SubclassForm> {
+class _SubclassFormState extends State<_SubclassForm>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
+  final _extractApi = ExtractApi();
+  final _keyStore = AnthropicKeyStore();
   late final _nameController =
       TextEditingController(text: widget.initial?.name ?? '');
   late final _descriptionController =
       TextEditingController(text: widget.initial?.description ?? '');
+  final _processController = TextEditingController();
   late int? _parentClassId = widget.initial?.parentClassId != null &&
           widget.initial!.parentClassId > 0
       ? widget.initial!.parentClassId
@@ -62,6 +75,20 @@ class _SubclassFormState extends State<_SubclassForm> {
     widget.initial?.featuresByLevel ?? const {},
     minLevel: _minFeatureLevelFor(_parentClassId),
   );
+
+  TabController? _tabController;
+  bool _processing = false;
+  int _formEpoch = 0;
+
+  bool get _showProcessTab => widget.auth.user?.aiIntegration == true;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_showProcessTab) {
+      _tabController = TabController(length: 2, vsync: this);
+    }
+  }
 
   int _minFeatureLevelFor(int? parentClassId) {
     if (parentClassId == null || parentClassId <= 0) return 1;
@@ -88,39 +115,133 @@ class _SubclassFormState extends State<_SubclassForm> {
     });
   }
 
+  Map<String, dynamic>? _parentDefinition() {
+    final parentId = _parentClassId;
+    if (parentId == null || parentId <= 0) return null;
+    for (final parent in widget.parentClasses) {
+      if (parent.id != parentId) continue;
+      return ClassRecord.fromCatalogPayload(
+        name: parent.name,
+        payload: parent.payload,
+      ).toJson();
+    }
+    return null;
+  }
+
+  SubclassRecord? _snapshotOrNull() {
+    final parentId = _parentClassId;
+    if (parentId == null || parentId <= 0) return null;
+    return SubclassRecord(
+      name: _nameController.text.trim(),
+      parentClassId: parentId,
+      description: _descriptionController.text.trim(),
+      featuresByLevel: groupClassFeaturesByLevel(
+        _features,
+        minLevel: _minFeatureLevel,
+      ),
+    );
+  }
+
+  void _applyRecord(SubclassRecord record) {
+    final minLevel = _minFeatureLevelFor(
+      record.parentClassId > 0 ? record.parentClassId : _parentClassId,
+    );
+    _nameController.text = record.name;
+    _descriptionController.text = record.description;
+    setState(() {
+      _formEpoch++;
+      if (record.parentClassId > 0) {
+        _parentClassId = record.parentClassId;
+      }
+      _features = flattenClassFeaturesByLevel(
+        record.featuresByLevel,
+        minLevel: minLevel,
+      );
+    });
+  }
+
+  Future<void> _process() async {
+    final prompt = _processController.text.trim();
+    if (prompt.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a prompt or paste source text')),
+      );
+      return;
+    }
+    final snapshot = _snapshotOrNull();
+    if (snapshot == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Select a parent class first')),
+      );
+      return;
+    }
+    final apiKey = (await _keyStore.read())?.trim() ?? '';
+    if (apiKey.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Add your Anthropic API key in Preferences.'),
+        ),
+      );
+      return;
+    }
+    setState(() => _processing = true);
+    try {
+      final token = await widget.auth.requireAccessToken();
+      if (token == null) return;
+      final payload = await _extractApi.processClass(
+        accessToken: token,
+        anthropicApiKey: apiKey,
+        kind: 'subclasses',
+        prompt: prompt,
+        current: snapshot.toJson(),
+        definition: _parentDefinition(),
+      );
+      if (!mounted) return;
+      final applied = SubclassRecord.fromJson({
+        ...payload,
+        'parentClassId': payload['parentClassId'] ?? snapshot.parentClassId,
+      });
+      _applyRecord(applied);
+      _tabController?.animateTo(0);
+    } on AuthApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not process subclass')),
+      );
+    } finally {
+      if (mounted) setState(() => _processing = false);
+    }
+  }
+
   @override
   void dispose() {
+    _tabController?.dispose();
     _nameController.dispose();
     _descriptionController.dispose();
+    _processController.dispose();
     super.dispose();
   }
 
   void _submit() {
     final form = _formKey.currentState;
     if (form == null || !form.validate()) return;
-    final parentId = _parentClassId;
-    if (parentId == null || parentId <= 0) {
+    final record = _snapshotOrNull();
+    if (record == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Select a parent class')),
       );
       return;
     }
-    Navigator.pop(
-      context,
-      SubclassRecord(
-        name: _nameController.text.trim(),
-        parentClassId: parentId,
-        description: _descriptionController.text.trim(),
-        featuresByLevel: groupClassFeaturesByLevel(
-          _features,
-          minLevel: _minFeatureLevel,
-        ),
-      ),
-    );
+    Navigator.pop(context, record);
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildEditFields(BuildContext context) {
     final parents = [...widget.parentClasses]
       ..sort(
         (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
@@ -129,6 +250,7 @@ class _SubclassFormState extends State<_SubclassForm> {
     return Form(
       key: _formKey,
       child: Column(
+        key: ValueKey('subclass-edit-$_formEpoch'),
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -197,6 +319,40 @@ class _SubclassFormState extends State<_SubclassForm> {
           ),
         ],
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_showProcessTab || _tabController == null) {
+      return _buildEditFields(context);
+    }
+    return AnimatedBuilder(
+      animation: _tabController!,
+      builder: (context, _) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TabBar(
+              controller: _tabController,
+              tabs: const [
+                Tab(text: 'Edit'),
+                Tab(text: 'Process'),
+              ],
+            ),
+            const SizedBox(height: ResourceFormStyles.fieldSpacing),
+            if (_tabController!.index == 0)
+              _buildEditFields(context)
+            else
+              ClassAiProcessPane(
+                controller: _processController,
+                processing: _processing,
+                onProcess: _process,
+              ),
+          ],
+        );
+      },
     );
   }
 }

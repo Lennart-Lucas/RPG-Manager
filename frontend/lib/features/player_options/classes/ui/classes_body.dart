@@ -143,6 +143,7 @@ class _ClassesBodyState extends State<ClassesBody> {
       if (token == null || !mounted) return;
       final record = await showClassFormSheet(
         context,
+        auth: widget.auth,
         skillNames: _skillNames,
         searchLinks: (q) => searchCatalogLinkTargets(_api, token, q),
         loadAutoLinkTargets: () =>

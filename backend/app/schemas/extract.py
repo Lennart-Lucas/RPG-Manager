@@ -55,3 +55,14 @@ class ExtractSectionSummary(BaseModel):
 class ExtractJobResponse(BaseModel):
     drafts: list[ExtractDraft]
     section_summaries: list[ExtractSectionSummary]
+
+
+class ProcessClassRequest(BaseModel):
+    kind: Literal["classes", "subclasses"]
+    prompt: str = Field(min_length=1, max_length=500_000)
+    current: dict[str, Any] = Field(default_factory=dict)
+    definition: dict[str, Any] | None = None
+
+
+class ProcessClassResponse(BaseModel):
+    payload: dict[str, Any]

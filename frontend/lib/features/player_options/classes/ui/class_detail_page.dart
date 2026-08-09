@@ -117,6 +117,7 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
       if (token == null || !mounted) return;
       final record = await showSubclassFormSheet(
         context,
+        auth: widget.auth,
         parentClasses: [_item],
         preferredParentClassId: _item.id,
         searchLinks: (q) => searchCatalogLinkTargets(_api, token, q),
@@ -158,6 +159,7 @@ class _ClassDetailPageState extends State<ClassDetailPage> {
       if (!mounted) return;
       final updatedRecord = await showClassFormSheet(
         context,
+        auth: widget.auth,
         initial: _record,
         skillNames: _skillNames,
         searchLinks: (q) => searchCatalogLinkTargets(_api, token, q),
