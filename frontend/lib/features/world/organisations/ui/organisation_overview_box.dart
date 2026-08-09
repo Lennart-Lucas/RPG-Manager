@@ -6,6 +6,8 @@ import '../../../catalog/data/catalog_models.dart';
 import '../../../catalog/ui/catalog_rich_text.dart';
 import '../../characters/data/character_model.dart';
 import '../../characters/ui/mtg_alignment_chips.dart';
+import '../../ui/overview_sections.dart';
+import '../../ui/overview_sections_view.dart';
 import '../../world_icons.dart';
 import '../data/organisation_model.dart';
 
@@ -194,6 +196,11 @@ class OrganisationOverviewBox extends StatelessWidget {
                   ),
                 ),
               ),
+            if (overviewSectionsNonEmpty(record.overviewSections))
+              OverviewSectionsView(
+                auth: auth,
+                sections: record.overviewSections,
+              ),
           ],
         ),
       ),
@@ -338,11 +345,14 @@ class _InfoRow extends StatelessWidget {
                         vertical: 10,
                       ),
                       child: Align(
-                        alignment: Alignment.centerLeft,
+                        alignment: row.isAlignment
+                            ? Alignment.center
+                            : Alignment.centerLeft,
                         child: row.isAlignment
                             ? MtgAlignmentChips(
                                 colors: row.alignmentColors!,
                                 size: 26,
+                                wrapAlignment: WrapAlignment.center,
                               )
                             : row.isMarkdown
                                 ? CatalogRichText(

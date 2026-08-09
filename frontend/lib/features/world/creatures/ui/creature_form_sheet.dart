@@ -17,6 +17,8 @@ import 'package:rpg_manager/features/world/creatures/data/scaler_math.dart';
 import 'package:rpg_manager/features/world/creatures/ui/attribute_assignment_panel.dart';
 import 'package:rpg_manager/features/world/creatures/ui/creature_statblock_view.dart';
 import 'package:rpg_manager/features/world/data/labeled_amount.dart';
+import 'package:rpg_manager/features/world/ui/overview_sections.dart';
+import 'package:rpg_manager/features/world/ui/overview_sections_editor.dart';
 import 'package:rpg_manager/features/world/ui/world_form_helpers.dart';
 
 Future<Creature?> showCreatureFormSheet(
@@ -207,6 +209,9 @@ class _CreatureFormState extends State<_CreatureForm> {
   ];
   late final CreatureOverrides _overrides =
       widget.initial?.overrides ?? const CreatureOverrides();
+  late List<OverviewSection> _overviewSections = [
+    ...?widget.initial?.overviewSections,
+  ];
 
   ScalerComputedStats get _formula => computeScalerStats(
         level: _level,
@@ -388,6 +393,7 @@ class _CreatureFormState extends State<_CreatureForm> {
       countermeasures: widget.initial?.countermeasures ?? const [],
       features: _features,
       overrides: _overrides,
+      overviewSections: normalizeOverviewSections(_overviewSections),
     ).copyWithResolvedDisplayLists(
       skillNames: _skillNames,
       languageNames: _languageNames,
@@ -971,6 +977,11 @@ class _CreatureFormState extends State<_CreatureForm> {
               ],
             ),
           ],
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          OverviewSectionsEditor(
+            sections: _overviewSections,
+            onChanged: (next) => setState(() => _overviewSections = next),
+          ),
           _section('Combat'),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,

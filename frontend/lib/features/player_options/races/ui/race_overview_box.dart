@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/ui/catalog_image_slot.dart';
+import '../../../auth/state/auth_controller.dart';
 import '../../../world/characters/ui/mtg_alignment_chips.dart';
+import '../../../world/ui/overview_sections.dart';
+import '../../../world/ui/overview_sections_view.dart';
 import '../../player_options_icons.dart';
 import '../data/race_model.dart';
 
@@ -9,9 +12,11 @@ import '../data/race_model.dart';
 class RaceOverviewBox extends StatelessWidget {
   const RaceOverviewBox({
     super.key,
+    required this.auth,
     required this.record,
   });
 
+  final AuthController auth;
   final RaceRecord record;
 
   static const double preferredWidth = 300;
@@ -30,6 +35,8 @@ class RaceOverviewBox extends StatelessWidget {
     final valueBg = lift(scheme.onSurface, 0.16);
     final borderColor = scheme.outline.withValues(alpha: 0.55);
     final hasAlignment = record.mtgAlignment.isNotEmpty;
+    final hasOverviewSections =
+        overviewSectionsNonEmpty(record.overviewSections);
 
     return Material(
       color: panelBg,
@@ -191,9 +198,12 @@ class RaceOverviewBox extends StatelessWidget {
                                       horizontal: 10,
                                       vertical: 10,
                                     ),
-                                    child: MtgAlignmentChips(
-                                      colors: record.mtgAlignment,
-                                      size: 26,
+                                    child: Center(
+                                      child: MtgAlignmentChips(
+                                        colors: record.mtgAlignment,
+                                        size: 26,
+                                        wrapAlignment: WrapAlignment.center,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -205,6 +215,11 @@ class RaceOverviewBox extends StatelessWidget {
                     ),
                   ),
                 ),
+              ),
+            if (hasOverviewSections)
+              OverviewSectionsView(
+                auth: auth,
+                sections: record.overviewSections,
               ),
           ],
         ),

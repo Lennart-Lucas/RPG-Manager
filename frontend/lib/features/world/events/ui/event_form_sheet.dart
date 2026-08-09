@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 
 import '../../../../core/ui/markdown_form_field.dart';
 import '../../../dm_tools/resources/ui/resource_form_helpers.dart';
+import '../../ui/overview_sections.dart';
+import '../../ui/overview_sections_editor.dart';
 import '../data/event_model.dart';
 
 Future<EventRecord?> showEventFormSheet(
@@ -50,6 +52,9 @@ class _EventFormState extends State<_EventForm> {
   late final _yearEndController = TextEditingController(
     text: widget.initial?.yearEnd?.toString() ?? '',
   );
+  late List<OverviewSection> _overviewSections = [
+    ...?widget.initial?.overviewSections,
+  ];
   String? _yearError;
 
   @override
@@ -87,6 +92,7 @@ class _EventFormState extends State<_EventForm> {
       description: _descriptionController.text.trim(),
       yearStart: _parseOptionalYear(startRaw),
       yearEnd: _parseOptionalYear(endRaw),
+      overviewSections: normalizeOverviewSections(_overviewSections),
     );
     final yearError = record.validateYears();
     if (yearError != null) {
@@ -192,6 +198,13 @@ class _EventFormState extends State<_EventForm> {
                   ),
             ),
           ],
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          OverviewSectionsEditor(
+            sections: _overviewSections,
+            onChanged: (next) => setState(() => _overviewSections = next),
+            searchLinks: widget.searchLinks,
+            loadAutoLinkTargets: widget.loadAutoLinkTargets,
+          ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
           MarkdownFormField(
             controller: _descriptionController,

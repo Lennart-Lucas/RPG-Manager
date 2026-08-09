@@ -6,6 +6,8 @@ import '../../../catalog/data/catalog_models.dart';
 import '../../../dm_tools/resources/ui/resource_form_helpers.dart';
 import '../../characters/data/character_model.dart';
 import '../../characters/ui/mtg_mana_symbol.dart';
+import '../../ui/overview_sections.dart';
+import '../../ui/overview_sections_editor.dart';
 import '../../ui/world_form_helpers.dart';
 import '../data/organisation_model.dart';
 
@@ -77,6 +79,9 @@ class _OrganisationFormState extends State<_OrganisationForm> {
   late int? _parentId = widget.initial?.parentId;
   late int? _seatId = widget.initial?.seatId;
   late Set<MtgColor> _alignment = {...?widget.initial?.mtgAlignment};
+  late List<OverviewSection> _overviewSections = [
+    ...?widget.initial?.overviewSections,
+  ];
 
   @override
   void dispose() {
@@ -137,6 +142,7 @@ class _OrganisationFormState extends State<_OrganisationForm> {
         parentId: _parentId,
         imageUrl: normalizeCatalogImageUrl(_imageUrlController.text),
         mtgAlignment: MtgColor.values.where(_alignment.contains).toList(),
+        overviewSections: normalizeOverviewSections(_overviewSections),
       ),
     );
   }
@@ -314,6 +320,13 @@ class _OrganisationFormState extends State<_OrganisationForm> {
             keyboardType: TextInputType.url,
             autocorrect: false,
             validator: validateOptionalHttpUrl,
+          ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          OverviewSectionsEditor(
+            sections: _overviewSections,
+            onChanged: (next) => setState(() => _overviewSections = next),
+            searchLinks: widget.searchLinks,
+            loadAutoLinkTargets: widget.loadAutoLinkTargets,
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
           MarkdownFormField(

@@ -1,5 +1,6 @@
 import '../../../catalog/data/catalog_models.dart';
 import '../../characters/data/character_model.dart';
+import '../../ui/overview_sections.dart';
 
 class OrganisationRecord {
   const OrganisationRecord({
@@ -14,6 +15,7 @@ class OrganisationRecord {
     this.parentId,
     this.imageUrl = '',
     this.mtgAlignment = const [],
+    this.overviewSections = const [],
   });
 
   final String name;
@@ -27,6 +29,7 @@ class OrganisationRecord {
   final int? parentId;
   final String imageUrl;
   final List<MtgColor> mtgAlignment;
+  final List<OverviewSection> overviewSections;
 
   factory OrganisationRecord.fromCatalogPayload({
     required String name,
@@ -61,6 +64,7 @@ class OrganisationRecord {
       parentId: (payload['parentId'] as num?)?.toInt(),
       imageUrl: payload['imageUrl'] as String? ?? '',
       mtgAlignment: colors,
+      overviewSections: parseOverviewSections(payload['overviewSections']),
     );
   }
 
@@ -76,6 +80,7 @@ class OrganisationRecord {
         'parentId': parentId,
         'imageUrl': imageUrl,
         'mtgAlignment': [for (final c in mtgAlignment) c.apiValue],
+        'overviewSections': overviewSectionsToJson(overviewSections),
       };
 
   String get descriptionPreview =>

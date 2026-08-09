@@ -9,6 +9,7 @@ import '../../../catalog/data/catalog_auto_link.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../../catalog/ui/catalog_rich_text.dart';
+import '../../ui/catalog_overview_box.dart';
 import '../../world_icons.dart';
 import '../data/lore_model.dart';
 import 'lore_form_sheet.dart';
@@ -158,17 +159,33 @@ class _LoreDetailPageState extends State<LoreDetailPage> {
           AnimatedBuilder(
             animation: widget.auth,
             builder: (context, _) {
+              final overview = CatalogOverviewBox(
+                auth: widget.auth,
+                title: record.name,
+                icon: lorePageIcon,
+                overviewSections: record.overviewSections,
+              );
               return ListView(
                 padding: const EdgeInsets.all(24),
                 children: [
                   WikiArticleLayout(
                     readableLineLength: widget.auth.readableLineLength,
                     title: Text(_item.name, style: textTheme.headlineSmall),
-                    bodyBuilder: (_) {
+                    overview: overview,
+                    overviewWidth: CatalogOverviewBox.preferredWidth,
+                    bodyBuilder: (floatOverview) {
                       if (record.description.trim().isNotEmpty) {
                         return CatalogRichText(
                           auth: widget.auth,
                           content: record.description,
+                          floatEnd: floatOverview,
+                          floatEndWidth: CatalogOverviewBox.preferredWidth,
+                        );
+                      }
+                      if (floatOverview != null) {
+                        return Align(
+                          alignment: Alignment.topRight,
+                          child: floatOverview,
                         );
                       }
                       return Text(

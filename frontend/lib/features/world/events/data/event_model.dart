@@ -1,9 +1,12 @@
+import '../../ui/overview_sections.dart';
+
 class EventRecord {
   const EventRecord({
     required this.name,
     this.description = '',
     this.yearStart,
     this.yearEnd,
+    this.overviewSections = const [],
   });
 
   final String name;
@@ -15,12 +18,15 @@ class EventRecord {
   /// Optional end year (AR). With [yearStart] = inclusive range.
   final int? yearEnd;
 
+  final List<OverviewSection> overviewSections;
+
   factory EventRecord.fromJson(Map<String, dynamic> json) {
     return EventRecord(
       name: json['name'] as String? ?? '',
       description: json['description'] as String? ?? '',
       yearStart: _parseYear(json['yearStart']),
       yearEnd: _parseYear(json['yearEnd']),
+      overviewSections: parseOverviewSections(json['overviewSections']),
     );
   }
 
@@ -36,6 +42,7 @@ class EventRecord {
       description: payload['description'] as String? ?? '',
       yearStart: _parseYear(payload['yearStart']),
       yearEnd: _parseYear(payload['yearEnd']),
+      overviewSections: parseOverviewSections(payload['overviewSections']),
     );
   }
 
@@ -44,6 +51,7 @@ class EventRecord {
         'description': description,
         'yearStart': yearStart,
         'yearEnd': yearEnd,
+        'overviewSections': overviewSectionsToJson(overviewSections),
       };
 
   /// Display label: `null`, `"1234 AR"`, or `"1234–1250 AR"`.

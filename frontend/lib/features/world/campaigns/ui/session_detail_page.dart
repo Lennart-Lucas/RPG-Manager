@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/offline/offline_marker.dart';
+import '../../../../core/ui/wiki_article_layout.dart';
 import '../../../auth/data/auth_api.dart';
 import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
@@ -9,6 +10,7 @@ import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../../catalog/ui/catalog_rich_text.dart';
 import '../../../catalog/ui/open_catalog_detail.dart';
+import '../../ui/catalog_overview_box.dart';
 import '../../world_icons.dart';
 import '../data/session_model.dart';
 import 'session_form_sheet.dart';
@@ -146,10 +148,78 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
     }
   }
 
+  Widget _articleTitle({
+    required CatalogItem? campaign,
+    required String dateLabel,
+  }) {
+    final textTheme = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(_item.name, style: textTheme.headlineSmall),
+        const SizedBox(height: 4),
+        if (campaign == null)
+          Text(
+            'Campaign unknown',
+            style: textTheme.titleMedium?.copyWith(
+              color: scheme.primary,
+              fontWeight: FontWeight.w600,
+            ),
+          )
+        else
+          InkWell(
+            onTap: () => openCatalogRecordDetail(
+              context: context,
+              auth: widget.auth,
+              kindApiValue: CatalogKind.campaigns.apiValue,
+              itemId: campaign.id,
+            ),
+            child: Text(
+              campaign.name,
+              style: textTheme.titleMedium?.copyWith(
+                color: scheme.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        const SizedBox(height: 8),
+        Text(
+          dateLabel,
+          style: textTheme.bodyMedium?.copyWith(
+            color: scheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _notes(SessionRecord record, {Widget? floatEnd}) {
+    final textTheme = Theme.of(context).textTheme;
+    if (record.description.trim().isEmpty) {
+      if (floatEnd != null) {
+        return Align(alignment: Alignment.topRight, child: floatEnd);
+      }
+      return const SizedBox.shrink();
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Notes', style: textTheme.titleSmall),
+        const SizedBox(height: 8),
+        CatalogRichText(
+          auth: widget.auth,
+          content: record.description,
+          floatEnd: floatEnd,
+          floatEndWidth: CatalogOverviewBox.preferredWidth,
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
     final record = _record;
     final campaign = _campaign;
     final local = record.parsedDateTime?.toLocal();
@@ -192,52 +262,45 @@ class _SessionDetailPageState extends State<SessionDetailPage> {
               ),
             ),
           ),
-          ListView(
-            padding: const EdgeInsets.all(24),
-            children: [
-              Text(_item.name, style: textTheme.headlineSmall),
-              const SizedBox(height: 4),
-              if (campaign == null)
-                Text(
-                  'Campaign unknown',
-                  style: textTheme.titleMedium?.copyWith(
-                    color: scheme.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                )
-              else
-                InkWell(
-                  onTap: () => openCatalogRecordDetail(
-                    context: context,
-                    auth: widget.auth,
-                    kindApiValue: CatalogKind.campaigns.apiValue,
-                    itemId: campaign.id,
-                  ),
-                  child: Text(
-                    campaign.name,
-                    style: textTheme.titleMedium?.copyWith(
-                      color: scheme.primary,
-                      fontWeight: FontWeight.w600,
+          AnimatedBuilder(
+            animation: widget.auth,
+            builder: (context, _) {
+              final overview = CatalogOverviewBox(
+                auth: widget.auth,
+                title: record.name,
+                icon: sessionsPageIcon,
+                overviewSections: record.overviewSections,
+                leading: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+                    child: Text(
+                      dateLabel,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
                     ),
                   ),
-                ),
-              const SizedBox(height: 8),
-              Text(
-                dateLabel,
-                style: textTheme.bodyMedium?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-              if (record.description.trim().isNotEmpty) ...[
-                const SizedBox(height: 20),
-                Text('Notes', style: textTheme.titleSmall),
-                const SizedBox(height: 8),
-                CatalogRichText(
-                  auth: widget.auth,
-                  content: record.description,
-                ),
-              ],
-            ],
+                ],
+              );
+              return ListView(
+                padding: const EdgeInsets.all(24),
+                children: [
+                  WikiArticleLayout(
+                    readableLineLength: widget.auth.readableLineLength,
+                    title: _articleTitle(
+                      campaign: campaign,
+                      dateLabel: dateLabel,
+                    ),
+                    overview: overview,
+                    overviewWidth: CatalogOverviewBox.preferredWidth,
+                    bodyBuilder: (floatOverview) => _notes(
+                      record,
+                      floatEnd: floatOverview,
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ],
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/offline/offline_marker.dart';
+import '../../../../core/ui/wiki_article_layout.dart';
 import '../../../auth/data/auth_api.dart';
 import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
@@ -8,6 +9,7 @@ import '../../../catalog/data/catalog_auto_link.dart';
 import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../../catalog/ui/catalog_rich_text.dart';
+import '../../ui/catalog_overview_box.dart';
 import '../../world_icons.dart';
 import '../data/event_model.dart';
 import 'event_form_sheet.dart';
@@ -113,10 +115,72 @@ class _EventDetailPageState extends State<EventDetailPage> {
     }
   }
 
+  Widget _articleTitle() {
+    final textTheme = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(_item.name, style: textTheme.headlineSmall),
+        const SizedBox(height: 4),
+        Text(
+          'Event',
+          style: textTheme.titleMedium?.copyWith(
+            color: scheme.primary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _overviewBox(EventRecord record) {
+    return CatalogOverviewBox(
+      auth: widget.auth,
+      title: record.name,
+      icon: eventsPageIcon,
+      overviewSections: record.overviewSections,
+      leading: [
+        if (record.yearLabel != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Chip(
+                avatar: const Icon(Icons.calendar_today_outlined, size: 18),
+                label: Text(record.yearLabel!),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _description(EventRecord record, {Widget? floatEnd}) {
+    final textTheme = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    if (record.description.trim().isEmpty) {
+      if (floatEnd != null) {
+        return Align(alignment: Alignment.topRight, child: floatEnd);
+      }
+      return Text(
+        'No description yet.',
+        style: textTheme.bodyLarge?.copyWith(
+          color: scheme.onSurfaceVariant,
+        ),
+      );
+    }
+    return CatalogRichText(
+      auth: widget.auth,
+      content: record.description,
+      floatEnd: floatEnd,
+      floatEndWidth: CatalogOverviewBox.preferredWidth,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
     final record = _record;
 
     return Scaffold(
@@ -154,68 +218,26 @@ class _EventDetailPageState extends State<EventDetailPage> {
               ),
             ),
           ),
-          ListView(
-            padding: const EdgeInsets.all(24),
-            children: [
-              Row(
+          AnimatedBuilder(
+            animation: widget.auth,
+            builder: (context, _) {
+              final overview = _overviewBox(record);
+              return ListView(
+                padding: const EdgeInsets.all(24),
                 children: [
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: scheme.primaryContainer.withValues(alpha: 0.88),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Icon(
-                      eventsPageIcon,
-                      color: scheme.onPrimaryContainer,
-                      size: 28,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(_item.name, style: textTheme.headlineSmall),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Event',
-                          style: textTheme.titleMedium?.copyWith(
-                            color: scheme.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
+                  WikiArticleLayout(
+                    readableLineLength: widget.auth.readableLineLength,
+                    title: _articleTitle(),
+                    overview: overview,
+                    overviewWidth: CatalogOverviewBox.preferredWidth,
+                    bodyBuilder: (floatOverview) => _description(
+                      record,
+                      floatEnd: floatOverview,
                     ),
                   ),
                 ],
-              ),
-              if (record.yearLabel != null) ...[
-                const SizedBox(height: 16),
-                Chip(
-                  avatar: const Icon(Icons.calendar_today_outlined, size: 18),
-                  label: Text(record.yearLabel!),
-                ),
-              ],
-              if (record.description.trim().isNotEmpty) ...[
-                const SizedBox(height: 24),
-                Text('Description', style: textTheme.titleSmall),
-                const SizedBox(height: 8),
-                CatalogRichText(
-                  auth: widget.auth,
-                  content: record.description,
-                ),
-              ] else ...[
-                const SizedBox(height: 24),
-                Text(
-                  'No description yet.',
-                  style: textTheme.bodyLarge?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ],
+              );
+            },
           ),
         ],
       ),

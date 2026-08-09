@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/ui/catalog_image_slot.dart';
+import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_models.dart';
+import '../../ui/overview_sections.dart';
+import '../../ui/overview_sections_view.dart';
 import '../../world_icons.dart';
 import '../data/location_model.dart';
 
@@ -19,54 +22,32 @@ class LocationAncestorRow {
 class LocationOverviewBox extends StatelessWidget {
   const LocationOverviewBox({
     super.key,
+    required this.auth,
     required this.record,
     required this.ancestors,
     required this.onAncestorTap,
   });
 
+  final AuthController auth;
   final LocationRecord record;
   final List<LocationAncestorRow> ancestors;
   final ValueChanged<CatalogItem> onAncestorTap;
 
   static const double preferredWidth = 300;
 
-  List<({String label, String value})> get _detailRows {
-    final rows = <({String label, String value})>[
-      (label: 'Type', value: record.type.label),
-    ];
-    void add(String label, String value) {
-      final trimmed = value.trim();
-      if (trimmed.isEmpty) return;
-      rows.add((label: label, value: trimmed));
-    }
-
-    add('Population', record.population);
-    add('Government', record.government);
-    add('Ruler', record.ruler);
-    add('Alignment', record.alignment);
-    add('Religions', record.religions);
-    add('Languages', record.languages);
-    add('Exports', record.exports);
-    add('Imports', record.imports);
-    add('Defenses', record.defenses);
-    return rows;
-  }
-
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final detailRows = _detailRows;
     final hasLocationSection = ancestors.isNotEmpty;
+    final hasOverviewSections =
+        overviewSectionsNonEmpty(record.overviewSections);
 
-    // Derive fills with Color.lerp so they stay distinct even when the theme
-    // omits surfaceContainer* tokens (e.g. Warlock).
     Color lift(Color toward, double amount) =>
         Color.lerp(scheme.surface, toward, amount)!;
 
     final panelBg = lift(scheme.onSurface, 0.07);
     final sectionHeaderBg = scheme.primaryContainer;
-    // Match the image placeholder fill.
     final labelBg = scheme.surfaceContainer;
     final valueBg = lift(scheme.onSurface, 0.16);
     final borderColor = scheme.outline.withValues(alpha: 0.55);
@@ -166,58 +147,58 @@ class LocationOverviewBox extends StatelessWidget {
                 ),
               ),
             ),
-            if (hasLocationSection || detailRows.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: borderColor),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (hasLocationSection) ...[
-                          _SectionHeader(
-                            title: 'Location',
-                            background: sectionHeaderBg,
-                            foreground: scheme.onPrimaryContainer,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: borderColor),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (hasLocationSection) ...[
+                        _SectionHeader(
+                          title: 'Location',
+                          background: sectionHeaderBg,
+                          foreground: scheme.onPrimaryContainer,
+                        ),
+                        for (var i = 0; i < ancestors.length; i++)
+                          _InfoRow(
+                            label: ancestors[i].typeLabel,
+                            value: ancestors[i].item.name,
+                            labelBg: labelBg,
+                            valueBg: valueBg,
+                            borderColor: borderColor,
+                            link: true,
+                            showDivider: true,
+                            onTap: () => onAncestorTap(ancestors[i].item),
                           ),
-                          for (var i = 0; i < ancestors.length; i++)
-                            _InfoRow(
-                              label: ancestors[i].typeLabel,
-                              value: ancestors[i].item.name,
-                              labelBg: labelBg,
-                              valueBg: valueBg,
-                              borderColor: borderColor,
-                              link: true,
-                              showDivider: i < ancestors.length - 1 ||
-                                  detailRows.isNotEmpty,
-                              onTap: () => onAncestorTap(ancestors[i].item),
-                            ),
-                        ],
-                        if (detailRows.isNotEmpty) ...[
-                          _SectionHeader(
-                            title: 'Details',
-                            background: sectionHeaderBg,
-                            foreground: scheme.onPrimaryContainer,
-                          ),
-                          for (var i = 0; i < detailRows.length; i++)
-                            _InfoRow(
-                              label: detailRows[i].label,
-                              value: detailRows[i].value,
-                              labelBg: labelBg,
-                              valueBg: valueBg,
-                              borderColor: borderColor,
-                              showDivider: i < detailRows.length - 1,
-                            ),
-                        ],
                       ],
-                    ),
+                      _SectionHeader(
+                        title: 'Details',
+                        background: sectionHeaderBg,
+                        foreground: scheme.onPrimaryContainer,
+                      ),
+                      _InfoRow(
+                        label: 'Type',
+                        value: record.type.label,
+                        labelBg: labelBg,
+                        valueBg: valueBg,
+                        borderColor: borderColor,
+                        showDivider: false,
+                      ),
+                    ],
                   ),
                 ),
+              ),
+            ),
+            if (hasOverviewSections)
+              OverviewSectionsView(
+                auth: auth,
+                sections: record.overviewSections,
               ),
           ],
         ),

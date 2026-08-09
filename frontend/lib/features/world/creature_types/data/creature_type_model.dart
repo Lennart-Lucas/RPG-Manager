@@ -1,4 +1,5 @@
 import 'package:rpg_manager/features/world/data/labeled_amount.dart';
+import 'package:rpg_manager/features/world/ui/overview_sections.dart';
 
 class CreatureTypeSection {
   const CreatureTypeSection({required this.title, required this.contents});
@@ -103,6 +104,7 @@ class CreatureType {
     this.customDamageResistances = const [],
     this.customDamageImmunities = const [],
     this.traits = const [],
+    this.overviewSections = const [],
   });
 
   final int id;
@@ -125,6 +127,7 @@ class CreatureType {
   final List<String> customDamageResistances;
   final List<String> customDamageImmunities;
   final List<CreatureTypeTrait> traits;
+  final List<OverviewSection> overviewSections;
 
   factory CreatureType.fromJson(Map<String, dynamic> json, {required int id}) {
     final sectionsRaw = json['sections'];
@@ -164,6 +167,7 @@ class CreatureType {
       customDamageImmunities:
           _stringListFromJson(json['customDamageImmunities']),
       traits: _traitsFromJson(json['traits']),
+      overviewSections: parseOverviewSections(json['overviewSections']),
     );
   }
 
@@ -208,6 +212,7 @@ class CreatureType {
           'customDamageImmunities': customDamageImmunities,
         if (traits.isNotEmpty)
           'traits': [for (final t in traits) t.toJson()],
+        'overviewSections': overviewSectionsToJson(overviewSections),
       };
 
   CreatureType copyWith({
@@ -233,6 +238,7 @@ class CreatureType {
     List<String>? customDamageResistances,
     List<String>? customDamageImmunities,
     List<CreatureTypeTrait>? traits,
+    List<OverviewSection>? overviewSections,
   }) {
     return CreatureType(
       id: id ?? this.id,
@@ -261,6 +267,7 @@ class CreatureType {
       customDamageImmunities:
           customDamageImmunities ?? this.customDamageImmunities,
       traits: traits ?? this.traits,
+      overviewSections: overviewSections ?? this.overviewSections,
     );
   }
 }

@@ -49,6 +49,87 @@ void main() {
     expect(parsed.parsedBody.sections['Motto'], contains('Together'));
   });
 
+  test('location overviewSections round-trip via frontmatter', () {
+    final item = CatalogItem(
+      id: 44,
+      userId: 1,
+      kind: CatalogKind.locations,
+      name: 'Shall',
+      payload: {
+        'description': 'A dark elf city.',
+        'type': 'city',
+        'overviewSections': [
+          {
+            'name': 'Details',
+            'items': [
+              {'name': 'Alignment', 'description': 'Lawful Evil'},
+              {'name': 'Population', 'description': 'About **40,000**'},
+            ],
+          },
+        ],
+      },
+    );
+
+    final notes = ObsidianNoteMapper().planAll({
+      for (final k in ObsidianNoteMapper.exportKinds)
+        k: k == CatalogKind.locations ? [item] : const <CatalogItem>[],
+    });
+    expect(notes, hasLength(1));
+    final md = notes.single.contents;
+
+    expect(md, contains('rpg_manager_id: 44'));
+    expect(md, contains('overviewSections:'));
+    expect(md, contains('Alignment'));
+    expect(md, contains('Lawful Evil'));
+    expect(md, isNot(contains('## History')));
+    expect(md, isNot(contains('## Map notes')));
+    expect(md, contains('A dark elf city.'));
+
+    final parsed = parseObsidianNote(md);
+    expect(parsed, isNotNull);
+    expect(parsed!.kind, CatalogKind.locations);
+    final sections = parsed.frontmatter['overviewSections'];
+    expect(sections, isA<List>());
+    expect(sections, isNotEmpty);
+
+    final map = obsidianFieldMapFor(CatalogKind.locations);
+    final fm = frontmatterPayloadSlice(
+      map: map,
+      payload: item.payload!,
+    );
+    expect(fm['overviewSections'], isA<List>());
+    expect(fm.containsKey('description'), isFalse);
+  });
+
+  test('organisation overviewSections stay in frontmatter', () {
+    final map = obsidianFieldMapFor(CatalogKind.organisations);
+    final payload = {
+      'description': 'Body text.',
+      'founding': 'Long ago.',
+      'overviewSections': [
+        {
+          'name': 'Structure',
+          'items': [
+            {'name': 'Leader', 'description': 'The **Archon**'},
+          ],
+        },
+      ],
+    };
+    final fm = frontmatterPayloadSlice(map: map, payload: payload);
+    expect(fm['overviewSections'], isA<List>());
+    expect(fm.containsKey('description'), isFalse);
+    expect(fm.containsKey('founding'), isFalse);
+
+    final body = renderObsidianBody(
+      map: map,
+      payload: payload,
+      rewriteLinks: (t) => t,
+    );
+    expect(body, contains('Body text.'));
+    expect(body, contains('## Founding'));
+    expect(body, isNot(contains('Archon')));
+  });
+
   test('spell higher levels round-trips as section', () {
     final map = obsidianFieldMapFor(CatalogKind.spells);
     final payload = {

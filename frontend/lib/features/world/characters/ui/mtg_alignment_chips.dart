@@ -8,10 +8,12 @@ class MtgAlignmentChips extends StatelessWidget {
     super.key,
     required this.colors,
     this.size = 28,
+    this.wrapAlignment = WrapAlignment.start,
   });
 
   final List<MtgColor> colors;
   final double size;
+  final WrapAlignment wrapAlignment;
 
   @override
   Widget build(BuildContext context) {
@@ -19,6 +21,7 @@ class MtgAlignmentChips extends StatelessWidget {
     return Wrap(
       spacing: 6,
       runSpacing: 6,
+      alignment: wrapAlignment,
       children: [
         for (final color in colors)
           Tooltip(

@@ -1,6 +1,7 @@
 import 'package:rpg_manager/features/mechanics/features/data/feature_model.dart';
 import 'package:rpg_manager/features/player_options/skills/data/default_skills.dart';
 import 'package:rpg_manager/features/world/data/labeled_amount.dart';
+import 'package:rpg_manager/features/world/ui/overview_sections.dart';
 
 import 'scaler_math.dart';
 
@@ -328,6 +329,7 @@ class Creature {
     this.features = const [],
     this.overrides = const CreatureOverrides(),
     this.damageThreshold,
+    this.overviewSections = const [],
   });
 
   final String id;
@@ -377,6 +379,7 @@ class Creature {
   final List<CreatureFeatureEntry> features;
   final CreatureOverrides overrides;
   final int? damageThreshold;
+  final List<OverviewSection> overviewSections;
 
   ScalerComputedStats get formula => computeScalerStats(
         level: level,
@@ -613,6 +616,7 @@ class Creature {
         json['overrides'] as Map<String, dynamic>?,
       ),
       damageThreshold: (json['damageThreshold'] as num?)?.toInt(),
+      overviewSections: parseOverviewSections(json['overviewSections']),
     );
   }
 
@@ -780,6 +784,7 @@ class Creature {
       'xp': xp,
       'features': [for (final feat in features) feat.toJson()],
       if (!overrides.isEmpty) 'overrides': overrides.toJson(),
+      'overviewSections': overviewSectionsToJson(overviewSections),
       // Snapshot of formula tiers for consumers / debugging.
       'abilityTiers': {
         'low': f.abilityLow,
@@ -842,6 +847,7 @@ class Creature {
     CreatureOverrides? overrides,
     int? damageThreshold,
     bool clearDamageThreshold = false,
+    List<OverviewSection>? overviewSections,
   }) {
     return Creature(
       id: id ?? this.id,
@@ -900,6 +906,7 @@ class Creature {
       damageThreshold: clearDamageThreshold
           ? null
           : (damageThreshold ?? this.damageThreshold),
+      overviewSections: overviewSections ?? this.overviewSections,
     );
   }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/offline/offline_marker.dart';
-import '../../../../core/ui/catalog_image_slot.dart';
+import '../../../../core/ui/wiki_article_layout.dart';
 import '../../../auth/data/auth_api.dart';
 import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
@@ -10,6 +10,7 @@ import '../../../catalog/data/catalog_kind.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../../catalog/ui/catalog_rich_text.dart';
 import '../../../catalog/ui/open_catalog_detail.dart';
+import '../../ui/catalog_overview_box.dart';
 import '../../world_icons.dart';
 import '../data/character_model.dart';
 import 'character_form_sheet.dart';
@@ -149,10 +150,109 @@ class _CharacterDetailPageState extends State<CharacterDetailPage> {
     }
   }
 
+  Widget _articleTitle(CharacterRecord record) {
+    final textTheme = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(_item.name, style: textTheme.headlineSmall),
+        const SizedBox(height: 4),
+        Text(
+          'Character',
+          style: textTheme.titleMedium?.copyWith(
+            color: scheme.primary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _overviewBox(CharacterRecord record) {
+    return CatalogOverviewBox(
+      auth: widget.auth,
+      title: record.name,
+      icon: charactersPageIcon,
+      imageUrl: record.imageUrl,
+      overviewSections: record.overviewSections,
+      leading: [
+        if (_raceName != null || record.playerName.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (_raceName != null)
+                  ActionChip(
+                    label: Text(_raceName!),
+                    avatar: const Icon(Icons.diversity_3_outlined, size: 18),
+                    onPressed: record.raceId == null
+                        ? null
+                        : () => openCatalogRecordDetail(
+                              context: context,
+                              auth: widget.auth,
+                              kindApiValue: CatalogKind.races.apiValue,
+                              itemId: record.raceId!,
+                            ),
+                  ),
+                if (record.playerName.isNotEmpty)
+                  Chip(
+                    avatar: const Icon(Icons.person_outline, size: 18),
+                    label: Text(record.playerName),
+                  ),
+              ],
+            ),
+          ),
+        if (record.mtgAlignment.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Alignment',
+                  style: Theme.of(context).textTheme.titleSmall,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                MtgAlignmentChips(
+                  colors: record.mtgAlignment,
+                  wrapAlignment: WrapAlignment.center,
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _description(CharacterRecord record, {Widget? floatEnd}) {
+    final textTheme = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    if (record.description.trim().isEmpty) {
+      if (floatEnd != null) {
+        return Align(alignment: Alignment.topRight, child: floatEnd);
+      }
+      return Text(
+        'No description yet.',
+        style: textTheme.bodyLarge?.copyWith(
+          color: scheme.onSurfaceVariant,
+        ),
+      );
+    }
+    return CatalogRichText(
+      auth: widget.auth,
+      content: record.description,
+      floatEnd: floatEnd,
+      floatEndWidth: CatalogOverviewBox.preferredWidth,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
     final record = _record;
 
     return Scaffold(
@@ -190,87 +290,26 @@ class _CharacterDetailPageState extends State<CharacterDetailPage> {
               ),
             ),
           ),
-          ListView(
-            padding: const EdgeInsets.all(24),
-            children: [
-              if (record.imageUrl.trim().isNotEmpty) ...[
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 360),
-                  child: CatalogImageSlot(
-                    imageUrl: record.imageUrl,
-                    placeholder: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          charactersPageIcon,
-                          size: 40,
-                          color: scheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Image unavailable',
-                          style: textTheme.bodyMedium?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
+          AnimatedBuilder(
+            animation: widget.auth,
+            builder: (context, _) {
+              final overview = _overviewBox(record);
+              return ListView(
+                padding: const EdgeInsets.all(24),
+                children: [
+                  WikiArticleLayout(
+                    readableLineLength: widget.auth.readableLineLength,
+                    title: _articleTitle(record),
+                    overview: overview,
+                    overviewWidth: CatalogOverviewBox.preferredWidth,
+                    bodyBuilder: (floatOverview) => _description(
+                      record,
+                      floatEnd: floatOverview,
                     ),
                   ),
-                ),
-                const SizedBox(height: 20),
-              ],
-              Text(_item.name, style: textTheme.headlineSmall),
-              const SizedBox(height: 4),
-              Text(
-                'Character',
-                style: textTheme.titleMedium?.copyWith(
-                  color: scheme.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (_raceName != null || record.playerName.isNotEmpty)
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    if (_raceName != null)
-                      ActionChip(
-                        label: Text(_raceName!),
-                        avatar: const Icon(Icons.diversity_3_outlined, size: 18),
-                        onPressed: record.raceId == null
-                            ? null
-                            : () => openCatalogRecordDetail(
-                                  context: context,
-                                  auth: widget.auth,
-                                  kindApiValue: CatalogKind.races.apiValue,
-                                  itemId: record.raceId!,
-                                ),
-                      ),
-                    if (record.playerName.isNotEmpty)
-                      Chip(
-                        avatar: const Icon(Icons.person_outline, size: 18),
-                        label: Text(record.playerName),
-                      ),
-                  ],
-                ),
-              if (record.mtgAlignment.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                Text('Alignment', style: textTheme.titleSmall),
-                const SizedBox(height: 8),
-                MtgAlignmentChips(colors: record.mtgAlignment),
-              ],
-              if (record.description.trim().isNotEmpty) ...[
-                const SizedBox(height: 24),
-                Text('Description', style: textTheme.titleSmall),
-                const SizedBox(height: 8),
-                CatalogRichText(
-                  auth: widget.auth,
-                  content: record.description,
-                ),
-              ],
-            ],
+                ],
+              );
+            },
           ),
         ],
       ),

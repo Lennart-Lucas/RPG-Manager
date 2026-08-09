@@ -196,7 +196,10 @@ class _RaceDetailPageState extends State<RaceDetailPage> {
           AnimatedBuilder(
             animation: widget.auth,
             builder: (context, _) {
-              final overview = RaceOverviewBox(record: race);
+              final overview = RaceOverviewBox(
+                auth: widget.auth,
+                record: race,
+              );
               return ListView(
                 padding: const EdgeInsets.all(24),
                 children: [

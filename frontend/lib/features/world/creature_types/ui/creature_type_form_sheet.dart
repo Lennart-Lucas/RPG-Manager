@@ -8,6 +8,8 @@ import 'package:rpg_manager/features/catalog/data/catalog_kind.dart';
 import 'package:rpg_manager/features/dm_tools/resources/ui/resource_form_helpers.dart';
 import 'package:rpg_manager/features/world/creature_types/data/creature_type_model.dart';
 import 'package:rpg_manager/features/world/data/labeled_amount.dart';
+import 'package:rpg_manager/features/world/ui/overview_sections.dart';
+import 'package:rpg_manager/features/world/ui/overview_sections_editor.dart';
 import 'package:rpg_manager/features/world/ui/world_form_helpers.dart';
 
 Future<CreatureType?> showCreatureTypeFormSheet(
@@ -80,6 +82,9 @@ class _CreatureTypeFormState extends State<_CreatureTypeForm> {
       [...?widget.initial?.customDamageImmunities];
   late List<CreatureTypeTrait> _traits = [...?widget.initial?.traits];
   late List<CreatureTypeSection> _sections = [...?widget.initial?.sections];
+  late List<OverviewSection> _overviewSections = [
+    ...?widget.initial?.overviewSections,
+  ];
 
   Map<int, String> _languageNames = const {};
   Map<int, String> _skillNames = const {};
@@ -161,6 +166,7 @@ class _CreatureTypeFormState extends State<_CreatureTypeForm> {
         quote: _quoteController.text.trim(),
         author: _authorController.text.trim(),
         sections: _sections,
+        overviewSections: normalizeOverviewSections(_overviewSections),
         movement: _movement,
         senses: _senses,
         languageIds: _languageIds,
@@ -255,6 +261,11 @@ class _CreatureTypeFormState extends State<_CreatureTypeForm> {
               context,
               label: 'Author',
             ),
+          ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          OverviewSectionsEditor(
+            sections: _overviewSections,
+            onChanged: (next) => setState(() => _overviewSections = next),
           ),
           const SizedBox(height: ResourceFormStyles.sectionSpacing),
           Text(

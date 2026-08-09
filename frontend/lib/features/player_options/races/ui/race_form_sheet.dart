@@ -5,6 +5,8 @@ import '../../../../core/ui/markdown_form_field.dart';
 import '../../../dm_tools/resources/ui/resource_form_helpers.dart';
 import '../../../world/characters/data/character_model.dart';
 import '../../../world/characters/ui/mtg_mana_symbol.dart';
+import '../../../world/ui/overview_sections.dart';
+import '../../../world/ui/overview_sections_editor.dart';
 import '../data/race_model.dart';
 
 Future<RaceRecord?> showRaceFormSheet(
@@ -50,6 +52,9 @@ class _RaceFormState extends State<_RaceForm> {
       TextEditingController(text: widget.initial?.imageUrl ?? '');
   late List<String> _aliases = [...?widget.initial?.aliases];
   late Set<MtgColor> _alignment = {...?widget.initial?.mtgAlignment};
+  late List<OverviewSection> _overviewSections = [
+    ...?widget.initial?.overviewSections,
+  ];
 
   @override
   void dispose() {
@@ -76,6 +81,7 @@ class _RaceFormState extends State<_RaceForm> {
         ],
         mtgAlignment: MtgColor.values.where(_alignment.contains).toList(),
         imageUrl: normalizeCatalogImageUrl(_imageUrlController.text),
+        overviewSections: normalizeOverviewSections(_overviewSections),
       ),
     );
   }
@@ -161,6 +167,13 @@ class _RaceFormState extends State<_RaceForm> {
             keyboardType: TextInputType.url,
             autocorrect: false,
             validator: validateOptionalHttpUrl,
+          ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          OverviewSectionsEditor(
+            sections: _overviewSections,
+            onChanged: (next) => setState(() => _overviewSections = next),
+            searchLinks: widget.searchLinks,
+            loadAutoLinkTargets: widget.loadAutoLinkTargets,
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
           MarkdownFormField(

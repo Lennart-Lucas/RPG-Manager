@@ -96,8 +96,6 @@ ObsidianKindFieldMap obsidianFieldMapFor(CatalogKind kind) {
       return const ObsidianKindFieldMap(
         markdownFields: [
           _description,
-          ObsidianMarkdownField('history', 'History'),
-          ObsidianMarkdownField('mapNotes', 'Map notes'),
         ],
       );
     case CatalogKind.feats:

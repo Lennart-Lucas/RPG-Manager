@@ -1,9 +1,12 @@
+import '../../ui/overview_sections.dart';
+
 class SessionRecord {
   const SessionRecord({
     required this.name,
     required this.campaignId,
     required this.dateTime,
     this.description = '',
+    this.overviewSections = const [],
   });
 
   final String name;
@@ -12,6 +15,7 @@ class SessionRecord {
   /// ISO-8601 datetime string.
   final String dateTime;
   final String description;
+  final List<OverviewSection> overviewSections;
 
   DateTime? get parsedDateTime => DateTime.tryParse(dateTime);
 
@@ -31,6 +35,7 @@ class SessionRecord {
       campaignId: (payload['campaignId'] as num?)?.toInt() ?? 0,
       dateTime: payload['dateTime'] as String? ?? '',
       description: payload['description'] as String? ?? '',
+      overviewSections: parseOverviewSections(payload['overviewSections']),
     );
   }
 
@@ -39,6 +44,7 @@ class SessionRecord {
         'campaignId': campaignId,
         'dateTime': dateTime,
         'description': description,
+        'overviewSections': overviewSectionsToJson(overviewSections),
       };
 
   SessionRecord copyWith({
@@ -46,12 +52,14 @@ class SessionRecord {
     int? campaignId,
     String? dateTime,
     String? description,
+    List<OverviewSection>? overviewSections,
   }) {
     return SessionRecord(
       name: name ?? this.name,
       campaignId: campaignId ?? this.campaignId,
       dateTime: dateTime ?? this.dateTime,
       description: description ?? this.description,
+      overviewSections: overviewSections ?? this.overviewSections,
     );
   }
 

@@ -1,3 +1,5 @@
+import '../../ui/overview_sections.dart';
+
 enum LocationType {
   plane,
   continent,
@@ -88,18 +90,8 @@ class LocationRecord {
     this.parentId,
     this.aliases = const [],
     this.description = '',
-    this.population = '',
-    this.government = '',
-    this.ruler = '',
-    this.alignment = '',
-    this.religions = '',
-    this.languages = '',
-    this.exports = '',
-    this.imports = '',
-    this.defenses = '',
-    this.history = '',
-    this.mapNotes = '',
     this.imageUrl = '',
+    this.overviewSections = const [],
   });
 
   final String name;
@@ -109,42 +101,38 @@ class LocationRecord {
   /// Alternate names (former names, local names, etc.).
   final List<String> aliases;
   final String description;
-  final String population;
-  final String government;
-  final String ruler;
-  final String alignment;
-  final String religions;
-  final String languages;
-  final String exports;
-  final String imports;
-  final String defenses;
-  final String history;
-  final String mapNotes;
   final String imageUrl;
+  final List<OverviewSection> overviewSections;
 
   factory LocationRecord.fromCatalogPayload({
     required String name,
     Map<String, dynamic>? payload,
   }) {
     if (payload == null) return LocationRecord(name: name);
+    final parsed = parseOverviewSections(payload['overviewSections']);
+    final sections = parsed.isNotEmpty
+        ? parsed
+        : migrateLocationLegacyOverview(
+            population: payload['population'] as String? ?? '',
+            government: payload['government'] as String? ?? '',
+            ruler: payload['ruler'] as String? ?? '',
+            alignment: payload['alignment'] as String? ?? '',
+            religions: payload['religions'] as String? ?? '',
+            languages: payload['languages'] as String? ?? '',
+            exports: payload['exports'] as String? ?? '',
+            imports: payload['imports'] as String? ?? '',
+            defenses: payload['defenses'] as String? ?? '',
+            history: payload['history'] as String? ?? '',
+            mapNotes: payload['mapNotes'] as String? ?? '',
+          );
     return LocationRecord(
       name: payload['name'] as String? ?? name,
       type: LocationType.parse(payload['type'] as String?),
       parentId: (payload['parentId'] as num?)?.toInt(),
       aliases: _parseAliases(payload['aliases']),
       description: payload['description'] as String? ?? '',
-      population: payload['population'] as String? ?? '',
-      government: payload['government'] as String? ?? '',
-      ruler: payload['ruler'] as String? ?? '',
-      alignment: payload['alignment'] as String? ?? '',
-      religions: payload['religions'] as String? ?? '',
-      languages: payload['languages'] as String? ?? '',
-      exports: payload['exports'] as String? ?? '',
-      imports: payload['imports'] as String? ?? '',
-      defenses: payload['defenses'] as String? ?? '',
-      history: payload['history'] as String? ?? '',
-      mapNotes: payload['mapNotes'] as String? ?? '',
       imageUrl: payload['imageUrl'] as String? ?? '',
+      overviewSections: sections,
     );
   }
 
@@ -169,18 +157,8 @@ class LocationRecord {
         'parentId': parentId,
         'aliases': aliases,
         'description': description,
-        'population': population,
-        'government': government,
-        'ruler': ruler,
-        'alignment': alignment,
-        'religions': religions,
-        'languages': languages,
-        'exports': exports,
-        'imports': imports,
-        'defenses': defenses,
-        'history': history,
-        'mapNotes': mapNotes,
         'imageUrl': imageUrl,
+        'overviewSections': overviewSectionsToJson(overviewSections),
       };
 
   String get descriptionPreview =>
@@ -206,7 +184,7 @@ class LocationRecord {
     if (parentId == null) return null;
     if (parent == null) return 'Parent location not found';
     if (!allowed.contains(parent.type)) {
-      return '${type.label} parent must be ${allowed.map((t) => t.label).join(' or ')}';
+      return '${type.label} cannot be under ${parent.type.label}';
     }
     return null;
   }

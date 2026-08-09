@@ -4,6 +4,8 @@ import '../../../../core/ui/catalog_image_slot.dart';
 import '../../../../core/ui/markdown_form_field.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../../dm_tools/resources/ui/resource_form_helpers.dart';
+import '../../ui/overview_sections.dart';
+import '../../ui/overview_sections_editor.dart';
 import '../data/character_model.dart';
 import 'mtg_mana_symbol.dart';
 
@@ -56,6 +58,9 @@ class _CharacterFormState extends State<_CharacterForm> {
       TextEditingController(text: widget.initial?.imageUrl ?? '');
   late int? _raceId = widget.initial?.raceId;
   late Set<MtgColor> _alignment = {...?widget.initial?.mtgAlignment};
+  late List<OverviewSection> _overviewSections = [
+    ...?widget.initial?.overviewSections,
+  ];
 
   @override
   void dispose() {
@@ -78,6 +83,7 @@ class _CharacterFormState extends State<_CharacterForm> {
         playerName: _playerController.text.trim(),
         description: _descriptionController.text.trim(),
         imageUrl: normalizeCatalogImageUrl(_imageUrlController.text),
+        overviewSections: normalizeOverviewSections(_overviewSections),
       ),
     );
   }
@@ -187,6 +193,13 @@ class _CharacterFormState extends State<_CharacterForm> {
             keyboardType: TextInputType.url,
             autocorrect: false,
             validator: validateOptionalHttpUrl,
+          ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          OverviewSectionsEditor(
+            sections: _overviewSections,
+            onChanged: (next) => setState(() => _overviewSections = next),
+            searchLinks: widget.searchLinks,
+            loadAutoLinkTargets: widget.loadAutoLinkTargets,
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
           MarkdownFormField(

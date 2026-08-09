@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/offline/offline_marker.dart';
 import '../../../../core/ui/record_list_card.dart';
+import '../../../../core/ui/wiki_article_layout.dart';
 import '../../../auth/data/auth_api.dart';
 import '../../../auth/state/auth_controller.dart';
 import '../../../catalog/data/catalog_api.dart';
@@ -11,6 +12,7 @@ import '../../../catalog/data/catalog_models.dart';
 import '../../../catalog/ui/catalog_rich_text.dart';
 import '../../../catalog/ui/open_catalog_detail.dart';
 import '../../characters/data/character_model.dart';
+import '../../ui/catalog_overview_box.dart';
 import '../../world_icons.dart';
 import '../data/campaign_model.dart';
 import '../data/session_model.dart';
@@ -316,165 +318,201 @@ class _CampaignDetailPageState extends State<CampaignDetailPage> {
               ),
             ),
           ),
-          ListView(
-            padding: const EdgeInsets.all(24),
-            children: [
-              Text(_item.name, style: textTheme.headlineSmall),
-              const SizedBox(height: 4),
-              Text(
-                'Campaign',
-                style: textTheme.titleMedium?.copyWith(
-                  color: scheme.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              if (record.description.trim().isNotEmpty) ...[
-                const SizedBox(height: 20),
-                Text('Description', style: textTheme.titleSmall),
-                const SizedBox(height: 8),
-                CatalogRichText(
-                  auth: widget.auth,
-                  content: record.description,
-                ),
-              ],
-              if (record.playerCharacterIds.isNotEmpty) ...[
-                const SizedBox(height: 24),
-                Text('Players', style: textTheme.titleSmall),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final id in record.playerCharacterIds)
-                      ActionChip(
-                        label: Text(_characterNames[id] ?? 'Character #$id'),
-                        onPressed: () => openCatalogRecordDetail(
-                          context: context,
-                          auth: widget.auth,
-                          kindApiValue: CatalogKind.characters.apiValue,
-                          itemId: id,
-                        ),
-                      ),
-                  ],
-                ),
-              ],
-              if (record.houseRuleIds.isNotEmpty) ...[
-                const SizedBox(height: 24),
-                Text('House rules', style: textTheme.titleSmall),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final id in record.houseRuleIds)
-                      ActionChip(
-                        label: Text(_ruleNames[id] ?? 'Rule #$id'),
-                        onPressed: () => openCatalogRecordDetail(
-                          context: context,
-                          auth: widget.auth,
-                          kindApiValue: CatalogKind.rules.apiValue,
-                          itemId: id,
-                        ),
-                      ),
-                  ],
-                ),
-              ],
-              const SizedBox(height: 28),
-              Row(
+          AnimatedBuilder(
+            animation: widget.auth,
+            builder: (context, _) {
+              final overview = CatalogOverviewBox(
+                auth: widget.auth,
+                title: record.name,
+                icon: storyPageIcon,
+                overviewSections: record.overviewSections,
+              );
+              return ListView(
+                padding: const EdgeInsets.all(24),
                 children: [
-                  Expanded(
-                    child: Text('Sessions', style: textTheme.titleMedium),
-                  ),
-                  if (widget.auth.canMutateCatalog)
-                    TextButton.icon(
-                      onPressed: _addSession,
-                      icon: const Icon(Icons.add, size: 18),
-                      label: const Text('Add'),
-                    ),
-                ],
-              ),
-              if (_sessions.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                    'No sessions linked to this campaign yet.',
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                )
-              else
-                for (var i = 0; i < _sessions.length; i++)
-                  Builder(
-                    builder: (context) {
-                      final sessionItem = _sessions[i];
-                      final session = SessionRecord.fromCatalogPayload(
-                        name: sessionItem.name,
-                        payload: sessionItem.payload,
-                      );
-                      final local = session.parsedDateTime?.toLocal();
-                      final subtitle = local?.toString() ??
-                          (session.dateTime.isEmpty
-                              ? null
-                              : session.dateTime);
-                      final notes = session.descriptionPreview;
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 10),
-                        child: RecordListCard(
-                          leading: Container(
-                            width: 42,
-                            height: 42,
-                            decoration: BoxDecoration(
-                              color: scheme.primaryContainer.withValues(
-                                alpha: 0.88,
-                              ),
-                              borderRadius: BorderRadius.circular(13),
-                            ),
-                            child: Center(
-                              child: Text(
-                                's${i + 1}',
-                                style: textTheme.labelLarge?.copyWith(
-                                  color: scheme.onPrimaryContainer,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ),
+                  WikiArticleLayout(
+                    readableLineLength: widget.auth.readableLineLength,
+                    title: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(_item.name, style: textTheme.headlineSmall),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Campaign',
+                          style: textTheme.titleMedium?.copyWith(
+                            color: scheme.primary,
+                            fontWeight: FontWeight.w600,
                           ),
-                          title: sessionItem.name,
-                          subtitle: subtitle ?? '',
-                          trailing: Icon(
-                            Icons.chevron_right,
-                            color: scheme.onSurfaceVariant,
-                          ),
-                          onTap: () async {
-                            final deleted = await openCatalogRecordDetail(
-                              context: context,
-                              auth: widget.auth,
-                              kindApiValue: CatalogKind.sessions.apiValue,
-                              itemId: sessionItem.id,
-                            );
-                            if (deleted == true || mounted) {
-                              await _loadLookups();
-                            }
-                          },
+                        ),
+                      ],
+                    ),
+                    overview: overview,
+                    overviewWidth: CatalogOverviewBox.preferredWidth,
+                    bodyBuilder: (floatOverview) {
+                      if (record.description.trim().isNotEmpty) {
+                        return CatalogRichText(
+                          auth: widget.auth,
+                          content: record.description,
+                          floatEnd: floatOverview,
+                          floatEndWidth: CatalogOverviewBox.preferredWidth,
+                        );
+                      }
+                      if (floatOverview != null) {
+                        return Align(
+                          alignment: Alignment.topRight,
+                          child: floatOverview,
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                    trailing: [
+                      if (record.playerCharacterIds.isNotEmpty) ...[
+                        const SizedBox(height: 24),
+                        Text('Players', style: textTheme.titleSmall),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
                           children: [
-                            if (notes.isNotEmpty) ...[
-                              const SizedBox(height: 10),
-                              Text(
-                                notes,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: textTheme.bodyMedium?.copyWith(
-                                  color: scheme.onSurfaceVariant,
+                            for (final id in record.playerCharacterIds)
+                              ActionChip(
+                                label: Text(
+                                  _characterNames[id] ?? 'Character #$id',
+                                ),
+                                onPressed: () => openCatalogRecordDetail(
+                                  context: context,
+                                  auth: widget.auth,
+                                  kindApiValue: CatalogKind.characters.apiValue,
+                                  itemId: id,
                                 ),
                               ),
-                            ],
                           ],
                         ),
-                      );
-                    },
+                      ],
+                      if (record.houseRuleIds.isNotEmpty) ...[
+                        const SizedBox(height: 24),
+                        Text('House rules', style: textTheme.titleSmall),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final id in record.houseRuleIds)
+                              ActionChip(
+                                label: Text(_ruleNames[id] ?? 'Rule #$id'),
+                                onPressed: () => openCatalogRecordDetail(
+                                  context: context,
+                                  auth: widget.auth,
+                                  kindApiValue: CatalogKind.rules.apiValue,
+                                  itemId: id,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                      const SizedBox(height: 28),
+                      Row(
+                        children: [
+                          Expanded(
+                            child:
+                                Text('Sessions', style: textTheme.titleMedium),
+                          ),
+                          if (widget.auth.canMutateCatalog)
+                            TextButton.icon(
+                              onPressed: _addSession,
+                              icon: const Icon(Icons.add, size: 18),
+                              label: const Text('Add'),
+                            ),
+                        ],
+                      ),
+                      if (_sessions.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            'No sessions linked to this campaign yet.',
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        )
+                      else
+                        for (var i = 0; i < _sessions.length; i++)
+                          Builder(
+                            builder: (context) {
+                              final sessionItem = _sessions[i];
+                              final session = SessionRecord.fromCatalogPayload(
+                                name: sessionItem.name,
+                                payload: sessionItem.payload,
+                              );
+                              final local = session.parsedDateTime?.toLocal();
+                              final subtitle = local?.toString() ??
+                                  (session.dateTime.isEmpty
+                                      ? null
+                                      : session.dateTime);
+                              final notes = session.descriptionPreview;
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 10),
+                                child: RecordListCard(
+                                  leading: Container(
+                                    width: 42,
+                                    height: 42,
+                                    decoration: BoxDecoration(
+                                      color: scheme.primaryContainer.withValues(
+                                        alpha: 0.88,
+                                      ),
+                                      borderRadius: BorderRadius.circular(13),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        's${i + 1}',
+                                        style: textTheme.labelLarge?.copyWith(
+                                          color: scheme.onPrimaryContainer,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  title: sessionItem.name,
+                                  subtitle: subtitle ?? '',
+                                  trailing: Icon(
+                                    Icons.chevron_right,
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                                  onTap: () async {
+                                    final deleted =
+                                        await openCatalogRecordDetail(
+                                      context: context,
+                                      auth: widget.auth,
+                                      kindApiValue:
+                                          CatalogKind.sessions.apiValue,
+                                      itemId: sessionItem.id,
+                                    );
+                                    if (deleted == true || mounted) {
+                                      await _loadLookups();
+                                    }
+                                  },
+                                  children: [
+                                    if (notes.isNotEmpty) ...[
+                                      const SizedBox(height: 10),
+                                      Text(
+                                        notes,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: textTheme.bodyMedium?.copyWith(
+                                          color: scheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                    ],
                   ),
-            ],
+                ],
+              );
+            },
           ),
         ],
       ),

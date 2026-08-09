@@ -1,3 +1,5 @@
+import '../../ui/overview_sections.dart';
+
 /// Legacy embedded session shape kept for one-time migration into catalog
 /// [SessionRecord]s.
 class LegacyCampaignSession {
@@ -27,12 +29,14 @@ class CampaignRecord {
     this.playerCharacterIds = const [],
     this.houseRuleIds = const [],
     this.legacySessions = const [],
+    this.overviewSections = const [],
   });
 
   final String name;
   final String description;
   final List<int> playerCharacterIds;
   final List<int> houseRuleIds;
+  final List<OverviewSection> overviewSections;
 
   /// Sessions formerly embedded in the campaign payload. Migrated once into
   /// catalog `sessions` records, then cleared.
@@ -78,6 +82,7 @@ class CampaignRecord {
       playerCharacterIds: players,
       houseRuleIds: rules,
       legacySessions: sessions,
+      overviewSections: parseOverviewSections(payload['overviewSections']),
     );
   }
 
@@ -91,6 +96,7 @@ class CampaignRecord {
           for (final s in legacySessions)
             {'dateTime': s.dateTime, 'title': s.title},
         ],
+        'overviewSections': overviewSectionsToJson(overviewSections),
       };
 
   CampaignRecord copyWith({
@@ -99,6 +105,7 @@ class CampaignRecord {
     List<int>? playerCharacterIds,
     List<int>? houseRuleIds,
     List<LegacyCampaignSession>? legacySessions,
+    List<OverviewSection>? overviewSections,
   }) {
     return CampaignRecord(
       name: name ?? this.name,
@@ -106,6 +113,7 @@ class CampaignRecord {
       playerCharacterIds: playerCharacterIds ?? this.playerCharacterIds,
       houseRuleIds: houseRuleIds ?? this.houseRuleIds,
       legacySessions: legacySessions ?? this.legacySessions,
+      overviewSections: overviewSections ?? this.overviewSections,
     );
   }
 

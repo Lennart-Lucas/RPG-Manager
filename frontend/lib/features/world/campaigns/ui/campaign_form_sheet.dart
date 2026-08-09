@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/ui/markdown_form_field.dart';
 import '../../../dm_tools/resources/ui/resource_form_helpers.dart';
+import '../../ui/overview_sections.dart';
+import '../../ui/overview_sections_editor.dart';
 import '../../ui/world_form_helpers.dart';
 import '../data/campaign_model.dart';
 
@@ -54,6 +56,9 @@ class _CampaignFormState extends State<_CampaignForm> {
       TextEditingController(text: widget.initial?.description ?? '');
   late List<int> _playerIds = [...?widget.initial?.playerCharacterIds];
   late List<int> _ruleIds = [...?widget.initial?.houseRuleIds];
+  late List<OverviewSection> _overviewSections = [
+    ...?widget.initial?.overviewSections,
+  ];
 
   @override
   void dispose() {
@@ -74,6 +79,7 @@ class _CampaignFormState extends State<_CampaignForm> {
         houseRuleIds: _ruleIds,
         // Preserve unread legacy sessions until migration clears them.
         legacySessions: widget.initial?.legacySessions ?? const [],
+        overviewSections: normalizeOverviewSections(_overviewSections),
       ),
     );
   }
@@ -132,6 +138,13 @@ class _CampaignFormState extends State<_CampaignForm> {
               selected: _ruleIds.toSet(),
               onDone: (next) => setState(() => _ruleIds = next.toList()),
             ),
+          ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          OverviewSectionsEditor(
+            sections: _overviewSections,
+            onChanged: (next) => setState(() => _overviewSections = next),
+            searchLinks: widget.searchLinks,
+            loadAutoLinkTargets: widget.loadAutoLinkTargets,
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
           MarkdownFormField(

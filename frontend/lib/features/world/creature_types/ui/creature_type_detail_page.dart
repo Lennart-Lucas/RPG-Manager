@@ -8,6 +8,9 @@ import 'package:rpg_manager/features/catalog/data/catalog_models.dart';
 import 'package:rpg_manager/features/world/creature_types/data/creature_type_model.dart';
 import 'package:rpg_manager/features/world/creature_types/ui/creature_type_form_sheet.dart';
 import 'package:rpg_manager/features/world/data/labeled_amount.dart';
+import 'package:rpg_manager/features/world/ui/catalog_overview_box.dart';
+import 'package:rpg_manager/features/world/ui/overview_sections.dart';
+import 'package:rpg_manager/features/world/world_icons.dart';
 
 class CreatureTypeDetailPage extends StatefulWidget {
   const CreatureTypeDetailPage({
@@ -188,23 +191,49 @@ class _CreatureTypeDetailPageState extends State<CreatureTypeDetailPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (_type.quote.isNotEmpty) ...[
-                  Text(
-                    _type.quote,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontStyle: FontStyle.italic,
+                if (overviewSectionsNonEmpty(_type.overviewSections) ||
+                    _type.quote.isNotEmpty ||
+                    _type.author.isNotEmpty) ...[
+                  CatalogOverviewBox(
+                    auth: widget.auth,
+                    title: _type.name,
+                    icon: creatureTypesPageIcon,
+                    overviewSections: _type.overviewSections,
+                    leading: [
+                      if (_type.quote.isNotEmpty || _type.author.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (_type.quote.isNotEmpty)
+                                Text(
+                                  _type.quote,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(fontStyle: FontStyle.italic),
+                                ),
+                              if (_type.author.isNotEmpty)
+                                Padding(
+                                  padding: EdgeInsets.only(
+                                    top: _type.quote.isNotEmpty ? 4 : 0,
+                                  ),
+                                  child: Text(
+                                    '— ${_type.author}',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: scheme.onSurfaceVariant,
+                                        ),
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
+                    ],
                   ),
-                  if (_type.author.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        '— ${_type.author}',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
-                      ),
-                    ),
                   const SizedBox(height: 16),
                 ],
                 for (final section in _type.sections)

@@ -1,4 +1,5 @@
 import '../../../world/characters/data/character_model.dart';
+import '../../../world/ui/overview_sections.dart';
 
 class RaceRecord {
   const RaceRecord({
@@ -7,6 +8,7 @@ class RaceRecord {
     this.aliases = const [],
     this.mtgAlignment = const [],
     this.imageUrl = '',
+    this.overviewSections = const [],
   });
 
   final String name;
@@ -14,6 +16,7 @@ class RaceRecord {
   final List<String> aliases;
   final List<MtgColor> mtgAlignment;
   final String imageUrl;
+  final List<OverviewSection> overviewSections;
 
   factory RaceRecord.fromJson(Map<String, dynamic> json) {
     return RaceRecord.fromCatalogPayload(name: '', payload: json);
@@ -40,6 +43,7 @@ class RaceRecord {
       aliases: _parseAliases(payload['aliases']),
       mtgAlignment: colors,
       imageUrl: payload['imageUrl'] as String? ?? '',
+      overviewSections: parseOverviewSections(payload['overviewSections']),
     );
   }
 
@@ -49,6 +53,7 @@ class RaceRecord {
         'aliases': aliases,
         'mtgAlignment': [for (final c in mtgAlignment) c.apiValue],
         'imageUrl': imageUrl,
+        'overviewSections': overviewSectionsToJson(overviewSections),
       };
 
   String get descriptionPreview {

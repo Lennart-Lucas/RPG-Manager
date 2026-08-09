@@ -1,3 +1,5 @@
+import '../../ui/overview_sections.dart';
+
 enum MtgColor {
   white,
   blue,
@@ -57,6 +59,7 @@ class CharacterRecord {
     this.playerName = '',
     this.description = '',
     this.imageUrl = '',
+    this.overviewSections = const [],
   });
 
   final String name;
@@ -65,6 +68,7 @@ class CharacterRecord {
   final String playerName;
   final String description;
   final String imageUrl;
+  final List<OverviewSection> overviewSections;
 
   factory CharacterRecord.fromCatalogPayload({
     required String name,
@@ -86,6 +90,7 @@ class CharacterRecord {
       playerName: payload['playerName'] as String? ?? '',
       description: payload['description'] as String? ?? '',
       imageUrl: payload['imageUrl'] as String? ?? '',
+      overviewSections: parseOverviewSections(payload['overviewSections']),
     );
   }
 
@@ -96,6 +101,7 @@ class CharacterRecord {
         'playerName': playerName,
         'description': description,
         'imageUrl': imageUrl,
+        'overviewSections': overviewSectionsToJson(overviewSections),
       };
 
   String get descriptionPreview =>

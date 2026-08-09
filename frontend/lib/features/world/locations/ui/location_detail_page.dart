@@ -232,6 +232,7 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
 
   Widget _overviewBox() {
     return LocationOverviewBox(
+      auth: widget.auth,
       record: _record,
       ancestors: _ancestorRows,
       onAncestorTap: _openLocation,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:rpg_manager/core/ui/wiki_article_layout.dart';
 import 'package:rpg_manager/features/auth/data/auth_api.dart';
 import 'package:rpg_manager/features/auth/state/auth_controller.dart';
 import 'package:rpg_manager/features/catalog/data/catalog_api.dart';
@@ -10,6 +11,8 @@ import 'package:rpg_manager/features/player_options/skills/data/skill_model.dart
 import 'package:rpg_manager/features/world/creatures/data/creature_model.dart';
 import 'package:rpg_manager/features/world/creatures/ui/creature_form_sheet.dart';
 import 'package:rpg_manager/features/world/creatures/ui/creature_statblock_view.dart';
+import 'package:rpg_manager/features/world/ui/catalog_overview_box.dart';
+import 'package:rpg_manager/features/world/ui/overview_sections.dart';
 import 'package:rpg_manager/features/world/world_icons.dart';
 
 class CreatureDetailPage extends StatefulWidget {
@@ -159,6 +162,81 @@ class _CreatureDetailPageState extends State<CreatureDetailPage> {
     }
   }
 
+  Widget _statblockAndExtras({
+    required bool hasTrigger,
+    required bool hasCountermeasures,
+    required bool hasItems,
+    required bool hasExtras,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        CreatureStatblockView(
+          creature: _creature,
+          typeLabel: _creature.resolvedTypeLabel(
+            typeNamesById: _typeNamesById,
+          ),
+          skillNames: _skillNames,
+          skillAttributes: _skillAttributes,
+          conditionNames: _conditionNames,
+        ),
+        if (hasExtras) ...[
+          const SizedBox(height: 12),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: scheme.outlineVariant),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (hasTrigger) ...[
+                    Text(
+                      'Trigger',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    CatalogRichText(
+                      auth: widget.auth,
+                      content: _creature.trigger!,
+                    ),
+                    if (hasCountermeasures || hasItems)
+                      const SizedBox(height: 16),
+                  ],
+                  if (hasCountermeasures) ...[
+                    Text(
+                      'Countermeasures',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    for (final cm in _creature.countermeasures)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Text('• $cm'),
+                      ),
+                    if (hasItems) const SizedBox(height: 16),
+                  ],
+                  if (hasItems) ...[
+                    Text(
+                      'Items',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(_creature.items.join(', ')),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -166,6 +244,7 @@ class _CreatureDetailPageState extends State<CreatureDetailPage> {
     final hasCountermeasures = _creature.countermeasures.isNotEmpty;
     final hasItems = _creature.items.isNotEmpty;
     final hasExtras = hasTrigger || hasCountermeasures || hasItems;
+    final hasOverview = overviewSectionsNonEmpty(_creature.overviewSections);
 
     return Scaffold(
       appBar: AppBar(
@@ -203,83 +282,56 @@ class _CreatureDetailPageState extends State<CreatureDetailPage> {
               ),
             ),
           ),
-          SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 760),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    CreatureStatblockView(
-                      creature: _creature,
-                      typeLabel: _creature.resolvedTypeLabel(
-                        typeNamesById: _typeNamesById,
+          AnimatedBuilder(
+            animation: widget.auth,
+            builder: (context, _) {
+              final overview = hasOverview
+                  ? CatalogOverviewBox(
+                      auth: widget.auth,
+                      title: _creature.name,
+                      icon: creaturesPageIcon,
+                      overviewSections: _creature.overviewSections,
+                    )
+                  : null;
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 980),
+                    child: WikiArticleLayout(
+                      readableLineLength: widget.auth.readableLineLength,
+                      title: Text(
+                        _creature.name,
+                        style: Theme.of(context).textTheme.headlineSmall,
                       ),
-                      skillNames: _skillNames,
-                      skillAttributes: _skillAttributes,
-                      conditionNames: _conditionNames,
+                      overview: overview,
+                      overviewWidth: CatalogOverviewBox.preferredWidth,
+                      bodyBuilder: (floatOverview) {
+                        final body = _statblockAndExtras(
+                          hasTrigger: hasTrigger,
+                          hasCountermeasures: hasCountermeasures,
+                          hasItems: hasItems,
+                          hasExtras: hasExtras,
+                        );
+                        if (floatOverview == null) return body;
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: body),
+                            const SizedBox(width: 16),
+                            SizedBox(
+                              width: CatalogOverviewBox.preferredWidth,
+                              child: floatOverview,
+                            ),
+                          ],
+                        );
+                      },
                     ),
-                    if (hasExtras) ...[
-                      const SizedBox(height: 12),
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: scheme.surfaceContainerLow,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: scheme.outlineVariant),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (hasTrigger) ...[
-                                Text(
-                                  'Trigger',
-                                  style:
-                                      Theme.of(context).textTheme.titleMedium,
-                                ),
-                                const SizedBox(height: 8),
-                                CatalogRichText(
-                                  auth: widget.auth,
-                                  content: _creature.trigger!,
-                                ),
-                                if (hasCountermeasures || hasItems)
-                                  const SizedBox(height: 16),
-                              ],
-                              if (hasCountermeasures) ...[
-                                Text(
-                                  'Countermeasures',
-                                  style:
-                                      Theme.of(context).textTheme.titleMedium,
-                                ),
-                                const SizedBox(height: 8),
-                                for (final cm in _creature.countermeasures)
-                                  Padding(
-                                    padding: const EdgeInsets.only(bottom: 4),
-                                    child: Text('• $cm'),
-                                  ),
-                                if (hasItems) const SizedBox(height: 16),
-                              ],
-                              if (hasItems) ...[
-                                Text(
-                                  'Items',
-                                  style:
-                                      Theme.of(context).textTheme.titleMedium,
-                                ),
-                                const SizedBox(height: 8),
-                                Text(_creature.items.join(', ')),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
         ],
       ),

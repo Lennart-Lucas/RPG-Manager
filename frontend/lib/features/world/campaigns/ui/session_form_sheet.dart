@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../../core/ui/markdown_form_field.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../../dm_tools/resources/ui/resource_form_helpers.dart';
+import '../../ui/overview_sections.dart';
+import '../../ui/overview_sections_editor.dart';
 import '../data/session_model.dart';
 
 Future<SessionRecord?> showSessionFormSheet(
@@ -58,6 +60,9 @@ class _SessionFormState extends State<_SessionForm> {
       : widget.preferredCampaignId;
   late DateTime _dateTime =
       widget.initial?.parsedDateTime?.toLocal() ?? DateTime.now();
+  late List<OverviewSection> _overviewSections = [
+    ...?widget.initial?.overviewSections,
+  ];
 
   @override
   void dispose() {
@@ -107,6 +112,7 @@ class _SessionFormState extends State<_SessionForm> {
         campaignId: campaignId,
         dateTime: _dateTime.toUtc().toIso8601String(),
         description: _descriptionController.text.trim(),
+        overviewSections: normalizeOverviewSections(_overviewSections),
       ),
     );
   }
@@ -189,6 +195,13 @@ class _SessionFormState extends State<_SessionForm> {
                 ),
               ),
             ),
+          ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          OverviewSectionsEditor(
+            sections: _overviewSections,
+            onChanged: (next) => setState(() => _overviewSections = next),
+            searchLinks: widget.searchLinks,
+            loadAutoLinkTargets: widget.loadAutoLinkTargets,
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
           MarkdownFormField(

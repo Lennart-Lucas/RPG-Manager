@@ -4,6 +4,8 @@ import '../../../../core/ui/catalog_image_slot.dart';
 import '../../../../core/ui/markdown_form_field.dart';
 import '../../../catalog/data/catalog_models.dart';
 import '../../../dm_tools/resources/ui/resource_form_helpers.dart';
+import '../../ui/overview_sections.dart';
+import '../../ui/overview_sections_editor.dart';
 import '../data/location_model.dart';
 
 Future<LocationRecord?> showLocationFormSheet(
@@ -58,6 +60,9 @@ class _LocationFormState extends State<_LocationForm> {
   late LocationType _type = widget.initial?.type ?? LocationType.site;
   late int? _parentId = widget.initial?.parentId;
   late List<String> _aliases = [...?widget.initial?.aliases];
+  late List<OverviewSection> _overviewSections = [
+    ...?widget.initial?.overviewSections,
+  ];
   String? _parentError;
 
   @override
@@ -100,7 +105,6 @@ class _LocationFormState extends State<_LocationForm> {
   void _submit() {
     final form = _formKey.currentState;
     if (form == null || !form.validate()) return;
-    final initial = widget.initial;
     final draft = LocationRecord(
       name: _nameController.text.trim(),
       type: _type,
@@ -108,23 +112,13 @@ class _LocationFormState extends State<_LocationForm> {
       aliases: [
         for (final a in _aliases)
           if (a.trim().isNotEmpty &&
-              a.trim().toLowerCase() != _nameController.text.trim().toLowerCase())
+              a.trim().toLowerCase() !=
+                  _nameController.text.trim().toLowerCase())
             a.trim(),
       ],
       description: _descriptionController.text.trim(),
       imageUrl: normalizeCatalogImageUrl(_imageUrlController.text),
-      // Preserve legacy overview fields not shown in the form.
-      population: initial?.population ?? '',
-      government: initial?.government ?? '',
-      ruler: initial?.ruler ?? '',
-      alignment: initial?.alignment ?? '',
-      religions: initial?.religions ?? '',
-      languages: initial?.languages ?? '',
-      exports: initial?.exports ?? '',
-      imports: initial?.imports ?? '',
-      defenses: initial?.defenses ?? '',
-      history: initial?.history ?? '',
-      mapNotes: initial?.mapNotes ?? '',
+      overviewSections: normalizeOverviewSections(_overviewSections),
     );
     final err = draft.validateParent(_parentRecord(draft.parentId));
     if (err != null) {
@@ -240,6 +234,13 @@ class _LocationFormState extends State<_LocationForm> {
             keyboardType: TextInputType.url,
             autocorrect: false,
             validator: validateOptionalHttpUrl,
+          ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          OverviewSectionsEditor(
+            sections: _overviewSections,
+            onChanged: (next) => setState(() => _overviewSections = next),
+            searchLinks: widget.searchLinks,
+            loadAutoLinkTargets: widget.loadAutoLinkTargets,
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
           MarkdownFormField(

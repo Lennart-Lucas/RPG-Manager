@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/ui/markdown_form_field.dart';
 import '../../../dm_tools/resources/ui/resource_form_helpers.dart';
+import '../../ui/overview_sections.dart';
+import '../../ui/overview_sections_editor.dart';
 import '../data/lore_model.dart';
 
 Future<LoreRecord?> showLoreFormSheet(
@@ -43,6 +45,9 @@ class _LoreFormState extends State<_LoreForm> {
       TextEditingController(text: widget.initial?.name ?? '');
   late final _descriptionController =
       TextEditingController(text: widget.initial?.description ?? '');
+  late List<OverviewSection> _overviewSections = [
+    ...?widget.initial?.overviewSections,
+  ];
 
   @override
   void dispose() {
@@ -59,6 +64,7 @@ class _LoreFormState extends State<_LoreForm> {
       LoreRecord(
         name: _nameController.text.trim(),
         description: _descriptionController.text.trim(),
+        overviewSections: normalizeOverviewSections(_overviewSections),
       ),
     );
   }
@@ -85,6 +91,13 @@ class _LoreFormState extends State<_LoreForm> {
               }
               return null;
             },
+          ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          OverviewSectionsEditor(
+            sections: _overviewSections,
+            onChanged: (next) => setState(() => _overviewSections = next),
+            searchLinks: widget.searchLinks,
+            loadAutoLinkTargets: widget.loadAutoLinkTargets,
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
           MarkdownFormField(
