@@ -7,6 +7,7 @@ import 'core/offline/offline_marker.dart';
 import 'core/offline/offline_sync_controller.dart';
 import 'core/platform/client_platform.dart';
 import 'core/routing/app_router.dart';
+import 'core/routing/page_activity_tracker.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_controller.dart';
 import 'core/ui/app_scroll_behavior.dart';
@@ -41,6 +42,7 @@ class _RpgManagerAppState extends State<RpgManagerApp> {
   late final AuthController _auth;
   late final ThemeController _theme;
   late final GoRouter _router;
+  late final PageActivityTracker _pageActivity;
 
   @override
   void initState() {
@@ -48,6 +50,7 @@ class _RpgManagerAppState extends State<RpgManagerApp> {
     _auth = AuthController();
     _theme = ThemeController();
     _router = createAppRouter(auth: _auth, themeController: _theme);
+    _pageActivity = PageActivityTracker(router: _router, auth: _auth);
     final sync = OfflineSyncController.instance;
     sync.onSyncError = (message) {
       debugPrint('Offline sync: $message');
@@ -82,6 +85,7 @@ class _RpgManagerAppState extends State<RpgManagerApp> {
     _auth.removeListener(_onAuthChangedForObsidian);
     OfflineSyncController.instance.stop();
     ObsidianExportController.instance.stop();
+    _pageActivity.dispose();
     _router.dispose();
     _auth.dispose();
     _theme.dispose();

@@ -117,6 +117,7 @@ class _AppSidebarState extends State<AppSidebar> {
       AppPage.resources ||
       AppPage.mapMaker ||
       AppPage.playlists ||
+      AppPage.users ||
       AppPage.generator =>
         true,
       _ => false,
@@ -430,6 +431,12 @@ class _AppSidebarState extends State<AppSidebar> {
                             icon: playlistsPageIcon,
                             label: 'Playlists',
                             page: AppPage.playlists,
+                          ),
+                          _navTile(
+                            context,
+                            icon: usersPageIcon,
+                            label: 'Users',
+                            page: AppPage.users,
                           ),
                           _navTile(
                             context,

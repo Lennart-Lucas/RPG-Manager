@@ -31,6 +31,7 @@ abstract final class AppPaths {
         AppPage.resources => '/resources',
         AppPage.mapMaker => '/map-maker',
         AppPage.playlists => '/playlists',
+        AppPage.users => '/users',
         AppPage.classes => catalogList(CatalogKind.classes),
         AppPage.feats => catalogList(CatalogKind.feats),
         AppPage.items => catalogList(CatalogKind.items),
@@ -65,6 +66,7 @@ abstract final class AppPaths {
     if (normalized == '/resources') return AppPage.resources;
     if (normalized == '/map-maker') return AppPage.mapMaker;
     if (normalized == '/playlists') return AppPage.playlists;
+    if (normalized == '/users') return AppPage.users;
 
     // Strip detail id: /characters/42 → /characters
     final listPath = _listPathOf(normalized);
@@ -85,7 +87,8 @@ abstract final class AppPaths {
     return page == AppPage.generator ||
         page == AppPage.resources ||
         page == AppPage.mapMaker ||
-        page == AppPage.playlists;
+        page == AppPage.playlists ||
+        page == AppPage.users;
   }
 
   static String loginWithReturn(String from) {

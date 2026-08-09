@@ -84,6 +84,8 @@ Before the Rising the realm served the **Nine Names** — Aonir of the star-fiel
 
 The Keepers record nine. The Keepers also record that there were never more than nine, which is the sort of sentence that tells a careful reader a great deal.
 
+One of the Nine is a harder problem than the Church's teaching allows for. **Nor** is worshipped openly across the World Spine by the dark elves of [[Shall]], in libraries and lit arenas, and his temples there have not closed for a day since Althania burned his priests in 8 AR. The Keepers hold that the survival of a name proves nothing about the survival of a god, and that whatever answers in Shall is not Nor and never was. It is a sound argument. It is also, word for word, the argument the First Sacrament makes about grace outside the Church, which the Lectors have noticed and do not raise.
+
 The old faith is dead. It also survives in every harvest-knot hung over a byre door, every oak left uncut at the corner of a field, and every coin pressed into a spring. The Church's official position is that these are superstitions emptied of meaning. The Sixth Sacrament's position, which appears only in its own ledgers, is that a superstition is a rite which has forgotten that it is one, and that rites remember.
 
 ## As Matters Stand (958 AR)

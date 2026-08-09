@@ -35,6 +35,8 @@ An order of several hundred trained infiltrators, forgers, poisoners and network
 
 Everything the Sixth had learned about covens transferred to states with unpleasant precision. A heretic ring and a foreign chancery are the same object: a closed group held together by shared secrets and penetrable through its weakest member. Since the Schism of 872 the Sixth has functioned as Althania's intelligence service, and the [[Church of Orzhova|Church]] has never once used that word for it.
 
+East of the World Spine the method does not work at all, and the order has never explained why in writing. [[Shall]] has no closed groups to penetrate, because its faith holds no secrets and its temples admit anyone who walks in. An order built to map covens has spent a century failing against a people who keep their library open all night.
+
 Abroad, in the Sundered Communion and past the northern marches, the method runs in stages. They **place** people, over years. They **turn** clerks and confessors. They **replace** officials rather than kill them. They **map**. Only at the end do they **burn**, and by then the fire is a formality performed over something already dead.
 
 ## Mandate

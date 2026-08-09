@@ -31,35 +31,7 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   String get _pageKey => widget.currentPage.name;
 
-  String get _title => switch (widget.currentPage) {
-        AppPage.home => 'RPG Manager',
-        AppPage.preferences => 'Preferences',
-        AppPage.generator => 'Generator',
-        AppPage.resources => 'Resources',
-        AppPage.mapMaker => 'Map maker',
-        AppPage.playlists => 'Playlists',
-        AppPage.classes => 'Classes',
-        AppPage.feats => 'Feats',
-        AppPage.items => 'Items',
-        AppPage.languages => 'Languages',
-        AppPage.races => 'Races',
-        AppPage.transformations => 'Transformations',
-        AppPage.skills => 'Skills',
-        AppPage.spells => 'Spells',
-        AppPage.conditions => 'Conditions',
-        AppPage.damageTypes => 'Damage Types',
-        AppPage.itemProperties => 'Item Properties',
-        AppPage.rules => 'Rules',
-        AppPage.spellTags => 'Spell Tags',
-        AppPage.features => 'Features',
-        AppPage.creatures => 'Creatures',
-        AppPage.atlas => 'Atlas',
-        AppPage.characters => 'Characters',
-        AppPage.organisations => 'Organisations',
-        AppPage.events => 'Events',
-        AppPage.lore => 'Lore',
-        AppPage.story => 'Story',
-      };
+  String get _title => appPageTitle(widget.currentPage);
 
   @override
   void initState() {

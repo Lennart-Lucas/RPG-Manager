@@ -493,7 +493,7 @@ class _ConditionsBodyState extends State<ConditionsBody>
           children: [
             SizeTransition(
               sizeFactor: _filterPanelAnimation,
-              alignment: Alignment.topCenter,
+              axisAlignment: -1.0,
               child: Material(
                 color: barColor,
                 elevation: 1,

@@ -16,6 +16,7 @@ from app.security.tokens import (
     refresh_token_expires_at,
 )
 from app.services.catalog_service import ensure_default_skills
+from app.services.user_activity_service import mark_login_activity
 
 
 def normalize_email(email: str) -> str:
@@ -82,6 +83,7 @@ async def register_user(
     )
     session.add(user)
     await session.flush()
+    mark_login_activity(user)
     await ensure_default_skills(session, user.id)
     tokens = await _issue_tokens(session, user)
     return user, tokens
@@ -103,6 +105,8 @@ async def login_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is disabled",
         )
+    mark_login_activity(user)
+    await session.flush()
     return await _issue_tokens(session, user)
 
 

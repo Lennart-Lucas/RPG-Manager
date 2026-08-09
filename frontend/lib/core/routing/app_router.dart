@@ -10,6 +10,7 @@ import '../../features/catalog/ui/catalog_body.dart';
 import '../../features/dm_tools/resources/resources_icons.dart';
 import '../../features/dm_tools/resources/ui/resources_body.dart';
 import '../../features/dm_tools/ui/dm_tool_placeholder_body.dart';
+import '../../features/dm_tools/users/ui/users_body.dart';
 import '../../features/mechanics/conditions/ui/conditions_body.dart';
 import '../../features/mechanics/damage_types/ui/damage_types_body.dart';
 import '../../features/mechanics/features/ui/features_body.dart';
@@ -146,6 +147,13 @@ GoRouter createAppRouter({
                 title: 'Playlists',
                 icon: playlistsPageIcon,
               ),
+            ),
+          ),
+          GoRoute(
+            path: '/users',
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: UsersBody(auth: auth),
             ),
           ),
           _sectionWithDetail(
