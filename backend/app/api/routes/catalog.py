@@ -29,10 +29,9 @@ async def search_catalog_items(
     session: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_active_user),
 ) -> list[CatalogSearchHit]:
-    items = await catalog_service.search_items(
+    return await catalog_service.search_items(
         session, await campaign_scope_user_id(session, user), q, limit=limit
     )
-    return [CatalogSearchHit.model_validate(item) for item in items]
 
 
 @router.get("", response_model=list[CatalogItemResponse])

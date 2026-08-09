@@ -4,14 +4,18 @@ from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import String, case, cast, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.data.default_skills import DEFAULT_SKILLS, is_default_skill_name
 from app.models.catalog_item import CatalogItem, CatalogKind
-from app.schemas.catalog import CatalogItemCreate, CatalogItemUpdate
+from app.schemas.catalog import CatalogItemCreate, CatalogItemUpdate, CatalogSearchHit
 from app.services import catalog_wiki
+from app.services.catalog_search_text import (
+    markdown_snippet_for_query,
+    name_matches_query,
+)
 from app.services.resource_common import validate_name
 
 
@@ -78,7 +82,7 @@ async def search_items(
     query: str,
     *,
     limit: int = 20,
-) -> list[CatalogItem]:
+) -> list[CatalogSearchHit]:
     q = query.strip()
     stmt = (
         select(CatalogItem)
@@ -86,13 +90,37 @@ async def search_items(
             CatalogItem.user_id == user_id,
             CatalogItem.deleted_at.is_(None),
         )
-        .order_by(CatalogItem.name.asc())
         .limit(limit)
     )
     if q:
-        stmt = stmt.where(CatalogItem.name.ilike(f"%{q}%"))
+        pattern = f"%{q}%"
+        name_match = CatalogItem.name.ilike(pattern)
+        content_match = cast(CatalogItem.payload, String).ilike(pattern)
+        stmt = stmt.where(or_(name_match, content_match)).order_by(
+            case((name_match, 0), else_=1),
+            CatalogItem.name.asc(),
+        )
+    else:
+        stmt = stmt.order_by(CatalogItem.name.asc())
+
     result = await session.execute(stmt)
-    return list(result.scalars().all())
+    items = list(result.scalars().all())
+
+    hits: list[CatalogSearchHit] = []
+    for item in items:
+        snippet: str | None = None
+        if q and not name_matches_query(item.name, q):
+            payload = item.payload if isinstance(item.payload, dict) else None
+            snippet = markdown_snippet_for_query(payload, q)
+        hits.append(
+            CatalogSearchHit(
+                id=item.id,
+                kind=CatalogKind(item.kind),
+                name=item.name,
+                snippet=snippet,
+            )
+        )
+    return hits
 
 
 async def get_item(

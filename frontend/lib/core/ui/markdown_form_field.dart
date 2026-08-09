@@ -12,17 +12,25 @@ class CatalogLinkTarget {
     required this.id,
     required this.kind,
     required this.name,
+    this.snippet,
   });
 
   final int id;
   final String kind;
   final String name;
 
+  /// Plain-text excerpt when the hit matched markdown content, not the name.
+  final String? snippet;
+
   factory CatalogLinkTarget.fromJson(Map<String, dynamic> json) {
+    final rawSnippet = json['snippet'];
     return CatalogLinkTarget(
       id: json['id'] as int,
       kind: json['kind'] as String,
       name: json['name'] as String,
+      snippet: rawSnippet is String && rawSnippet.trim().isNotEmpty
+          ? rawSnippet.trim()
+          : null,
     );
   }
 }

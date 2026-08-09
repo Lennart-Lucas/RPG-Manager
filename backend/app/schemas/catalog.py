@@ -31,8 +31,7 @@ class CatalogItemResponse(BaseModel):
 
 
 class CatalogSearchHit(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
     id: int
     kind: CatalogKind
     name: str
+    snippet: str | None = None

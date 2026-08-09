@@ -263,6 +263,8 @@ class _HomeBodyState extends State<HomeBody>
         final kind = CatalogKind.tryParseApiValue(hit.kind);
         final icon = kind?.pageIcon ?? Icons.article_outlined;
         final typeLabel = kind?.displayLabel ?? hit.kind;
+        final snippet = hit.snippet?.trim();
+        final hasSnippet = snippet != null && snippet.isNotEmpty;
         return Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: _searchMaxWidth),
@@ -278,7 +280,23 @@ class _HomeBodyState extends State<HomeBody>
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              subtitle: Text(typeLabel),
+              subtitle: hasSnippet
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(typeLabel),
+                        const SizedBox(height: 2),
+                        Text(
+                          snippet,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    )
+                  : Text(typeLabel),
               onTap: () => _openHit(hit),
             ),
           ),

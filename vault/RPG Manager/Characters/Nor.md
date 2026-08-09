@@ -2,20 +2,22 @@
 rpg_manager_id: 199
 rpg_manager_kind: "characters"
 name: "Nor"
+aliases: []
 raceId: null
 mtgAlignment:
   - "U"
   - "B"
 playerName: ""
-imageUrl: ""
+imageUrl: "https://drive.google.com/thumbnail?id=10FZ_frblOakpVjw5FStpt-5sByBE5ayB&sz=w2000"
+overviewSections: []
 ---
 
 > *He came first, and he was not thanked for it.*
 > — opening line of the Descent, recited in the temples on the dark of the moon
 
-Nor is the patron god of the [[Dark Elves|Norcaine]], the first of the Nine to set foot on the material plane, and the only one of them whose worship never stopped. He is called **the Unfinished**, and the title is not humility. He does not claim to be perfect. He claims to be further along than you are, and still at work.
+Nor is the patron god of the [[RPG Manager/Races/Dark Elves|Norcaine]], the first of the Nine to set foot on the material plane, and the only one of them whose worship never stopped. He is called **the Unfinished**, and the title is not humility. He does not claim to be perfect. He claims to be further along than you are, and still at work.
 
-**At a glance.** One of the Nine Names, proscribed in [[Althania]] and worshipped openly across the World Spine. His sphere is striving, mastery and self-perfection. He is the **Silver Weaver**, and his sign is a silver orb web whose outermost ring was never joined. His worship is set out in [[The Cult of Nor]]; his people in [[Dark Elves]].
+**At a glance.** One of the Nine Names, proscribed in [[RPG Manager/Locations/Valmoria/Althania]] and worshipped openly across the World Spine. His sphere is striving, mastery and self-perfection. He is the **Silver Weaver**, and his sign is a silver orb web whose outermost ring was never joined. His worship is set out in [[RPG Manager/Organisations/The Cult of Nor]]; his people in [[RPG Manager/Races/Dark Elves]].
 
 ## The First Descent
 
@@ -71,7 +73,7 @@ Nor is one of the Nine Names that Althania proscribed at the Rising. His priests
 
 So Althania has burned his clergy, effaced his history, and built into its own liturgy a rite that teaches his name to every peasant in the realm, once a year, for ever. The Keepers of Doctrine have petitioned four times to reform the Ninefold Denial and have been refused four times, and no Lector has ever put in writing why the refusals keep coming.
 
-The Church's formal position is that the survival of a name proves nothing about the survival of a god, and that whatever answers in [[Shall]] is not Nor and never was.
+The Church's formal position is that the survival of a name proves nothing about the survival of a god, and that whatever answers in [[RPG Manager/Locations/Valmoria/Shall]] is not Nor and never was.
 
 There is one detail the First Sacrament does not enjoy. Weavers and spinsters across Veldenau and the fen country hang a silver thread over the loom for luck, and leave the last hand's breadth of a finished cloth deliberately loose. They will tell a curate it is an old habit of the trade and that it means nothing. It is, to the inch, the outermost ring of the web.
 
@@ -89,33 +91,7 @@ His libraries have not closed for a day since Shall was founded, and they have l
 
 Across the mountains, in the year the Hierarch is expected to die, four Redactors of the First Sacrament have been recalled from the marches without explanation, and a warrant is rumoured to have been drawn against a portion of the Book of the Voice. The two facts have nothing to do with each other. The Sixth Sacrament has assigned three Keepers to establishing that.
 
----
-
-## Divine Domains (5e)
-
-*Assessed against the full cleric list on [dnd5e.wikidot.com](https://dnd5e.wikidot.com/cleric), covering the Player's Handbook and expansions, the four Amonkhet Plane Shift domains, and both current and archived Unearthed Arcana.*
-
-**Primary, for the god himself**
-
+## Divine Domains
 - **Knowledge** (PHB). The temple is a library before it is anything else. Nor's method is understanding, and his clergy lend books to anyone who walks through the door.
 - **Ambition** (Amonkhet). Written for exactly this god. Self-advancement as a sacrament, with no embarrassment attached to it. This is the black half of Nor.
 - **Forge** (XGE). Craft as devotion. Covers the artisans who rival the dwarves, and reads the making of a flawless thing as an act of worship. Sits perfectly with the silversmith's god who cannot be lied to.
-
-**Strong, and common among his clergy**
-
-- **Arcana** (SCAG). House Archon's whole tradition, and magecraft as the highest of the disciplines.
-- **Strength** (Amonkhet). The arena. Physical perfection pursued as seriously as the intellectual kind, which is the thing outsiders always miss about the Norcaine.
-- **War** (PHB). House Dra'chon's chaplains. Worth noting that this is the narrowest possible reading of Nor, and the one Althania mistakes for the whole.
-
-**Situational, being house flavour rather than the god**
-
-- **Trickery** (PHB). House Sinistra. Doctrinally awkward and quietly common.
-- **Protection** (UA 22). The second half of the doctrine of rule, which is that the strong protect. Fits a house chaplain rather than a Whetstone.
-- **Order** (GGtR, TCE). The houses' law rather than Nor's. A cleric who takes this is serving the structure that fenced the temple in, and may not have noticed.
-
-**Deliberately excluded**
-
-- **Life**, **Peace**, **Solidarity** (Amonkhet) and **Unity** (UA 68). Comfort, harmony and belonging are precisely what Nor did not offer, and precisely why he was passed over.
-- **Fate** (UA 85). The sharpest exclusion of the lot. Nor's entire teaching is that nothing is fixed, so a Fate cleric of Nor is a contradiction in terms, and would make an excellent heretic.
-- **Death** and **Grave**. Zarach's ground rather than Nor's, and worth keeping separate given how entangled those two already are.
-- **Nature**, **Tempest**, **Light**, **Twilight**, **Zeal** and **City**. No purchase. Zeal in particular is a hot-blooded domain, and Nor is a cold god.

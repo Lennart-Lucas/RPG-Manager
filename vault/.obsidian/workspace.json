@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "RPG Manager/Locations/Valmoria/Shall.md",
+                "file": "RPG Manager/Locations/Valmoria/Castavar/Torrazon.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Shall"
+              "title": "Torrazon"
             }
           }
         ]
@@ -185,23 +185,26 @@
   },
   "active": "4880d2d1842efa3c",
   "lastOpenFiles": [
+    "RPG Manager/Locations/Valmoria/Shall.md",
+    "RPG Manager/Organisations/Church of Orzhova/Althania's Holy Inquisition/The 5th Sacrament - The Wardens of the Argent Hunt.md.tmp.3472.4c79767f7c31",
+    "RPG Manager/Organisations/Church of Orzhova/Althania's Holy Inquisition/The 1st Sacrament - The Keepers of Doctrine.md.tmp.3472.466960a10c4a",
+    "RPG Manager/Locations/Valmoria/Althania.md.tmp.3472.c13ec2ee21c9",
+    "RPG Manager/Organisations/The Perdurantes.md",
+    "RPG Manager/Organisations/The Perdurantes.md.tmp.3472.0ec93c1ccfac",
+    "RPG Manager/Locations/Valmoria/Castavar/Torrazon.md",
+    "RPG Manager/Locations/Valmoria/Castavar/Torrazon.md.tmp.3472.2b8e3d01354e",
+    "RPG Manager/Locations/Valmoria/Castavar",
+    "RPG Manager/Locations/Valmoria/Castavar.md",
+    "RPG Manager/Locations/Valmoria/Castavar.md.tmp.3472.7706d15ab75d",
     "RPG Manager/Characters/Nor.md.tmp.29276.71143d9524b2",
     "RPG Manager/Characters/Nor.md.tmp.19660.94929acc69d0",
     "RPG Manager/Characters/Nor.md",
     "RPG Manager/Characters",
     "RPG Manager/Organisations/The Cult of Nor.md",
     "mtg-color-personality-guide.md",
-    "RPG Manager/Organisations/The Houses of Shall.md.tmp.17656.0eb9f5395d86",
-    "RPG Manager/Organisations/The Houses of Shall.md.tmp.17656.0ef715e6498d",
-    "RPG Manager/Organisations/The Houses of Shall.md.tmp.17656.1b86b37e6acd",
-    "RPG Manager/Locations/Valmoria/Shall.md.tmp.17656.b563164021ba",
     "RPG Manager/Lore/The Canon of Saints.md",
     "RPG Manager/Races/Dark Elves.md",
-    "RPG Manager/Races",
     "RPG Manager/Lore/The Dark Elves.md",
-    "RPG Manager/Lore/Chronicle of the Rising.md.tmp.29404.2a4470ddd270",
-    "RPG Manager/Organisations/The Houses of Shall.md.tmp.29404.727417881e86",
-    "RPG Manager/Organisations/The Cult of Nor.md.tmp.29404.5df36a300bb8",
     "RPG Manager/Lore/Chronicle of the Rising.md",
     "RPG Manager/Organisations/Althania's Holy Inquisition.md",
     "RPG Manager/Organisations/Church of Orzhova/Althania's Holy Inquisition/The 6th Sacrament - The Keepers of the Last Flame.md",
@@ -217,9 +220,6 @@
     "RPG Manager/Organisations/Althania's Holy Inquisition/The 1st Sacrament - The Keepers of Doctrine.md",
     "RPG Manager/Organisations/Church of Orzhova.md",
     "RPG Manager/Locations/Valmoria/Althania/Weissturm.md",
-    "RPG Manager/Locations/Valmoria/Althania/Salvamont.md",
-    "RPG Manager/Locations/Valmoria/Althania/Knarrholt.md",
-    "RPG Manager/Locations/Valmoria/Althania/Eichenwacht.md",
-    "RPG Manager/Locations/Valmoria/Althania/Dunvicum.md"
+    "RPG Manager/Locations/Valmoria/Althania/Salvamont.md"
   ]
 }
