@@ -89,6 +89,73 @@ function Get-DeployConfig {
     }
 }
 
+function Ensure-DeploySshIdentity {
+    param([string]$SshKeyPath)
+
+    $sshAdd = Get-Command ssh-add -ErrorAction SilentlyContinue
+    if (-not $sshAdd) {
+        throw "OpenSSH (ssh-add) is required on PATH."
+    }
+
+    $agent = Get-Service -Name "ssh-agent" -ErrorAction SilentlyContinue
+    if ($null -eq $agent) {
+        Write-Host "ssh-agent service not found; relying on default OpenSSH agent socket."
+    }
+    elseif ($agent.Status -ne "Running") {
+        Write-Host "Starting Windows ssh-agent..."
+        try {
+            if ($agent.StartType -eq "Disabled") {
+                throw "ssh-agent is Disabled."
+            }
+            Start-Service ssh-agent
+        }
+        catch {
+            throw (
+                "Could not start ssh-agent. In an elevated PowerShell run once:`n" +
+                "  Set-Service ssh-agent -StartupType Manual`n" +
+                "  Start-Service ssh-agent`n" +
+                "Then retry deploy."
+            )
+        }
+    }
+
+    $fingerprint = $null
+    $keygen = Get-Command ssh-keygen -ErrorAction SilentlyContinue
+    if ($keygen) {
+        $fpLine = & $keygen.Source -lf $SshKeyPath 2>$null | Select-Object -First 1
+        if ($fpLine -match "^\S+\s+(\S+)") {
+            $fingerprint = $Matches[1]
+        }
+    }
+
+    $loaded = & $sshAdd.Source -l 2>$null
+    $alreadyLoaded = $false
+    if ($LASTEXITCODE -eq 0 -and $fingerprint) {
+        foreach ($line in @($loaded)) {
+            if ("$line" -like "*$fingerprint*") {
+                $alreadyLoaded = $true
+                break
+            }
+        }
+    }
+
+    if ($alreadyLoaded) {
+        Write-Host "Deploy key already loaded in ssh-agent."
+        return
+    }
+
+    Write-Host "Loading deploy key into ssh-agent (enter passphrase if prompted)..."
+    Write-Host "  $SshKeyPath"
+    # Do not redirect stdin/stdout — ssh-add must be able to prompt interactively.
+    & $sshAdd.Source $SshKeyPath
+    if ($LASTEXITCODE -ne 0) {
+        throw (
+            "ssh-add failed for `"$SshKeyPath`". " +
+            "Unlock the key (passphrase), then retry deploy."
+        )
+    }
+}
+
 function Invoke-RemoteViaOpenSsh {
     param(
         [string]$User,
@@ -108,6 +175,7 @@ function Invoke-RemoteViaOpenSsh {
 
     $sshArgs = @(
         "-i", $SshKeyPath,
+        "-o", "IdentitiesOnly=yes",
         "-o", "BatchMode=yes",
         "-o", "ConnectTimeout=15",
         "-o", "StrictHostKeyChecking=accept-new",
@@ -142,9 +210,8 @@ function Invoke-RemoteViaOpenSsh {
         }
         if ($output -match "Permission denied \(publickey\)" -and $output -notmatch "docker|Building|Dockerfile") {
             throw (
-                "SSH to the VPS failed (publickey). " +
-                "If your key has a passphrase, run: ssh-add `"$SshKeyPath`" " +
-                "then retry. Interactive ssh works; this script cannot prompt for a passphrase."
+                "SSH to the VPS failed (publickey) even after ssh-agent setup. " +
+                "Confirm DEPLOY_SSH_KEY_PATH matches a key authorized on the VPS, then retry."
             )
         }
         throw "Remote command failed (ssh exit code $exitCode)."
@@ -168,6 +235,7 @@ function Invoke-ScpUpload {
     Write-Host "Uploading $LocalPath -> ${User}@${DeployHost}:$RemotePath ..."
     $scpArgs = @(
         "-i", $SshKeyPath,
+        "-o", "IdentitiesOnly=yes",
         "-o", "BatchMode=yes",
         "-o", "ConnectTimeout=15",
         "-o", "StrictHostKeyChecking=accept-new",
@@ -189,7 +257,7 @@ function Invoke-ScpUpload {
             $joined = $lines -join [Environment]::NewLine
             if ($joined -match "Permission denied") {
                 throw (
-                    "SCP failed (publickey). Run: ssh-add `"$SshKeyPath`" then retry."
+                    "SCP failed (publickey). Confirm the deploy key is loaded (ssh-add -l) and authorized on the VPS."
                 )
             }
             throw "SCP upload failed (exit code $LASTEXITCODE)."
@@ -209,6 +277,9 @@ $buildWebScript = Join-Path $PSScriptRoot "build-web.ps1"
 Write-Host "Deploying RPG-Manager to $($config.User)@$($config.DeployHost)..."
 Write-Host "Repo path: $($config.RepoPath)"
 Write-Host "Auth: SSH key ($($config.SshKeyPath))"
+Write-Host ""
+
+Ensure-DeploySshIdentity -SshKeyPath $config.SshKeyPath
 Write-Host ""
 
 Write-Host "==> Phase A: Build Flutter web on this machine"

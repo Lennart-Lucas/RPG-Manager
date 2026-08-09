@@ -52,7 +52,7 @@ Copy-Item .deploy.local.example .deploy.local
 notepad .deploy.local   # set DEPLOY_HOST and DEPLOY_SSH_KEY_PATH
 ```
 
-Requires **OpenSSH** (`ssh` / `scp` on PATH) and **Flutter** on PATH. If your SSH key has a passphrase, run `ssh-add` first (start `ssh-agent` as Administrator once if needed).
+Requires **OpenSSH** (`ssh` / `scp` / `ssh-add` on PATH) and **Flutter** on PATH. The deploy script starts `ssh-agent` and runs `ssh-add` for your deploy key before connecting (you'll be prompted for the passphrase if needed). If starting the agent fails, run once in elevated PowerShell: `Set-Service ssh-agent -StartupType Manual`.
 
 `.deploy.local` holds **VPS** SSH access only — not GitHub tokens.
 
