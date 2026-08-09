@@ -29,6 +29,7 @@ Widget buildRoundedFitWidthNetworkImage({
   required String url,
   required double borderRadius,
   required double placeholderAspectRatio,
+  required double minAspectRatio,
   required Widget Function(BuildContext, Object, StackTrace?) errorBuilder,
   required Widget Function(BuildContext) loadingBuilder,
 }) {
@@ -36,6 +37,7 @@ Widget buildRoundedFitWidthNetworkImage({
     url: url,
     borderRadius: borderRadius,
     placeholderAspectRatio: placeholderAspectRatio,
+    minAspectRatio: minAspectRatio,
     errorBuilder: errorBuilder,
     loadingBuilder: loadingBuilder,
   );
@@ -174,6 +176,7 @@ class _WebFitWidthRoundedImage extends StatefulWidget {
     required this.url,
     required this.borderRadius,
     required this.placeholderAspectRatio,
+    required this.minAspectRatio,
     required this.errorBuilder,
     required this.loadingBuilder,
   });
@@ -181,6 +184,7 @@ class _WebFitWidthRoundedImage extends StatefulWidget {
   final String url;
   final double borderRadius;
   final double placeholderAspectRatio;
+  final double minAspectRatio;
   final Widget Function(BuildContext, Object, StackTrace?) errorBuilder;
   final Widget Function(BuildContext) loadingBuilder;
 
@@ -192,6 +196,7 @@ class _WebFitWidthRoundedImage extends StatefulWidget {
 class _WebFitWidthRoundedImageState extends State<_WebFitWidthRoundedImage> {
   double? _aspectRatio;
   Object? _error;
+  bool _loggedLoad = false;
 
   @override
   void didUpdateWidget(covariant _WebFitWidthRoundedImage oldWidget) {
@@ -199,6 +204,7 @@ class _WebFitWidthRoundedImageState extends State<_WebFitWidthRoundedImage> {
     if (oldWidget.url != widget.url) {
       _aspectRatio = null;
       _error = null;
+      _loggedLoad = false;
     }
   }
 
@@ -208,83 +214,69 @@ class _WebFitWidthRoundedImageState extends State<_WebFitWidthRoundedImage> {
       return widget.errorBuilder(context, _error!, null);
     }
 
-    final ratio = _aspectRatio ?? widget.placeholderAspectRatio;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // #region agent log
-        _agentLog(
-          hypothesisId: 'B',
-          location: 'rounded_network_image_web.dart:fitWidth.build',
-          message: 'web fitWidth layout constraints',
-          data: {
-            'maxWidth': constraints.maxWidth,
-            'maxHeight': constraints.maxHeight,
-            'minWidth': constraints.minWidth,
-            'minHeight': constraints.minHeight,
-            'maxWidthFinite': constraints.maxWidth.isFinite,
-            'maxHeightFinite': constraints.maxHeight.isFinite,
-            'ratio': ratio,
-            'hasNaturalRatio': _aspectRatio != null,
-            'placeholderAspectRatio': widget.placeholderAspectRatio,
-            'computedHeightIfWidthKnown': constraints.maxWidth.isFinite
-                ? constraints.maxWidth / ratio
-                : null,
-            'urlHost': Uri.tryParse(widget.url)?.host,
-          },
-        );
-        // #endregion
-        return AspectRatio(
-          aspectRatio: ratio,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              if (_aspectRatio == null) widget.loadingBuilder(context),
-              HtmlElementView.fromTagName(
-                tagName: 'img',
-                onElementCreated: (element) {
-                  final img = element as web.HTMLImageElement;
-                  _styleImg(
-                    img,
-                    url: widget.url,
-                    borderRadius: widget.borderRadius,
-                    fit: BoxFit.cover,
-                    alignment: Alignment.center,
-                    heightAuto: false,
+    final natural = _aspectRatio;
+    final minRatio = widget.minAspectRatio;
+    final displayRatio = natural == null
+        ? widget.placeholderAspectRatio
+        : (natural < minRatio ? minRatio : natural);
+    final cropped = natural != null && natural < minRatio;
+
+    return AspectRatio(
+      aspectRatio: displayRatio,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (natural == null) widget.loadingBuilder(context),
+          HtmlElementView.fromTagName(
+            tagName: 'img',
+            onElementCreated: (element) {
+              final img = element as web.HTMLImageElement;
+              _styleImg(
+                img,
+                url: widget.url,
+                borderRadius: widget.borderRadius,
+                fit: BoxFit.cover,
+                alignment: Alignment.center,
+                heightAuto: false,
+              );
+              img.onLoad.listen((_) {
+                final w = img.naturalWidth;
+                final h = img.naturalHeight;
+                if (!mounted || w == 0 || h == 0) return;
+                final next = w / h;
+                // #region agent log
+                if (!_loggedLoad) {
+                  _loggedLoad = true;
+                  _agentLog(
+                    hypothesisId: 'A',
+                    location: 'rounded_network_image_web.dart:onLoad',
+                    message: 'web image capped aspect',
+                    data: {
+                      'runId': 'post-fix',
+                      'naturalWidth': w,
+                      'naturalHeight': h,
+                      'naturalRatio': next,
+                      'minAspectRatio': minRatio,
+                      'displayRatio':
+                          next < minRatio ? minRatio : next,
+                      'cropped': next < minRatio,
+                      'urlHost': Uri.tryParse(widget.url)?.host,
+                    },
                   );
-                  img.onLoad.listen((_) {
-                    final w = img.naturalWidth;
-                    final h = img.naturalHeight;
-                    // #region agent log
-                    _agentLog(
-                      hypothesisId: 'A',
-                      location: 'rounded_network_image_web.dart:onLoad',
-                      message: 'web image natural size',
-                      data: {
-                        'naturalWidth': w,
-                        'naturalHeight': h,
-                        'ratioWh': h == 0 ? null : w / h,
-                        'clientWidth': img.clientWidth,
-                        'clientHeight': img.clientHeight,
-                        'urlHost': Uri.tryParse(widget.url)?.host,
-                      },
-                    );
-                    // #endregion
-                    if (!mounted || w == 0 || h == 0) return;
-                    final next = w / h;
-                    if (_aspectRatio != next) {
-                      setState(() => _aspectRatio = next);
-                    }
-                  });
-                  img.onError.listen((_) {
-                    if (!mounted) return;
-                    setState(() => _error = Exception('Failed to load image'));
-                  });
-                },
-              ),
-            ],
+                }
+                // #endregion
+                if (_aspectRatio != next) {
+                  setState(() => _aspectRatio = next);
+                }
+              });
+              img.onError.listen((_) {
+                if (!mounted) return;
+                setState(() => _error = Exception('Failed to load image'));
+              });
+            },
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 }

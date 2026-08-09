@@ -29,11 +29,13 @@ Widget roundedNetworkImage({
   );
 }
 
-/// Full-width image whose height follows the intrinsic aspect ratio.
+/// Full-width image whose height follows the intrinsic aspect ratio, capped by
+/// [minAspectRatio] (taller images are cropped with [BoxFit.cover]).
 Widget roundedFitWidthNetworkImage({
   required String url,
   required double borderRadius,
   required double placeholderAspectRatio,
+  double minAspectRatio = 2 / 3,
   required Widget Function(BuildContext, Object, StackTrace?) errorBuilder,
   required Widget Function(BuildContext) loadingBuilder,
 }) {
@@ -41,6 +43,7 @@ Widget roundedFitWidthNetworkImage({
     url: url,
     borderRadius: borderRadius,
     placeholderAspectRatio: placeholderAspectRatio,
+    minAspectRatio: minAspectRatio,
     errorBuilder: errorBuilder,
     loadingBuilder: loadingBuilder,
   );

@@ -72,15 +72,16 @@ String? _googleDriveFileId(Uri uri) {
 
 /// Full-width image for overview / detail side panels.
 ///
-/// Once loaded, the frame height matches the image's own aspect ratio (no
-/// letterboxing or cropping). [aspectRatio] is only used for the empty,
-/// loading, and error placeholders.
+/// Height follows the image aspect ratio, but never taller than
+/// `width / [minAspectRatio]` (default 2:3). Taller sources are cropped with
+/// cover. [aspectRatio] is only used for empty/loading/error placeholders.
 class CatalogImageSlot extends StatelessWidget {
   const CatalogImageSlot({
     super.key,
     required this.imageUrl,
     required this.placeholder,
     this.aspectRatio = 3 / 4,
+    this.minAspectRatio = 2 / 3,
     this.borderRadius = 8,
     this.borderColor,
   });
@@ -88,6 +89,9 @@ class CatalogImageSlot extends StatelessWidget {
   final String imageUrl;
   final Widget placeholder;
   final double aspectRatio;
+
+  /// Minimum width/height. Images taller than this are cropped into the frame.
+  final double minAspectRatio;
   final double borderRadius;
   final Color? borderColor;
 
@@ -122,6 +126,7 @@ class CatalogImageSlot extends StatelessWidget {
         url: url,
         borderRadius: borderRadius,
         placeholderAspectRatio: aspectRatio,
+        minAspectRatio: minAspectRatio,
         errorBuilder: (_, _, _) => placeholderFrame(),
         loadingBuilder: (context) => const Center(
           child: SizedBox(
