@@ -307,27 +307,36 @@ class _ItemFormState extends State<_ItemForm> {
             children: [
               Expanded(
                 flex: 2,
-                child: DropdownButtonFormField<int?>(
-                  initialValue: _sourceFileId,
-                  decoration: ResourceFormStyles.inputDecoration(
-                    context,
-                    label: 'Source',
-                    helperText: widget.resourceFiles.isEmpty
-                        ? 'No resource files available'
-                        : null,
-                  ),
-                  items: [
-                    const DropdownMenuItem<int?>(
-                      value: null,
-                      child: Text('None'),
-                    ),
-                    for (final file in widget.resourceFiles)
-                      DropdownMenuItem<int?>(
-                        value: file.id,
-                        child: Text(file.name),
+                child: Builder(
+                  builder: (context) {
+                    final sourceFiles = resourceFilesForSourcePicker(
+                      widget.resourceFiles,
+                      selectedId: _sourceFileId,
+                    );
+                    return DropdownButtonFormField<int?>(
+                      initialValue: _sourceFileId,
+                      decoration: ResourceFormStyles.inputDecoration(
+                        context,
+                        label: 'Source',
+                        helperText: sourceFiles.isEmpty
+                            ? 'No resource files available'
+                            : null,
                       ),
-                  ],
-                  onChanged: (value) => setState(() => _sourceFileId = value),
+                      items: [
+                        const DropdownMenuItem<int?>(
+                          value: null,
+                          child: Text('None'),
+                        ),
+                        for (final file in sourceFiles)
+                          DropdownMenuItem<int?>(
+                            value: file.id,
+                            child: Text(file.name),
+                          ),
+                      ],
+                      onChanged: (value) =>
+                          setState(() => _sourceFileId = value),
+                    );
+                  },
                 ),
               ),
               const SizedBox(width: ResourceFormStyles.fieldSpacing),

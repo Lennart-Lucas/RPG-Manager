@@ -351,27 +351,34 @@ class _SubclassFormState extends State<_SubclassForm>
 
   @override
   Widget build(BuildContext context) {
-    final body = (!_showProcessTab || _tabController == null)
-        ? _buildEditFields(context)
-        : AnimatedBuilder(
-            animation: _tabController!,
-            builder: (context, _) {
-              if (_tabController!.index == 0) {
-                return _buildEditFields(context);
-              }
-              return ClassAiProcessPane(
-                controller: _processController,
-                processing: _processing,
-                onProcess: _process,
-              );
-            },
-          );
+    final tabController = _tabController;
+    if (!_showProcessTab || tabController == null) {
+      return ResourceFormScaffold(
+        title: widget.title,
+        compact: widget.compact,
+        headerTabs: _buildHeaderTabs(context),
+        child: _buildEditFields(context),
+      );
+    }
 
-    return ResourceFormScaffold(
-      title: widget.title,
-      compact: widget.compact,
-      headerTabs: _buildHeaderTabs(context),
-      child: body,
+    return AnimatedBuilder(
+      animation: tabController,
+      builder: (context, _) {
+        final onProcessTab = tabController.index == 1;
+        return ResourceFormScaffold(
+          title: widget.title,
+          compact: widget.compact,
+          headerTabs: _buildHeaderTabs(context),
+          scrollBody: !onProcessTab,
+          child: onProcessTab
+              ? ClassAiProcessPane(
+                  controller: _processController,
+                  processing: _processing,
+                  onProcess: _process,
+                )
+              : _buildEditFields(context),
+        );
+      },
     );
   }
 }

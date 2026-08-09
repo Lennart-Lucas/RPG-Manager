@@ -912,27 +912,36 @@ class _SpellFormState extends State<_SpellForm>
             children: [
               Expanded(
                 flex: 2,
-                child: DropdownButtonFormField<int?>(
-                  initialValue: _sourceFileId,
-                  decoration: ResourceFormStyles.inputDecoration(
-                    context,
-                    label: 'Source',
-                    helperText: widget.resourceFiles.isEmpty
-                        ? 'No resource files available'
-                        : null,
-                  ),
-                  items: [
-                    const DropdownMenuItem<int?>(
-                      value: null,
-                      child: Text('None'),
-                    ),
-                    for (final file in widget.resourceFiles)
-                      DropdownMenuItem<int?>(
-                        value: file.id,
-                        child: Text(file.name),
+                child: Builder(
+                  builder: (context) {
+                    final sourceFiles = resourceFilesForSourcePicker(
+                      widget.resourceFiles,
+                      selectedId: _sourceFileId,
+                    );
+                    return DropdownButtonFormField<int?>(
+                      initialValue: _sourceFileId,
+                      decoration: ResourceFormStyles.inputDecoration(
+                        context,
+                        label: 'Source',
+                        helperText: sourceFiles.isEmpty
+                            ? 'No resource files available'
+                            : null,
                       ),
-                  ],
-                  onChanged: (value) => setState(() => _sourceFileId = value),
+                      items: [
+                        const DropdownMenuItem<int?>(
+                          value: null,
+                          child: Text('None'),
+                        ),
+                        for (final file in sourceFiles)
+                          DropdownMenuItem<int?>(
+                            value: file.id,
+                            child: Text(file.name),
+                          ),
+                      ],
+                      onChanged: (value) =>
+                          setState(() => _sourceFileId = value),
+                    );
+                  },
                 ),
               ),
               const SizedBox(width: ResourceFormStyles.fieldSpacing),
@@ -989,32 +998,39 @@ class _SpellFormState extends State<_SpellForm>
 
   @override
   Widget build(BuildContext context) {
-    final body = (!_showProcessTab || _tabController == null)
-        ? _buildEditFields(context)
-        : AnimatedBuilder(
-            animation: _tabController!,
-            builder: (context, _) {
-              if (_tabController!.index == 0) {
-                return _buildEditFields(context);
-              }
-              return ClassAiProcessPane(
-                controller: _processController,
-                processing: _processing,
-                onProcess: _process,
-                description:
-                    'Paste spell text or describe changes. Process updates the '
-                    'Edit tab without saving.',
-                hintText:
-                    'Paste a spell block, or ask to rewrite wording…',
-              );
-            },
-          );
+    final tabController = _tabController;
+    if (!_showProcessTab || tabController == null) {
+      return ResourceFormScaffold(
+        title: widget.title,
+        compact: widget.compact,
+        headerTabs: _buildHeaderTabs(context),
+        child: _buildEditFields(context),
+      );
+    }
 
-    return ResourceFormScaffold(
-      title: widget.title,
-      compact: widget.compact,
-      headerTabs: _buildHeaderTabs(context),
-      child: body,
+    return AnimatedBuilder(
+      animation: tabController,
+      builder: (context, _) {
+        final onProcessTab = tabController.index == 1;
+        return ResourceFormScaffold(
+          title: widget.title,
+          compact: widget.compact,
+          headerTabs: _buildHeaderTabs(context),
+          scrollBody: !onProcessTab,
+          child: onProcessTab
+              ? ClassAiProcessPane(
+                  controller: _processController,
+                  processing: _processing,
+                  onProcess: _process,
+                  description:
+                      'Paste spell text or describe changes. Process updates '
+                      'the Edit tab without saving.',
+                  hintText:
+                      'Paste a spell block, or ask to rewrite wording…',
+                )
+              : _buildEditFields(context),
+        );
+      },
     );
   }
 }

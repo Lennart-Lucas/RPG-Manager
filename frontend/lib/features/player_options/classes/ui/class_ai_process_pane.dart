@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../dm_tools/resources/ui/resource_form_helpers.dart';
 
 /// Multiline prompt + Process button for catalog AI fill.
+///
+/// Expands to fill available height when placed in a bounded parent (e.g.
+/// [ResourceFormScaffold] with `scrollBody: false`).
 class ClassAiProcessPane extends StatelessWidget {
   const ClassAiProcessPane({
     super.key,
@@ -25,7 +28,6 @@ class ClassAiProcessPane extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           description,
@@ -34,15 +36,18 @@ class ClassAiProcessPane extends StatelessWidget {
               ),
         ),
         const SizedBox(height: ResourceFormStyles.fieldSpacing),
-        TextField(
-          controller: controller,
-          enabled: !processing,
-          minLines: 10,
-          maxLines: 20,
-          decoration: ResourceFormStyles.inputDecoration(
-            context,
-            label: 'Prompt / source text',
-            hintText: hintText,
+        Expanded(
+          child: TextField(
+            controller: controller,
+            enabled: !processing,
+            maxLines: null,
+            expands: true,
+            textAlignVertical: TextAlignVertical.top,
+            decoration: ResourceFormStyles.inputDecoration(
+              context,
+              label: 'Prompt / source text',
+              hintText: hintText,
+            ),
           ),
         ),
         const SizedBox(height: ResourceFormStyles.sectionSpacing),

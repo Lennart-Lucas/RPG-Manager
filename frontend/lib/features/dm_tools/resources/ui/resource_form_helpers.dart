@@ -106,12 +106,17 @@ class ResourceFormScaffold extends StatelessWidget {
     required this.compact,
     required this.child,
     this.headerTabs,
+    this.scrollBody = true,
   });
 
   final String title;
   final bool compact;
   final Widget child;
   final Widget? headerTabs;
+
+  /// When false (and [headerTabs] is set), the body fills remaining height
+  /// without an outer scroll view so children can expand (e.g. Process pane).
+  final bool scrollBody;
 
   static const double dialogHeight = 760;
 
@@ -122,6 +127,17 @@ class ResourceFormScaffold extends StatelessWidget {
     // does not resize the dialog / sheet.
     final fillHeight = headerTabs != null;
     final sheetHeight = MediaQuery.sizeOf(context).height * 0.92;
+    const bodyPadding = EdgeInsets.fromLTRB(20, 20, 20, 20);
+
+    Widget paddedBody;
+    if (fillHeight && !scrollBody) {
+      paddedBody = Padding(padding: bodyPadding, child: child);
+    } else {
+      paddedBody = SingleChildScrollView(
+        padding: bodyPadding,
+        child: child,
+      );
+    }
 
     final body = Column(
       mainAxisSize: fillHeight ? MainAxisSize.max : MainAxisSize.min,
@@ -149,19 +165,9 @@ class ResourceFormScaffold extends StatelessWidget {
         ?headerTabs,
         const Divider(height: 1),
         if (fillHeight)
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-              child: child,
-            ),
-          )
+          Expanded(child: paddedBody)
         else
-          Flexible(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-              child: child,
-            ),
-          ),
+          Flexible(child: paddedBody),
       ],
     );
 

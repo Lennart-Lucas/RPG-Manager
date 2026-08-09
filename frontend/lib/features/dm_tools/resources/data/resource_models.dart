@@ -121,3 +121,17 @@ class ResourceFile {
     );
   }
 }
+
+/// Resource files selectable as a catalog Source, excluding processed ones.
+///
+/// [selectedId] stays included so an existing link to a processed file remains
+/// visible while editing.
+List<ResourceFile> resourceFilesForSourcePicker(
+  List<ResourceFile> files, {
+  int? selectedId,
+}) {
+  return [
+    for (final file in files)
+      if (!file.processed || file.id == selectedId) file,
+  ];
+}
