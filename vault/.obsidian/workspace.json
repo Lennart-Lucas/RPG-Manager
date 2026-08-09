@@ -183,8 +183,10 @@
       "bases:Create new base": false
     }
   },
-  "active": "4880d2d1842efa3c",
+  "active": "f53c72818ce21c13",
   "lastOpenFiles": [
+    "RPG Manager/Races/Dark Elves.md",
+    "RPG Manager/Races",
     "RPG Manager/Lore/The Canon of Saints.md",
     "RPG Manager/Lore/The Dark Elves.md",
     "RPG Manager/Lore/Chronicle of the Rising.md.tmp.29404.2a4470ddd270",
@@ -197,7 +199,6 @@
     "RPG Manager/Locations/Valmoria/Althania/Salvamont.md.tmp.31580.686daca25506",
     "RPG Manager/Locations/Valmoria/Althania/Salvamont.md.tmp.32404.c8650e573164",
     "RPG Manager/Locations/Valmoria/Althania/Salvamont.md.tmp.32404.8b660cd03cab",
-    "RPG Manager/Locations/Valmoria/Althania/Salvamont.md.tmp.32404.ff6586690aa4",
     "RPG Manager/Organisations/Althania's Holy Inquisition.md",
     "RPG Manager/Organisations/Church of Orzhova/Althania's Holy Inquisition/The 6th Sacrament - The Keepers of the Last Flame.md",
     "RPG Manager/Organisations/Church of Orzhova/Althania's Holy Inquisition/The 5th Sacrament - The Wardens of the Argent Hunt.md",
@@ -219,7 +220,6 @@
     "RPG Manager/Locations/Valmoria/Althania/Dornwald.md",
     "RPG Manager/Locations/Valmoria/Althania.md",
     "RPG Manager/Locations/Valmoria.md",
-    "RPG Manager/Items/Cannon.md",
-    "RPG Manager/Lore/_sync-test.md"
+    "RPG Manager/Items/Cannon.md"
   ]
 }

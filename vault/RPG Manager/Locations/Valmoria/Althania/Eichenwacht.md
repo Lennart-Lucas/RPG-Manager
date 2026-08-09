@@ -20,10 +20,11 @@ imageUrl: ""
 
 > *The oak watch. Nobody in the village can tell you what it was watching, and every one of them will tell you it was not the road.*
 
-In the east of the realm a ridge road runs along the edge of the [[Dornwald]], and a village of three hundred sits on it eleven miles from the iron stakes. The Church calls it Eichenwacht, the Oak Watch. The family that holds the manor calls it Velmorne, and so does anyone in the village over sixty.
+In the east of the realm a ridge road runs along the edge of the [[RPG Manager/Locations/Valmoria/Althania/Dornwald]], and a village of three hundred sits on it eleven miles from the iron stakes. The Church calls it Eichenwacht, the Oak Watch. The family that holds the manor calls it Velmorne, and so does anyone in the village over sixty.
 **At a glance.** Three hundred and ten people, down from five hundred and forty two winters ago. A sworn manor of House Velmorne under the see of Rabenmark. The baron is nine years old.
 
 ## The Cut
+
 Eichenwacht lives off the Dornwald, or off the first half-mile of it. Black thorn burns hot and long and makes a charcoal that the powder mills of Aschenberg will pay well for, and the dead oak along the fringe is standing timber that costs a man nothing but nerve.
 
 The work is governed by rules which are not law, are written nowhere, and have never in anyone's memory needed enforcing:
@@ -36,19 +37,23 @@ The work is governed by rules which are not law, are written nowhere, and have n
 Nobody goes deeper than the fringe. No writ forbids it and no baron has ever ordered it. The village has cut this edge for generations, and in all those generations nobody has come back from further in with a story that anyone wanted to hear twice.
 
 ## The Watch-Tower
+
 The tower on the ridge is stone and squat, and older than the Rising. The Church's account has it as a beacon-post of the Crowned Houses. It stands in a ring of oaks planted in no pattern a forester recognises, and its single window looks at the wood, and at nothing on the road at all.
 
 House Velmorne has held the tower since before the rolls begin, and has kept a man in it every night by custom for as long as the family has existed. Nobody, the Velmornes included, can produce a document that explains why.
 
 ## The Village
-The village lives on thorn charcoal, pannage pigs and thin wool. It has one church, one tavern, and one curate: Father Emrich, thirty-one years old, sent out here from [[Lucerna]] for reasons he does not discuss. On the green there stands a stone in the middle of the grass, which Emrich has twice petitioned the see to have removed, and about which he has twice had no reply at all.
+
+The village lives on thorn charcoal, pannage pigs and thin wool. It has one church, one tavern, and one curate: Father Emrich, thirty-one years old, sent out here from [[RPG Manager/Locations/Valmoria/Althania/Lucerna]] for reasons he does not discuss. On the green there stands a stone in the middle of the grass, which Emrich has twice petitioned the see to have removed, and about which he has twice had no reply at all.
 
 ## The Velmornes
+
 House Velmorne is old, poor and stubborn. The baron, Aurel, is nine. His uncle **Karl** holds the estate as Steward-Regent, and Karl is the kind of man who says very little and pays his levies late and to the penny.
 
 The family keeps a private chapel that is consecrated to no saint in the Canon. It is dedicated instead to *the Watch*, which is not a thing, which is precisely why no Arbiter has ever been able to formulate a charge about it. The village's own view, offered readily enough by anyone in the tavern, is that the Velmornes were paid to keep that tower manned, that the payment has never stopped, and that nobody has ever established who is making it.
 
 ## As Matters Stand (958 AR)
+
 The Coughing Winter took two hundred and thirty people out of Eichenwacht, and the survivors buried them fast, in one ground, without the full rite, because there were not hands enough to do it properly. Father Emrich has been trying ever since to perform the rite over that ground and has been prevented — not violently, and never once refused outright, but prevented, week after week, by a village that is always somehow busy. He has begun to write about it to Lucerna rather than to Rabenmark.
 
 Since the spring the man in the tower has been posted with a horn, which is new. The horn has sounded twice. Both times nothing came up the road.
