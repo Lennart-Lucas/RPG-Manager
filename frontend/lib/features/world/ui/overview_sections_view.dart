@@ -67,7 +67,7 @@ class OverviewSectionsView extends StatelessWidget {
                       ),
                     ),
                     for (var i = 0; i < normalized[s].items.length; i++)
-                      _OverviewItemRow(
+                      OverviewItemRow(
                         auth: auth,
                         item: normalized[s].items[i],
                         labelBg: labelBg,
@@ -86,8 +86,10 @@ class OverviewSectionsView extends StatelessWidget {
   }
 }
 
-class _OverviewItemRow extends StatelessWidget {
-  const _OverviewItemRow({
+/// A single label/value overview row (shared with built-in Details merges).
+class OverviewItemRow extends StatelessWidget {
+  const OverviewItemRow({
+    super.key,
     required this.auth,
     required this.item,
     required this.labelBg,

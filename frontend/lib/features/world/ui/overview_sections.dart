@@ -133,6 +133,44 @@ bool overviewSectionsNonEmpty(List<OverviewSection> sections) {
   return normalizeOverviewSections(sections).isNotEmpty;
 }
 
+bool isOverviewDetailsSectionName(String name) =>
+    name.trim().toLowerCase() == 'details';
+
+/// Items from sections titled "Details", plus remaining named sections.
+///
+/// Used so freeform Details rows can merge into a kind's built-in Details
+/// block instead of rendering a second Details header.
+class OverviewSectionsSplit {
+  const OverviewSectionsSplit({
+    required this.detailsItems,
+    required this.otherSections,
+  });
+
+  final List<OverviewItem> detailsItems;
+  final List<OverviewSection> otherSections;
+
+  bool get hasOtherSections => otherSections.isNotEmpty;
+  bool get hasDetailsItems => detailsItems.isNotEmpty;
+}
+
+OverviewSectionsSplit splitOverviewDetailsSections(
+  List<OverviewSection> sections,
+) {
+  final details = <OverviewItem>[];
+  final others = <OverviewSection>[];
+  for (final section in normalizeOverviewSections(sections)) {
+    if (isOverviewDetailsSectionName(section.name)) {
+      details.addAll(section.items);
+    } else {
+      others.add(section);
+    }
+  }
+  return OverviewSectionsSplit(
+    detailsItems: details,
+    otherSections: others,
+  );
+}
+
 /// Builds overview sections from legacy location string fields when
 /// `overviewSections` is absent.
 List<OverviewSection> migrateLocationLegacyOverview({

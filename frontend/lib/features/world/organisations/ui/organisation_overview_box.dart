@@ -68,6 +68,11 @@ class OrganisationOverviewBox extends StatelessWidget {
           onTap: () => onParentTap(parentBody!),
         ),
     ];
+    final overviewSplit = splitOverviewDetailsSections(record.overviewSections);
+    final mergedDetails = overviewSplit.detailsItems;
+    final otherOverviewSections = overviewSplit.otherSections;
+    final hasDetailsBlock =
+        detailRows.isNotEmpty || mergedDetails.isNotEmpty;
 
     return Material(
       color: panelBg,
@@ -164,7 +169,7 @@ class OrganisationOverviewBox extends StatelessWidget {
                 ),
               ),
             ),
-            if (detailRows.isNotEmpty)
+            if (hasDetailsBlock)
               Padding(
                 padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
                 child: DecoratedBox(
@@ -189,17 +194,27 @@ class OrganisationOverviewBox extends StatelessWidget {
                             labelBg: labelBg,
                             valueBg: valueBg,
                             borderColor: borderColor,
-                            showDivider: i < detailRows.length - 1,
+                            showDivider: i < detailRows.length - 1 ||
+                                mergedDetails.isNotEmpty,
+                          ),
+                        for (var i = 0; i < mergedDetails.length; i++)
+                          OverviewItemRow(
+                            auth: auth,
+                            item: mergedDetails[i],
+                            labelBg: labelBg,
+                            valueBg: valueBg,
+                            borderColor: borderColor,
+                            showDivider: i < mergedDetails.length - 1,
                           ),
                       ],
                     ),
                   ),
                 ),
               ),
-            if (overviewSectionsNonEmpty(record.overviewSections))
+            if (otherOverviewSections.isNotEmpty)
               OverviewSectionsView(
                 auth: auth,
-                sections: record.overviewSections,
+                sections: otherOverviewSections,
               ),
           ],
         ),

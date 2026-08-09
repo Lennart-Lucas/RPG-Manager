@@ -40,8 +40,9 @@ class LocationOverviewBox extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final hasLocationSection = ancestors.isNotEmpty;
-    final hasOverviewSections =
-        overviewSectionsNonEmpty(record.overviewSections);
+    final overviewSplit = splitOverviewDetailsSections(record.overviewSections);
+    final mergedDetails = overviewSplit.detailsItems;
+    final otherOverviewSections = overviewSplit.otherSections;
 
     Color lift(Color toward, double amount) =>
         Color.lerp(scheme.surface, toward, amount)!;
@@ -188,17 +189,26 @@ class LocationOverviewBox extends StatelessWidget {
                         labelBg: labelBg,
                         valueBg: valueBg,
                         borderColor: borderColor,
-                        showDivider: false,
+                        showDivider: mergedDetails.isNotEmpty,
                       ),
+                      for (var i = 0; i < mergedDetails.length; i++)
+                        OverviewItemRow(
+                          auth: auth,
+                          item: mergedDetails[i],
+                          labelBg: labelBg,
+                          valueBg: valueBg,
+                          borderColor: borderColor,
+                          showDivider: i < mergedDetails.length - 1,
+                        ),
                     ],
                   ),
                 ),
               ),
             ),
-            if (hasOverviewSections)
+            if (otherOverviewSections.isNotEmpty)
               OverviewSectionsView(
                 auth: auth,
-                sections: record.overviewSections,
+                sections: otherOverviewSections,
               ),
           ],
         ),

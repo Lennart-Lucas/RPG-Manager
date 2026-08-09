@@ -35,8 +35,10 @@ class RaceOverviewBox extends StatelessWidget {
     final valueBg = lift(scheme.onSurface, 0.16);
     final borderColor = scheme.outline.withValues(alpha: 0.55);
     final hasAlignment = record.mtgAlignment.isNotEmpty;
-    final hasOverviewSections =
-        overviewSectionsNonEmpty(record.overviewSections);
+    final overviewSplit = splitOverviewDetailsSections(record.overviewSections);
+    final mergedDetails = overviewSplit.detailsItems;
+    final otherOverviewSections = overviewSplit.otherSections;
+    final hasDetailsBlock = hasAlignment || mergedDetails.isNotEmpty;
 
     return Material(
       color: panelBg,
@@ -133,7 +135,7 @@ class RaceOverviewBox extends StatelessWidget {
                 ),
               ),
             ),
-            if (hasAlignment)
+            if (hasDetailsBlock)
               Padding(
                 padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
                 child: DecoratedBox(
@@ -163,63 +165,80 @@ class RaceOverviewBox extends StatelessWidget {
                             ),
                           ),
                         ),
-                        IntrinsicHeight(
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              ColoredBox(
-                                color: labelBg,
-                                child: SizedBox(
-                                  width: 96,
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 10,
-                                    ),
-                                    child: Text(
-                                      'Alignment',
-                                      style: textTheme.labelLarge?.copyWith(
-                                        fontWeight: FontWeight.w700,
+                        if (hasAlignment) ...[
+                          IntrinsicHeight(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                ColoredBox(
+                                  color: labelBg,
+                                  child: SizedBox(
+                                    width: 96,
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 10,
+                                      ),
+                                      child: Text(
+                                        'Alignment',
+                                        style: textTheme.labelLarge?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ),
-                              ),
-                              VerticalDivider(
-                                width: 1,
-                                thickness: 1,
-                                color: borderColor,
-                              ),
-                              Expanded(
-                                child: ColoredBox(
-                                  color: valueBg,
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 10,
-                                    ),
-                                    child: Center(
-                                      child: MtgAlignmentChips(
-                                        colors: record.mtgAlignment,
-                                        size: 26,
-                                        wrapAlignment: WrapAlignment.center,
+                                VerticalDivider(
+                                  width: 1,
+                                  thickness: 1,
+                                  color: borderColor,
+                                ),
+                                Expanded(
+                                  child: ColoredBox(
+                                    color: valueBg,
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 10,
+                                      ),
+                                      child: Center(
+                                        child: MtgAlignmentChips(
+                                          colors: record.mtgAlignment,
+                                          size: 26,
+                                          wrapAlignment: WrapAlignment.center,
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
+                          if (mergedDetails.isNotEmpty)
+                            Divider(
+                              height: 1,
+                              thickness: 1,
+                              color: borderColor,
+                            ),
+                        ],
+                        for (var i = 0; i < mergedDetails.length; i++)
+                          OverviewItemRow(
+                            auth: auth,
+                            item: mergedDetails[i],
+                            labelBg: labelBg,
+                            valueBg: valueBg,
+                            borderColor: borderColor,
+                            showDivider: i < mergedDetails.length - 1,
+                          ),
                       ],
                     ),
                   ),
                 ),
               ),
-            if (hasOverviewSections)
+            if (otherOverviewSections.isNotEmpty)
               OverviewSectionsView(
                 auth: auth,
-                sections: record.overviewSections,
+                sections: otherOverviewSections,
               ),
           ],
         ),
