@@ -12,51 +12,43 @@ parentId: 161
 imageUrl: ""
 ---
 
-# The 1st Sacrament — The Keepers of Doctrine
 > *Charged are the Keepers of Doctrine with the preservation, purification, and definition of sacred truth. They are the voice by which scripture is made immutable and the silence by which forbidden knowledge is undone. No text, record, or utterance stands beyond their scrutiny, and what they declare absent from doctrine is as though it had never been.*
 
-**Founded 61 AR**, at the sealing of the Concordance, to end the War of Two Gospels — twenty-seven years in which the young faith fought itself over which words the First Voice had actually said. It ended not because the question was answered but because it was closed. The Keepers exist to keep it closed. **They heal the division of truth.** One book. One reading. One past.
+The First Sacrament was founded in 61 AR, at the sealing of the Concordance, to put an end to the War of Two Gospels. That war had run twenty-seven years, and the young faith had fought it against itself over which words the First Voice actually spoke. It ended not because the question was answered but because it was closed, and the Keepers exist to hold it closed.
+
+They heal the division of truth. One book, one reading, one past.
 
 ## Mandate
+The order holds custody and correction of the **Concordance** and of every commentary, catechism, hymnal and psalter derived from it. It licenses and seals the eleven **impression engines**, and every sheet struck anywhere in Althania is counted against a warrant. It keeps the **Great Register** at [[Lucerna]] — the parish rolls, the chronicles, the deeds and the census returns — so that what the realm remembers, it remembers because the First filed it.
 
-- Custody and correction of the **Concordance**, and of every commentary, catechism, hymnal and psalter derived from it.
-- Licence and seal of the eleven **impression engines**. Every sheet struck in Althania is counted against a warrant.
-- Custody of the **Great Register** at Lucerna: the parish rolls, the chronicles, the deeds, the census returns. What Althania remembers, it remembers because the First filed it.
-- **Attestation** — the investigation of miracles and causes for sainthood.
-- **Effacement** — the removal of what should not have been written.
+Two further duties matter more than all of that put together. The Keepers investigate miracles and causes for sainthood, which is called **attestation**. They also remove what should not have been written, which is called **effacement**.
 
 ## Effacement
+The doctrine here is precise, and it is worth understanding, because the whole realm lives inside it.
 
-The doctrine is precise and worth understanding, because the realm lives inside it. The Concordance cannot change. Therefore a passage removed by the Keepers was never in it. A chronicle amended did not previously read otherwise. A man struck from the register was never born, never married, never held office, and his widow is not a widow. The vernacular calls such a thing a **never-was**, and calls the act of remembering one aloud a *stubbornness*, which is a punishable offence in eleven sees.
-Effaced material is not destroyed. It goes to the **Silent Shelf** beneath Lucerna, in a vault that has no catalogue, because a catalogue would be a record. Only Lectors of the third degree may draw from it, and they draw against their own name.
+The Concordance cannot change. It follows that a passage the Keepers remove was never in it. A chronicle they amend did not previously read otherwise. A man struck from the register was never born, never married and never held office, and his widow is not a widow. The vernacular calls such a man a **never-was**, and calls the act of remembering one aloud a *stubbornness*, which is a punishable offence in eleven sees.
+
+Effaced material is not destroyed. It goes to the **Silent Shelf** beneath Lucerna, into a vault that has no catalogue, because a catalogue would itself be a record. Only Lectors of the third degree may draw from the Shelf, and every draw is entered against the drawing Lector's own name.
 
 ## Attestation
+Attestors are the least loved men in the Church, because their work is to prove the faithful wrong. A cause opens, an Attestor arrives, and he sets about breaking it. He interrogates the witnesses separately and compares their accounts. He takes the relic apart. He attempts the miracle himself with lamp-oil, phosphorus, sleight of hand and a confederate, and if there is a body he exhumes it.
 
-Attestors are the least loved men in the Church because their job is to prove the faithful wrong. A cause opened, an Attestor arrives: he interrogates the witnesses separately, takes the relic apart, tries to reproduce the miracle with lamp-oil, phosphorus, sleight of hand and a confederate, and exhumes the body if there is one. Nineteen causes in twenty fail. The failures are quietly closed; the shrine keeps its pilgrims for a season and then does not. The twentieth is entered into the Canon, and the see that holds the bones becomes rich for a century. Attestors are therefore offered a great deal of money, and the First Sacrament's internal discipline is the harshest of the six for exactly that reason.
+Nineteen causes in twenty fail that treatment. The failures close quietly, and the shrine keeps its pilgrims for a season and then stops keeping them. The twentieth enters the Canon, and the see that holds the bones grows rich on it for a century. Attestors are therefore offered a very great deal of money in the course of a career, and the First Sacrament's internal discipline is the harshest of the six for precisely that reason.
 
 ## Ranks
+**Scriveners** are copyists, register-clerks and press-wardens, and they make up the bulk of the order. **Attestors** work in the field on miracles and relics, travelling constantly and arguing for a living. **Redactors** hold the licence to efface, and they work in pairs, each holding half of a seal. **Lectors** are the doctors of doctrine, who determine what a passage means and therefore what it has always meant.
 
-- **Scriveners** — copyists, register-clerks, press-wardens. The bulk of the order.
-- **Attestors** — field investigators of miracle and relic. Travel constantly, argue for a living.
-- **Redactors** — those licensed to efface. They work in pairs, and each holds half of a seal.
-- **Lectors** — the doctors of doctrine, who determine what a passage means and therefore what it has always meant.
-- **The First Lector**, styled *Voice of the Canon*, head of the order. Presently **Lector-General Ansmund Kreile** of Lucerna: eighty-one, blind in one eye, and the last man alive who has read the Silent Shelf whole.
+At the head stands the First Lector, styled *Voice of the Canon*. The office is held by **Lector-General Ansmund Kreile** of Lucerna, who is eighty-one, blind in one eye, and the last man living to have read the Silent Shelf entire.
 
 ## Mark and Habit
-
-Black over white. The mark is an open book with a single unbroken line where the text should be. Attestors carry a hinged lead case of tools — lenses, files, reagents, wire — which the credulous mistake for a reliquary and which is in fact a burglar's kit with a licence.
+The order wears black over white, and its mark is an open book with a single unbroken line where the text should be. Attestors carry a hinged lead case of tools — lenses, files, reagents, wire — which the credulous mistake for a reliquary and which is in plain fact a burglar's kit with a licence.
 
 ## Standing
+The First is the oldest of the Sacraments, the poorest, and the least feared right up until the moment it matters. It commands no soldiers. It holds the archives, and every claim that any elector, house or abbey makes to land, title, tithe or ancestry rests on a document the First keeps.
 
-The First is the oldest, the poorest, and the least feared until the moment it matters. It has no soldiers. It has the archives, and every claim any elector, house or abbey makes to land, title, tithe or ancestry rests on a document the First keeps.
-It loathes [[RPG Manager/RPG Manager/Organisations_Althania's Holy Inquisition_The 6th Sacrament - The Keepers of the Last Flame|The Sixth]], which during the Century of Pyres burned libraries with their librarians and never once filed what was in them.
+It loathes [[The 6th Sacrament - The Keepers of the Last Flame|the Sixth]], which during the Century of Pyres burned libraries together with their librarians and never once filed what had been in them.
 
-## In 958 AR
+## As Matters Stand (958 AR)
+Kreile is dying at very nearly the same rate as the Hierarch, and the succession inside the order is uglier than the one outside it. Two Redactor-pairs have been recalled from the marches without explanation, and neither pair has been seen since at Lucerna.
 
-Kreile is dying at nearly the same speed as the Hierarch, and the succession inside the order is uglier than the one outside it. Two Redactor-pairs have been recalled from the marches without explanation. And there is a persistent, deniable rumour that a warrant was drawn last autumn against a portion of the **Book of the Voice** itself — the first proposed effacement of scripture since the Century of Pyres.
-
-## Errors Commonly Repeated
-
-- That the Silent Shelf holds a complete Concordance as first sealed, and that it does not match the one in the pulpit.
-- That fourteen saints have been un-canonised, and that their feast days are still kept in the villages that loved them.
-- That Kreile has already chosen what will be effaced from the Book of the Voice, and is only waiting for the Hierarch to die so that no one need ask him.
+Since last autumn the Scribes' Quarter has been passing a rumour that a warrant was drawn against a portion of the **Book of the Voice** itself, which would be the first effacement of scripture since the Century of Pyres. The copyists who repeat it point out that the First has not effaced the rumour, and that the First effaces false rumours as a matter of course. Among the Lectors the account runs further: they say Kreile has already chosen the passage, and is waiting for the Hierarch to die so that nobody senior enough will be free to ask him about it.

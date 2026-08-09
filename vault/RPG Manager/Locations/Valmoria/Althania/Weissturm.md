@@ -21,41 +21,46 @@ defenses: "The Tower; the Gate of Stone and its dwarven garrison; the Tower's ow
 imageUrl: ""
 ---
 
-> *Two rulers, one rock. It has held for longer than anyone can be bothered to argue about, which is not the same as it working.*
+> *Two rulers, one rock. It has held longer than anyone can be bothered to argue about, which is not the same thing as it working.*
 
-A border city in the far north where Althania stops and the **World Spine Mountains** begin. Above the ground it is Althanian, walled, and dominated by the White Tower. Below the ground it is not Althanian at all: the rock opens into the halls of **Kholdrun**, and the seat of its Thane is a keep that hangs down from the cavern ceiling on chains and buttresses of stone, lamplit from below, with nothing under it but air. The surface calls the whole thing Weissturm. The Deeps call it Kholdrun. The treaty calls it neither.
-**At a glance.** 9,400 above ground; the thanedom below declines to be counted. Falls within the **See of [[RPG Manager/Locations/Valmoria/Althania/Salvamont]]** by area, which pleases nobody. The northernmost place in the realm that the Church can honestly call its own, and the last gate before the passes.
+Where Althania runs out in the far north, the road climbs to a walled city under the shoulder of the **World Spine Mountains**, and a white tower stands over it. This is Weissturm, the last Althanian place before the passes.
+
+Below the ground it is not Althanian at all. The rock opens into the halls of **Kholdrun**, and the seat of its Thane is a keep that hangs from the cavern ceiling on chains and buttresses of stone, lit from beneath by the lamps of the hall, with nothing under it but air. The surface calls the whole arrangement Weissturm and the Deeps call it Kholdrun. The treaty that governs it calls it neither.
+**At a glance.** Nine thousand four hundred above ground, and a thanedom below that declines to be counted. It falls inside the **See of [[Salvamont]]** by area, an arrangement that pleases nobody. It is the northernmost ground the Church can honestly call its own.
 
 ## The Whiteroot
-The oldest holy thing of the Diademed Age grew here: a white-barked oak sacred to Aonir, at the foot of the mountain-gate where the roads met. In 9 AR it was cut down and burned, its stump capped in stone, and a tower raised over the cap.
-The Hierarch is still styled *Keeper of the Whiteroot Stone*. He has no authority in the Tower, has never seen the stone, and the title is defended by the Curia on the grounds that it has always been held. The dwarves, who can see the roots from below, have their own opinion and keep it to themselves.
+The oldest holy thing of the Diademed Age grew on this spot: a white-barked oak sacred to Aonir, standing at the foot of the mountain-gate where the roads met. In 9 AR the men of the Rising cut it down and burned it, capped the stump in stone, and raised a tower over the cap.
+
+The Hierarch is styled *Keeper of the Whiteroot Stone* to this day. He holds no authority inside the Tower, no Hierarch in living memory has seen the stone, and the Curia defends the title on the grounds that it has always been held. The dwarves can see the roots from below and have their own opinion about how dead they are. They have never offered it to the surface.
 
 ## The White Tower
-The Tower is the Church's **Collegium of Sanctioned Grace**: every licensed caster in Althania is trained here, entered on the Roll here, and — in the great majority of cases — spends their life here. The doctrine that permits this is one line, taught to every novice on the first day:
+The Tower houses the Church's **Collegium of Sanctioned Grace**, where every licensed caster in Althania is trained, entered on the Roll, and in the great majority of cases spends the rest of their life. The doctrine that permits the arrangement is one line, and every novice is taught it on the first day:
 
 > *Fire is not sin. An unattended fire is.*
 
-Arcane power is held to be a property of creation rather than a gift of the One, like fire or flood or the strength of a horse. Using it is no heresy. Using it **unwatched** is the whole of the offence — because a power that answers only to the man who holds it is a second authority, and there are no second authorities. So they are gathered. Every child in the realm who shows the aptitude is registered by their curate, collected, and brought north. They are taught well, fed better than they were at home, and given work that matters. They are also collared: a sealed ring, an entry on the Roll, and a licence that specifies where they may go and what they may do there. Leaving without licence makes a caster **unwritten**, and hunting the unwritten belongs to [[RPG Manager/Organisations/Church of Orzhova/Althania's Holy Inquisition/The 6th Sacrament - The Keepers of the Last Flame|The Keepers of the Last Flame]], which regards it as the pleasantest work it has.
+Arcane power is held to be a property of creation rather than a gift of the One, no different in kind from fire or flood or the strength of a horse. Wielding it is no heresy. Wielding it unwatched is the whole of the offence, because a power that answers only to the man holding it is a second authority, and in Althania there are no second authorities.
 
-**Inside the Tower:**
-- The **Tower-Warden** commands. Presently **Isembard Krahe**, twenty-one years in the post, a man who was himself brought here at seven.
-- [[RPG Manager/Organisations/Church of Orzhova/Althania's Holy Inquisition/The 4th Sacrament - The Arbiters of Judgment|The fourth Sacrament]] keeps a standing tribunal on the second stair. It has never been idle for a full year.
-- [[RPG Manager/Organisations/Church of Orzhova/Althania's Holy Inquisition/The 1st Sacrament - The Keepers of Doctrine|The first Sacrament]] licenses every working and keeps the Roll.
-- [[RPG Manager/Organisations/Church of Orzhova/Althania's Holy Inquisition/The 6th Sacrament - The Keepers of the Last Flame|The Sixth]] is somewhere in the walls. Everyone assumes this. Nobody has ever identified one.
-Roughly one in six of those brought north is eventually licensed to leave. The rest serve inside: warding, wall-work, glass, light, the long unglamorous labour of a realm that needs magic and does not trust it.
+So they are gathered. Any child in the realm who shows the aptitude is registered by their curate, collected, and brought north. They are taught well, fed better than they were at home, and given work that matters to a great many people. They are also collared, with a sealed ring, an entry on the Roll, and a licence that states exactly where they may go and what they may do when they get there. A caster who leaves without one becomes **unwritten**, and hunting the unwritten belongs to [[The 6th Sacrament - The Keepers of the Last Flame|the Sixth Sacrament]], which considers it the pleasantest work it has.
+
+Four powers share the Tower and pretend the arrangement is settled. **Tower-Warden Isembard Krahe** commands it, twenty-one years in the post, himself brought north at the age of seven. [[The 1st Sacrament - The Keepers of Doctrine|The First Sacrament]] licenses every working and keeps the Roll. [[The 4th Sacrament - The Arbiters of Judgment|The Fourth]] maintains a standing tribunal on the second stair, which has not been idle for a full year since it was established. The Sixth is somewhere in the walls; everyone in the Tower assumes so, and nobody has ever identified one.
+
+Roughly one in six of those brought north is eventually licensed to leave. The rest serve inside — warding, wall-work, glass, light, and the long unglamorous labour of a realm that needs magic and does not trust it.
 
 ## The Deeps and the Concord of Stone
-The dwarves of the World Spine were under this mountain before the oak was cut, and the Church's first instinct in 9 AR was the obvious one. It went badly enough that nobody wrote it down. What followed instead was the **Concord of Stone** (214 AR), which is short, blunt, and has held: the surface is Althania's, the rock is the Thane's, the Gate is shared, neither faith preaches to the other, and every dispute goes to a joint bench of three and three with the Tower-Warden abstaining.
+The dwarves of the World Spine were under this mountain before the oak was cut, and the Church's first instinct in 9 AR was the obvious one. It went badly enough that nobody afterwards wrote down what happened. What came out of it instead was the **Concord of Stone**, sealed in 214 AR, which is short and blunt and has held ever since: the surface belongs to Althania, the rock belongs to the Thane, the Gate is shared, neither faith preaches to the other, and every dispute goes before a joint bench of three and three with the Tower-Warden abstaining.
 
-In practice:
-- **The Gate of Stone** — the great shared market at the boundary of light. Dwarven steel and worked iron go up; grain, wool and timber go down. The tolls are counted twice, once by a Tallyman of the Third and once by a dwarven weigher, and the two figures have never agreed.
-- **Hangfast** — the Althan name for the Thane's keep, hanging from the ceiling of the great hall on stone buttresses over a drop nobody has measured. Althanians are permitted as far as the second gallery. Guests of the Thane go further and come back quiet.
-- **The Whiteroot below** — the roots of the felled oak run down into the Deeps, pale and enormous, and the dwarves have built around them rather than through them. The Concord does not mention them. Both parties preferred it that way.
+The **Gate of Stone** is where the two halves meet, a covered market at the boundary of the daylight. Dwarven steel and worked iron come up; grain, wool and timber go down. Every toll is counted twice, once by a Tallyman of the Third Sacrament and once by a dwarven weigher, and in all the years since the Concord the two figures have never once agreed.
+
+**Hangfast** is the Althan name for the Thane's keep. Althanians are admitted as far as the second gallery and no further. Those few who go on as guests of **Thane Berrund** come back quiet, and the quiet has been remarked on often enough that the Curia has twice asked for an account of what lies deeper and twice been given a courteous nothing.
+
+The roots of the felled oak run down into the Deeps, pale and enormous, and the dwarves have built around them rather than through them. The Concord of Stone does not mention the roots anywhere in its text. Both parties preferred it that way, and the stonemasons of Kholdrun say the omission was the Thane's condition rather than the Church's.
 
 ## The Gate
-Weissturm holds the northern passes: the hard, high, defensible ones. It is not the easiest way through the World Spine — that road comes down west of here, toward Salvamont — but it is the way an army with dwarven cooperation could not be stopped on, which is precisely why the Concord of Stone exists and why the Church has swallowed a great many grievances rather than break it.
+Weissturm holds the northern passes, which are the hard ones: high, narrow, and defensible by a garrison that knows its business. It is not the easy way through the World Spine, since that road comes down further west toward Salvamont. It is, however, the way an army moving with dwarven cooperation could not be stopped at all. That single fact is why the Concord of Stone exists, and why the Church has swallowed a great many grievances rather than test it.
 
 ## As Matters Stand (958 AR)
-- Krahe has quietly stopped filling vacancies among the licensed who leave, so more casters are staying inside than in any year on record. He has not explained the policy and has not been made to.
-- The Thane's weighers have begun refusing certain Althanian consignments at the Gate on grounds of "unclean carriage", which is not a phrase in the Concord and which nobody on the surface can get defined.
-- Three of the Tower's licensed casters sent south in the last two years have not arrived where they were sent. The Roll records them as in transit. The Roll has recorded them as in transit for eleven, fourteen and sixteen months.
+Krahe has quietly stopped filling the vacancies left by casters licensed to leave, so more of them are staying inside the Tower than in any year the Roll records. He has offered the Curia no explanation and has not been made to give one. Among the senior licensed it is said he is holding a reserve, and that a man only holds a reserve when he expects to need one.
+
+At the Gate the Thane's weighers have begun refusing certain Althanian consignments on the grounds of unclean carriage. The phrase appears nowhere in the Concord of Stone, no dwarf will define it, and the joint bench has met on the question twice without producing a ruling.
+
+Three of the Tower's licensed casters sent south in the last two years never arrived where they were sent. The Roll records all three as in transit. It has recorded them as in transit for eleven months, fourteen months and sixteen months respectively, and the Scriveners who keep it have been instructed not to amend the entries.

@@ -13,69 +13,49 @@ parentId: 161
 imageUrl: "https://drive.google.com/thumbnail?id=1E7pRMXXQHULnxHrYekbwJbOSVIvgE3Fw&sz=w2000"
 ---
 
-# The 6th Sacrament — The Keepers of the Last Flame
-
 > *The Keepers of the Last Flame are those who remember the fires that once purged the hidden heresies of the world. Though their flame no longer burns openly, its embers endure in silence. They move where truth must be concealed rather than declared, where enemies must be replaced rather than slain, and where the unseen rot of witchcraft and cult is cut away beyond the gaze of the faithful.*
 >
 > *It is written that as long as ash remains warm, the flame has not died.*
 
-**Founded 701 AR**, after the **Grey Communion**: it was discovered that the diocese of Aschenberg had been served, for two generations, by a coven wearing the offices and the faces of its clergy. They had baptised, married, buried and confirmed forty thousand people. Every rite performed in that diocese since 649 was void. Every soul in it was, by doctrine, unbaptised.
+In 698 AR the Church discovered that the diocese of Aschenberg had been served for two generations by a coven wearing the offices and the faces of its clergy. Those men and women had baptised, married, buried and confirmed some forty thousand people. Every rite performed in the diocese since 649 was void, and every soul in it stood unbaptised by the plain reading of doctrine.
 
-The Church has never fully recovered from what that implied, and the Sixth is what it did instead of thinking about it.
+The realm calls it the **Grey Communion**. The Church has never fully recovered from what it implied, and the Sixth Sacrament, founded in 701 AR, is what the Church did instead of thinking about it.
 
-**They heal the division of the heart.** One worship. What a man is in the square, he must be in his cellar.
+They heal the division of the heart. There is one worship, and what a man is in the square he must also be in his cellar.
 
-## The Century of Pyres (701–838 AR)
+## The Century of Pyres
+For a hundred and thirty-seven years, from 701 to 838 AR, the Sixth burned. It did not burn indiscriminately, which is the comfortable version of the story. It burned methodically.
 
-For one hundred and thirty-seven years the Sixth burned. Not indiscriminately — that is the comfortable version. Methodically. The order's genius was never the fire; it was the discovery that a coven is a *network*, and that a network can be mapped: turn one member, leave them in place, follow the introductions outward for two years, and then take the whole structure in a single night, including the merchants who supplied it and the magistrates who looked away.
+The order's genius was never the fire. It was the discovery that a coven is a network, and that a network can be mapped: turn one member and leave them in place, follow the introductions outward for two years, and then take the whole structure in a single night — the merchants who supplied it and the magistrates who looked away included.
 
-The Keepers record 41,000 lawful pyres. The figure is disputed by nobody, since nobody may dispute it.
-
-By the eighth century's end the domestic covens were, as near as makes no difference, extinct. The **Edict of Cold Hearths** (841 AR) quenched the public burnings, officially because the fire had done its work.
+The Keepers record forty-one thousand lawful pyres. The figure is disputed by nobody, since nobody may dispute it. By the century's end the domestic covens were as near extinct as makes no difference, and the **Edict of Cold Hearths** of 841 AR quenched the public burnings, officially on the grounds that the fire had done its work.
 
 ## The Turning Outward
+An order of several hundred trained infiltrators, forgers, poisoners and network-mappers, left without a domestic enemy, was not disbanded. It was pointed east.
 
-An order of several hundred trained infiltrators, forgers, poisoners and network-mappers, with no remaining domestic enemy, was not disbanded. It was pointed east.
+Everything the Sixth had learned about covens transferred to states with unpleasant precision. A heretic ring and a foreign chancery are the same object: a closed group held together by shared secrets and penetrable through its weakest member. Since the Schism of 872 the Sixth has functioned as Althania's intelligence service, and the [[Church of Orzhova|Church]] has never once used that word for it.
 
-Everything the Sixth learned about covens transferred with unpleasant precision to states. A heretic ring and a foreign chancery are the same object: a closed group, held together by shared secrets, penetrable through the weakest member. Since the Schism of 872 the Sixth has been Althania's intelligence service, and the [[RPG Manager/Organisations/Church of Orzhova|Church]] has never once used that word.
-
-What they do abroad, in the Sundered Communion and past the northern marches: **place** people, over years; **turn** clerks and confessors; **replace** officials rather than kill them; **map**; and only at the end, **burn** — and by then the fire is a formality performed on something already dead.
+Abroad, in the Sundered Communion and past the northern marches, the method runs in stages. They **place** people, over years. They **turn** clerks and confessors. They **replace** officials rather than kill them. They **map**. Only at the end do they **burn**, and by then the fire is a formality performed over something already dead.
 
 ## Mandate
+The order's charge covers witchcraft, covens, secret cults and any heresy conducted in concealment; foreign chanceries and courts, and every organisation of the Sundered Communion; and the **unwritten**, meaning casters who have left the Roll of Sanctioned Grace or were never entered on it. The order considers the last of these the pleasantest work it has, on the grounds that the quarry is genuinely dangerous and nobody weeps for it.
 
-- Witchcraft, covens, secret cults and heresy conducted in concealment.
-- Foreign chanceries, courts, and any organisation of the Sundered Communion.
-- The **unwritten** — casters who have left the Roll of Sanctioned Grace, or were never entered on it. The order regards this as the pleasantest work it has, on the grounds that the quarry is genuinely dangerous and nobody weeps for it.
-- The **ashfall** — the domestic informant network. Every parish has at least one. Nobody knows which.
-- Interrogation by the older methods, which are lawful for the Sixth and for no other Sacrament.
+At home it runs the **ashfall**, the domestic informant network. Every parish in Althania has at least one cinder in it. Nobody knows which. The Sixth is also the only Sacrament for which interrogation by the older methods remains lawful.
 
 ## Ranks
+**Cinders** are informants, and are not members; most of them are never told that they are anything at all. **Embers** are field agents, who live under other names for years at a stretch and frequently die under them. **Keepers** are case officers who run embers and cinders and who mostly never leave a desk. The four **Hearths** are the regional stations, and their locations appear in no register the First holds.
 
-- **Cinders** — informants. Not members; they are not told they are anything.
-- **Embers** — field agents. Live under other names, sometimes for decades. Many die under them.
-- **Keepers** — case officers, who run embers and cinders and who mostly never leave a desk.
-- **Hearths** — the four regional stations. Their locations are not in any register the First holds.
-- **The Keeper of the Ember**, styled *the Last Keeper*, head of the order. Presently a person the Conclave addresses as **the Last Keeper** and whose name has not been entered in a Church document since 939 AR.
+The head of the order is the Keeper of the Ember, styled *the Last Keeper*. The Conclave addresses that office by title alone. No name has been entered against it in any Church document since 939 AR.
 
 ## Mark and Habit
-
-Ash-grey. The mark is a quenched brand — a torch, inverted, unlit. It is worn nowhere visible. An ember carries no writ in the field; producing one abroad would be the end of him, so instead there is a phrase, and the phrase changes with the season.
+The order's colour is ash-grey and its mark is a quenched brand, a torch inverted and unlit. It is worn nowhere visible. An ember carries no writ in the field, because producing one abroad would be the end of him, and instead there is a phrase. The phrase changes with the season.
 
 ## Standing
+The Sixth is the best-funded and least-accountable of the Sacraments, and the only one whose disbursements the Third cannot read. It has not lost an argument in the Conclave within living memory, a fact the First finds interesting and mentions, quietly, about once a year.
 
-The Sixth is the best-funded and least-accountable of the six, and the only one whose disbursements the Third cannot read. It has not lost an argument in the Conclave within living memory, which the First finds interesting and says so, quietly, once a year.
+Its neglect of the domestic ground is the Fifth's standing grievance and, increasingly, a real problem. Cults are sprouting in the emptied villages of the north and being put down late by men trained for wolves.
 
-Its neglect of the domestic ground is the Fifth's standing grievance and, increasingly, an actual problem: cults are sprouting in the emptied villages of the north and being put down late by men trained for wolves.
+## As Matters Stand (958 AR)
+The Sixth wants an eastern war, is spending as though there will shortly be one, and has an interest in who wears the mitre after Vasmund. No evidence supports any of that. No evidence ever does.
 
-## In 958 AR
-
-The Sixth wants an eastern war, is spending as though there will be one, and has an interest in who wears the mitre after Vasmund. There is no evidence of this. There is never evidence of this.
-
-And in the north, at least three parishes have gone a full year without a single cinder's report — not a bad report, no report at all. In an order that reads silence better than any institution alive, that is the loudest thing in the realm.
-
-## Errors Commonly Repeated
-
-- That the Century of Pyres ended not because the covens were gone but because a Redactor of the First proved they had been gone for sixty years.
-- That the Last Keeper has been the same person since 939, and that this is not possible.
-- That the Grey Communion was never fully rooted out, and that its last cell was left in place, watched, and is still there.
-- That every Hierarch since 880 has been elected with the Sixth's consent, and that consent has never once had to be requested.
+In the north, at least three parishes have gone a full year without a single cinder's report — not a poor report, no report at all. In an order that reads silence better than any institution alive, that is the loudest thing currently happening in the realm. The Keepers who hold those parishes have been heard to observe that the Grey Communion was never proved rooted out, only declared so, and that a cell left in place and watched is worth a great deal more than a cell burned.

@@ -22,26 +22,36 @@ imageUrl: ""
 
 > *Every other city in Althania was built on something. Lucerna was built on nothing, and that was the point.*
 
-The capital of [[RPG Manager/Locations/Valmoria/Althania]] and the seat of the [[RPG Manager/Organisations/Church of Orzhova]]: the Hierarch's own see, the Curia, the conclave, the Great Register, and eight of the eleven impression engines in the realm. It is the only city in Althania that has no older name.
-**At a glance.** 52,000 within the walls, half as many again in the Undercrook. Held directly by the Hierarch as its bishop and run day to day by the Curia. Garrison: the Cathedral Guard, three thousand. It holds no electoral vote, because its bishop counts the ballots.
+A grey city stands on the flat plain where the Elve meets the Rill, walled twice and ditched, with no hill under it and no harbour beside it and no reason on the ground for it to be there at all. This is Lucerna, the capital of [[Althania]] and the seat of the [[Church of Orzhova]]. It holds the Hierarch's own see, the Curia, the conclave, the Great Register and eight of the eleven impression engines in the realm.
+
+It is also the only city in Althania with no older name. Every other seat of the young faith stood on ground the old faith had used first, and the Church would not have that at its centre.
+**At a glance.** Fifty-two thousand within the walls and half as many again in the Undercrook. The Hierarch is its bishop and the Curia runs it. The garrison is the Cathedral Guard, three thousand strong. Lucerna casts no electoral vote, because its bishop counts the ballots.
 
 ## Founded, Not Taken
-Every other seat of the young faith was a place the old faith had used first — a temple yard, a felled grove, a hill with a shrine on it. The Church would not have that at its centre. In 11 AR the Concord of Ash resolved to raise a seat on ground where no Name had ever been spoken: an empty plain at the meeting of the Elve and the Rill, good for nothing but grazing. Saint Perenne the Mute laid the first archive there, and the Hierarch's seat came down from [[RPG Manager/Locations/Valmoria/Althania/Salvamont|Endhoff]] in 30 AR. Lucerna's electoral vote was suppressed at the same time, for the obvious reason, and the seventh crosier passed later to Marisund. The doctrine of it is repeated in every catechism: *a whole thing may be built, but it cannot be built on a broken one.* The practical result is a capital with no sacred geography, no pilgrim trade, and nothing whatsoever to see.
+In 11 AR the Concord of Ash resolved to raise a seat on ground where no Name had ever been spoken, and settled on an empty grazing plain at the meeting of two rivers. Saint Perenne the Mute laid the first archive there, and the Hierarch's household came down from Endhoff in 30 AR to join it. The vote of the new see was suppressed in the same instrument, for reasons nobody has ever needed to write down, and the seventh crosier passed afterwards to Marisund.
+
+Every catechism in the realm repeats the doctrine behind it. A whole thing may be built, the children are taught, but it cannot be built upon a broken one. The practical consequence is a capital with no sacred geography, no pilgrim trade, and nothing whatever to look at.
+
+The clerks of the Great Register have their own version, which they do not repeat outside the Scribes' Quarter. They say the plain was not empty when the surveyors came to it, and that the Register knows exactly what stood there, and that the knowing of it is filed somewhere a Scrivener is not permitted to draw from.
 
 ## The Shape of It
-- **The Crown Precinct** — walled within the city: the Hierarch's palace, the Chapter House, the **Ash Font**, the Curia's chanceries, and the sealed courts of [[RPG Manager/Organisations/Church of Orzhova/Althania's Holy Inquisition]]. Admission by writ.
-- **The Nine Steps** — the processional stair up to the Precinct, one landing for each year of the Rising. Every decree in the realm is read from the top of it.
-- **The Great Register** — the archive of [[RPG Manager/Organisations/Church of Orzhova/Althania's Holy Inquisition/The 1st Sacrament - The Keepers of Doctrine]]: parish rolls, chronicles, deeds, census returns, and, beneath it all, the **Silent Shelf**, which has no catalogue because a catalogue would be a record.
-- **The Ledgerhouse** — the chief Providence House of [[RPG Manager/Organisations/Church of Orzhova/Althania's Holy Inquisition/The 3rd Sacrament - The Stewards of Providence]]. A windowless grey block, and quietly the second most important building in the city.
-- **The Scribes' Quarter** — eight impression engines, the guild of copyists, and more taverns per street than anywhere in the realm, because clerks drink.
-- **The Undercrook** — the sprawl outside the walls. Petitioners, litigants, ruined claimants, and the families of men whose cases have been pending since their grandfathers filed them. Some households have petitioned across four generations.
+The **Crown Precinct** is a walled city inside the city, and admission to it is by writ. Within its wall stand the Hierarch's palace, the Chapter House, the Ash Font, the chanceries of the Curia and the sealed courts of [[Althania's Holy Inquisition]]. The **Nine Steps** climb to its gate, one landing for each year of the Rising, and every decree issued in Althania is read aloud from the top of them.
+
+Two buildings outside the Precinct matter as much as anything inside it. The **Great Register** holds the archive of [[The 1st Sacrament - The Keepers of Doctrine|the First Sacrament]] — the parish rolls, the chronicles, the deeds and the census returns — and beneath the archive lies the **Silent Shelf**, which has no catalogue, because a catalogue would itself be a record. The **Ledgerhouse** is the chief Providence House of [[The 3rd Sacrament - The Stewards of Providence|the Third]], a windowless block of grey stone that is quietly the second most important address in the realm.
+
+Around them lies the **Scribes' Quarter**, which holds eight impression engines, the guild of copyists, and more taverns to the street than anywhere else in Althania, because clerks drink. Beyond the walls sprawls the **Undercrook**, where the petitioners live: litigants, ruined claimants, and the families of men whose suits have been pending since their grandfathers filed them. Some households in the Undercrook have been petitioning across four generations.
 
 ## What Happens Here
-Nothing is decided quickly in Lucerna, and everything is decided in Lucerna. A dispute over a mill-race in the far marches will, if pursued, end in a room in the Crown Precinct in front of a man who has never seen a mill. The city runs on **writs, seals and precedence**. Which of two men enters a door first is a matter of record, and there is an office that keeps it.
+Nothing is decided quickly in Lucerna and everything is decided in Lucerna. A dispute over a mill-race in the far marches will, if the parties are stubborn enough, finish in a room in the Crown Precinct before a man who has never seen a mill.
+
+The city runs on writs, seals and precedence. Which of two men passes through a door first is a matter of formal record, and there is an office that keeps that record, and there are men whose whole careers turn on what it says.
 
 ## The Conclave
-When a Hierarch dies, the seven Elector-Bishops are sealed into the **Chapter House**, fed thin, and left. Ballots burn in the **Ash Font**: black smoke, no Hierarch; white smoke, a Hierarch. The city fills weeks in advance — banners, bought lodgings, sworn bands hired as "retinue", and every Sacrament's people in every inn. The Chapter House has been swept three times this year. The Font has been inspected twice. Nobody has said why.
+When a Hierarch dies the seven Elector-Bishops are sealed into the Chapter House, fed thin, and left there. Their ballots burn in the **Ash Font** at the close of each day: black smoke means no Hierarch, white smoke means the realm has one. Nobody outside the room observes the count, and everybody in the city observes the smoke.
+
+Lucerna fills for weeks beforehand with banners, bought lodgings, sworn bands hired under the name of retinue, and the people of all six Sacraments in all the better inns. The Chapter House has been swept three times this year and the Font inspected twice, which is more attention than either has had in a decade. Nobody in the Curia has been willing to say why.
 
 ## As Matters Stand (958 AR)
-Vasmund III has not been seen at a public rite since last autumn. Chancellor **Aldric Menn** issues his decrees, in his name, in a hand that is demonstrably not his, and nobody has yet been willing to be the first to say so in a room with a Recorder in it.
-The Undercrook is fuller than anyone can remember. The bread price has doubled since the Coughing Winter. And a great many well-dressed men have arrived from the east with no stated business..
+Vasmund III has not been seen at a public rite since last autumn. Chancellor **Aldric Menn** issues the Hierarch's decrees, in the Hierarch's name, in a hand that is demonstrably not the Hierarch's, and nobody has yet been willing to be the first to say so in a room with a Recorder in it. The copyists who take the fair copies say the tremor in the signature has not changed in eleven months, which a living hand's tremor does.
+
+The Undercrook is fuller than the oldest of its residents can remember, and the bread price has doubled since the Coughing Winter. A great many well-dressed men have arrived from the east this season with no stated business, and the inns nearest the Crown Precinct have been taken for the year by tenants who paid in advance and in full.
