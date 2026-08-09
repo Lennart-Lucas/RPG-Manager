@@ -162,7 +162,7 @@ async def _resolve_wiki_target(
     item = result.scalar_one_or_none()
     if item is not None:
         return item
-    if kind in {"locations", "organisations"}:
+    if kind in {"locations", "organisations", "races"}:
         return await _find_by_alias(
             session, user_id=user_id, kind=kind, alias=target
         )

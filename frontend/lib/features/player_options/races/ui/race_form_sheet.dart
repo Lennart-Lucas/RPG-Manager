@@ -43,6 +43,7 @@ class _RaceFormState extends State<_RaceForm> {
       TextEditingController(text: widget.initial?.name ?? '');
   late final _descriptionController =
       TextEditingController(text: widget.initial?.description ?? '');
+  late List<String> _aliases = [...?widget.initial?.aliases];
 
   @override
   void dispose() {
@@ -54,11 +55,18 @@ class _RaceFormState extends State<_RaceForm> {
   void _submit() {
     final form = _formKey.currentState;
     if (form == null || !form.validate()) return;
+    final name = _nameController.text.trim();
     Navigator.pop(
       context,
       RaceRecord(
-        name: _nameController.text.trim(),
+        name: name,
         description: _descriptionController.text.trim(),
+        aliases: [
+          for (final a in _aliases)
+            if (a.trim().isNotEmpty &&
+                a.trim().toLowerCase() != name.toLowerCase())
+              a.trim(),
+        ],
       ),
     );
   }
@@ -87,6 +95,11 @@ class _RaceFormState extends State<_RaceForm> {
             },
           ),
           const SizedBox(height: ResourceFormStyles.fieldSpacing),
+          _AliasesEditor(
+            values: _aliases,
+            onChanged: (next) => setState(() => _aliases = next),
+          ),
+          const SizedBox(height: ResourceFormStyles.fieldSpacing),
           MarkdownFormField(
             controller: _descriptionController,
             label: 'Description',
@@ -102,6 +115,100 @@ class _RaceFormState extends State<_RaceForm> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _AliasesEditor extends StatefulWidget {
+  const _AliasesEditor({
+    required this.values,
+    required this.onChanged,
+  });
+
+  final List<String> values;
+  final ValueChanged<List<String>> onChanged;
+
+  @override
+  State<_AliasesEditor> createState() => _AliasesEditorState();
+}
+
+class _AliasesEditorState extends State<_AliasesEditor> {
+  late final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _add() {
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
+    final exists = widget.values.any(
+      (v) => v.toLowerCase() == text.toLowerCase(),
+    );
+    if (!exists) {
+      widget.onChanged([...widget.values, text]);
+    }
+    _controller.clear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Aliases',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Other names this race is known by',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+        ),
+        const SizedBox(height: 8),
+        if (widget.values.isNotEmpty)
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (var i = 0; i < widget.values.length; i++)
+                InputChip(
+                  label: Text(widget.values[i]),
+                  onDeleted: () {
+                    final next = [...widget.values]..removeAt(i);
+                    widget.onChanged(next);
+                  },
+                ),
+            ],
+          ),
+        if (widget.values.isNotEmpty) const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _controller,
+                decoration: ResourceFormStyles.inputDecoration(
+                  context,
+                  label: 'Add alias',
+                ),
+                textCapitalization: TextCapitalization.words,
+                onSubmitted: (_) => _add(),
+              ),
+            ),
+            IconButton(
+              tooltip: 'Add alias',
+              onPressed: _add,
+              icon: const Icon(Icons.add),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
